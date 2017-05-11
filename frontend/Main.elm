@@ -1,65 +1,49 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Html as Html exposing (Html, program, div, button, text)
-import Html.Events as Events exposing (onClick)
+import Html        exposing (..)
+import Html.Events exposing (..)
+import WebSocket
 
+type alias Model
+  = Int
 
 type Msg
-    = Inc
-    | Dec
-
-
-type alias Model =
-    Maybe Int
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
+  = Receive String
+  | Send
 
 main : Program Never Model Msg
 main =
-    program
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+  program
+     { init          = init
+     , update        = update
+     , view          = view
+     , subscriptions = subscriptions
+     }
 
-
-init : ( Model, Cmd msg )
+init : (Model, Cmd Msg)
 init =
-    ( Just 0, Cmd.none )
-
+  (0, Cmd.none)
 
 view : Model -> Html Msg
-view num =
-    let
-        n =
-            num
-                |> Maybe.andThen (\m -> Just <| m * m)
+view model =
+  div []
+    [ p [] [ text <| "Pokes: " ++ toString model ]
+    , button [ onClick Send ] [ text "Poke others" ]
+    ]
 
-        res =
-            Maybe.withDefault 0 n
-    in
-        div
-            []
-            [ button [ onClick Inc ] [ text "Click me" ]
-            , div [] [ text (toString <| res) ]
-            , button [ onClick Dec ] [ text "-" ]
-            ]
+wsUrl : String
+wsUrl = "ws://localhost:3000"
 
-
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-    case msg of
-        Inc ->
-            let
-                n =
-                    Maybe.withDefault 0 model
-            in
-                ( Just <| n + 1, Cmd.none )
+  case msg of
+    Receive "poke" ->
+      (model + 1) ! []
+    Receive _ ->
+      model ! []
+    Send ->
+      model ! [ WebSocket.send wsUrl "poke" ]
 
-        Dec ->
-            ( Nothing, Cmd.none )
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  WebSocket.listen wsUrl Receive

@@ -26,6 +26,12 @@ executable core-catcher-exe
   build-depends:       base
                      , core-catcher
                      , warp
+                     , wai
+                     , text
+                     , websockets
+                     , wai-websockets
+                     , http-types
+                     , safe
   default-language:    Haskell2010
 
 test-suite core-catcher-test
