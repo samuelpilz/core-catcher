@@ -25,10 +25,10 @@ To view the frontend, the following command can be used:
 ```bash
 cd path/to/installation/
 cd frontend
-elm-live
+elm-live Main.elm
 ```
 
-Afterwards, the website can be viewed in the browser on port `8080`.
+Afterwards, the website can be viewed in the browser on port `8000`.
 
 ## Setup Backend
 
