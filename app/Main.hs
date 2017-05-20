@@ -1,33 +1,35 @@
+{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
+import           ClassyPrelude
 import qualified Control.Concurrent             as Concurrent
 import qualified Control.Exception              as Exception
 import qualified Control.Monad                  as Monad
-import qualified Data.List                      as List
 import qualified Data.Maybe                     as Maybe
+import qualified Data.Sequence                  as Seq
 import qualified Data.Text                      as Text
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import qualified Safe
+
 
 type ClientId = Int
 type Client   = (ClientId, WS.Connection)
-type State    = [Client]
+type State    = Seq.Seq Client
 
 
 nextId :: State -> ClientId
-nextId = Maybe.maybe 0 (1+) . Safe.maximumMay . List.map fst
+nextId = Maybe.maybe 0 (1+) . maximumMay . map fst
 
 
 main :: IO ()
 main = do
-  state <- Concurrent.newMVar []
+  state <- Concurrent.newMVar Seq.empty
   Warp.run 3000 $ WS.websocketsOr
     WS.defaultConnectionOptions
     (wsApp state)
@@ -39,10 +41,10 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 connectClient :: WS.Connection -> Concurrent.MVar State -> IO ClientId
 connectClient conn stateRef = Concurrent.modifyMVar stateRef $ \state -> do
   let clientId = nextId state
-  return ((clientId, conn) : state, clientId)
+  return ((clientId, conn) `cons` state, clientId)
 
 withoutClient :: ClientId -> State -> State
-withoutClient clientId = List.filter ((/=) clientId . fst)
+withoutClient clientId = filter ((/=) clientId . fst)
 
 disconnectClient :: ClientId -> Concurrent.MVar State -> IO ()
 disconnectClient clientId stateRef = Concurrent.modifyMVar_ stateRef $ \state ->
