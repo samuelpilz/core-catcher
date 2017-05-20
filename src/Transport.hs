@@ -1,11 +1,13 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Transport where
 
 import           ClassyPrelude
 import           Control.Monad
 import           Data.Foldable (foldrM)
-import           Data.List (cycle)
+import           Data.List     (cycle)
+import           Data.Vector   ((//))
 
 type PlayerId = Int
 type PlayersPos = Vector Vertex
@@ -52,7 +54,6 @@ newtype VertexId =
 players :: Start -> [PlayerId]
 players s = [0..(length s - 1)]
 
-
 addAction :: Action -> GameState -> GameState
 addAction a s =
     s { actions = a : actions s }
@@ -67,7 +68,7 @@ initialTurn :: Start -> Maybe [PlayerId]
 initialTurn start = case players start of [] -> Nothing; xs -> Just (cycle xs)
 updateTurn :: [PlayerId] -> Action -> Maybe [PlayerId]
 updateTurn (_:xs) _ = Just xs
-updateTurn _ _ = Nothing
+updateTurn _ _      = Nothing
 
 foldState :: (a -> Action -> Maybe a) -> (Start -> Maybe a) -> GameState -> Maybe a
 foldState update initial (GameState start actions) =
@@ -96,3 +97,11 @@ scanrM fn z0 =
     start = do n <- z0; return [n]
   in
     foldr f start
+
+updatePositions :: PlayersPos -> (Action, PlayerId) -> Maybe PlayersPos
+updatePositions v (a, pid) = applyAction (updatePositions' pid) v a
+
+updatePositions' :: PlayerId -> PlayersPos -> Move -> Maybe PlayersPos
+updatePositions' pid v (Move _ vtx) = Just $ v // [(pid, vtx)]
+updatePositions' pid v Pass         = Just v
+
