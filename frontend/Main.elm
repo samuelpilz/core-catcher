@@ -7,16 +7,7 @@ import WebSocket
 import MapView exposing (mapView)
 import Debug exposing (log)
 import Regex exposing (..)
-
-
-type alias Model =
-    ( Int, Result String Int )
-
-
-type Msg
-    = Receive String
-    | Send
-    | UpdateNum String
+import Data exposing (..)
 
 
 main : Program Never Model Msg
@@ -70,6 +61,9 @@ update msg model =
 
         UpdateNum s ->
             ( Tuple.first model, handleInputString s ) ! []
+
+        Clicked n ->
+            model ! []
 
 
 handleInputString : String -> Result String Int

@@ -2,10 +2,12 @@ module MapView exposing (mapView)
 
 import Html as Html
 import Html.Attributes exposing (style)
+import Html.Events exposing (onClick)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
 import Dict exposing (..)
+import Data exposing (..)
 
 
 type alias Node =
@@ -24,17 +26,23 @@ type alias Network =
     ( List Node, List Edge )
 
 
-mapView : Html.Html msg
+mapView : Html.Html Msg
 mapView =
     mapView2 network
 
 
-mapView2 : Network -> Html.Html msg
+mapView2 : Network -> Html.Html Msg
 mapView2 ( nodes, edges ) =
-    svg [ height (toString mapHeight), width (toString mapWidth), Html.Attributes.style [ ( "backgroundColor", "#cccccc" ) ] ] <|
-        List.map edgeLine (sortBy (\(_,_,_,x) -> -x) edges)
+    svg
+        [ height (toString mapHeight)
+        , width (toString mapWidth)
+        , Html.Attributes.style [ ( "backgroundColor", "#cccccc" ) ]
+        ]
+    <|
+        List.map edgeLine (sortBy (\( _, _, _, x ) -> -x) edges)
             ++ List.map nodeCircle nodes
             ++ List.map nodeText nodes
+
 
 mapWidth : Int
 mapWidth =
@@ -107,17 +115,27 @@ nodeY n =
 -- svg create functions
 
 
-nodeCircle : Node -> Svg msg
+nodeCircle : Node -> Svg Msg
 nodeCircle n =
-    circle [ cx << toString <| nodeX n, cy << toString <| nodeY n, r "20", fill "#111111" ] []
+    circle
+        [ cx << toString <| nodeX n
+        , cy << toString <| nodeY n
+        , r "20"
+        , fill "#111111"
+        , onClick (Clicked n)
+        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
+        ]
+        []
 
 
-nodeText : Node -> Svg msg
+nodeText : Node -> Svg Msg
 nodeText n =
     text_
         [ x << toString <| -5 + nodeX n
         , y << toString <| 5 + nodeY n
         , fill "#ffffff"
+        , onClick (Clicked n)
+        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
         ]
         [ text (toString n) ]
 
