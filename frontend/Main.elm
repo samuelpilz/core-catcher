@@ -38,8 +38,10 @@ view : Model -> Html Msg
 view ( poked, pokingState ) =
     div []
         [ p [] [ text <| "Pokes: " ++ toString poked ]
-        , input [ value (printPokingState pokingState), onInput UpdateNum ] []
-        , button [ onClick Send ] [ text "Poke others" ]
+        , div []
+            [ input [ value (printPokingState pokingState), onInput UpdateNum ] []
+            , button [ onClick Send ] [ text "Poke others" ]
+            ]
         , MapView.mapView
         ]
 
@@ -61,7 +63,7 @@ update msg model =
             if contains pokeRegex m then
                 ( Tuple.first model + getNumberFromPokeString m, Tuple.second model ) ! []
             else
-                model ! [ ]
+                model ! []
 
         Send ->
             model ! [ WebSocket.send wsUrl ("poke" ++ printPokingState (Tuple.second model)) ]
