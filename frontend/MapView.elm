@@ -66,12 +66,12 @@ mapView2 ( nodes, edges ) =
 
 nodeX : Node -> Int
 nodeX n =
-    50 + ((n + 2) * 3) % 7 * (mapWidth // 7)
+    50 + ((n + 2) * 3) % 7 * ((mapWidth - 100) // 7)
 
 
 nodeY : Node -> Int
 nodeY n =
-    50 + (n * 5) % 7 * (mapHeight // 7)
+    50 + (n * 5) % 7 * ((mapHeight - 100) // 7)
 
 
 nodeCircle : Node -> Svg msg
