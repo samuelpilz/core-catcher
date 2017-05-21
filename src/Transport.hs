@@ -1,18 +1,23 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Transport where
 
 import           ClassyPrelude
 import           Control.Monad
-import           Data.Foldable (foldrM)
-import           Data.List     (cycle)
-import           Data.Vector   ((//))
-import           Lib           (scanrTailM, mapLeft)
+import           Data.Foldable                     (foldrM)
+import qualified Data.Graph.Inductive.Graph        as Graph
+import qualified Data.Graph.Inductive.PatriciaTree as PTree
+import qualified Data.List                         as List
+import qualified Data.Set                          as Set
+import           Data.Vector                       ((//))
+import           Lib                               (mapLeft, scanrTailM)
 
 type PlayerId = Int
-type PlayersPos = Vector Vertex
+type VertexId = Graph.Node
+type PlayersPos = Vector VertexId
 type Start = PlayersPos
 
 data Color = Blue | Orange | Red deriving (Show, Eq, Ord, Read, Enum)
@@ -24,8 +29,26 @@ data GameState =
         , actions :: [Action]
         }
 
+newtype Network = Network (PTree.Gr Vertex Edge)
+
+adjacentWithEnergy :: Network -> VertexId -> Energy -> [VertexId]
+adjacentWithEnergy (Network gr) v e =
+    map snd $ filter (\(c,_) -> Set.member e (reach c)) $ Graph.lneighbors gr v
+
+canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
+canMove network from ticket to =
+    to `elem` adjacentWithEnergy network from ticket
+
+someGraph :: Graph.DynGraph gr => gr Vertex Edge
+someGraph =
+    Graph.buildGr
+        [([(mkEdge [Energy Blue],3)],
+        1,
+        Vertex,
+        [(mkEdge [Energy Red],2)])]
+
 data Move
-    = Move Energy Vertex
+    = Move Energy VertexId
     | Pass
     deriving (Show, Eq, Ord, Read)
 
@@ -44,15 +67,15 @@ applyAction f x (TwoMoves a b) = do
     r <- f x a
     f r b
 
-newtype Vertex =
-    Vertex
-        { vId :: VertexId
-        }
-        deriving (Show, Eq, Read, Ord)
+data Vertex = Vertex deriving (Show, Eq, Read, Ord)
 
-newtype VertexId =
-    V Int
-    deriving (Eq, Show, Ord, Read)
+newtype Edge =
+    Edge
+        { reach :: Set.Set Energy
+        }
+
+mkEdge :: [Energy] -> Edge
+mkEdge energies = Edge { reach = Set.fromList energies }
 
 players :: Start -> [PlayerId]
 players s = [0..(length s - 1)]
@@ -68,14 +91,14 @@ turns state =
     return $ map fst ls
 
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
-initialTurn start = case players start of [] -> Left "0 Players"; (x:xs) -> Right (x, cycle (x:xs))
+initialTurn start = case players start of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
 
 updateTurn :: (PlayerId, [PlayerId]) -> Action -> Either Error (PlayerId, [PlayerId])
 updateTurn (_,_:(x:xs)) _ = Right (x, x:xs)
-updateTurn _ _ = Left "0 Players"
+updateTurn _ _            = Left "0 Players"
 
 unwrap :: GameState -> [(Action, GameState)]
-unwrap (GameState _ []) = []
+unwrap (GameState _ [])       = []
 unwrap s@(GameState _ (x:xs)) = (x, s) : unwrap (s { actions = xs })
 
 foldState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
