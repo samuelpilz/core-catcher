@@ -11,10 +11,11 @@ import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
 import qualified Data.List                         as List
+import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
-import           Data.Vector                       ((//), (!?))
-import           Lib                               (scanrTailM, mapLeft, scanrTailM)
-import qualified Data.Map as Map
+import           Data.Vector                       ((!?), (//))
+import           Lib                               (mapLeft, scanrTailM,
+                                                    scanrTailM)
 
 type PlayerId = Int
 type VertexId = Graph.Node
@@ -28,19 +29,22 @@ data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read)
 data GameState =
     GameState
         { start   :: Start
+        , network :: Network
         , actions :: [Action]
         }
         deriving (Show)
 
-newtype Network = Network (PTree.Gr Vertex Edge)
+newtype Network =
+    Network (PTree.Gr Vertex Edge)
+    deriving (Show)
 
-adjacentWithEnergy :: Network -> VertexId -> [Energy] -> [VertexId]
-adjacentWithEnergy (Network gr) v en =
-    map snd $ filter (\(c,_) -> (or $ map (\e -> Set.member e (reach c)) en)) $ Graph.lneighbors gr v
+adjacentWithEnergy :: Network -> VertexId -> Energy -> [VertexId]
+adjacentWithEnergy (Network gr) v e =
+    map snd $ filter (\(c,_) -> Set.member e (reach c)) $ Graph.lneighbors gr v
 
 canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
-canMove network from ticket to =
-    to `elem` adjacentWithEnergy network from [ticket]
+canMove net from ticket to =
+    to `elem` adjacentWithEnergy net from ticket
 
 someGraph :: Graph.DynGraph gr => gr Vertex Edge
 someGraph =
@@ -80,6 +84,7 @@ newtype Edge =
     Edge
         { reach :: Set.Set Energy
         }
+    deriving (Show)
 
 mkEdge :: [Energy] -> Edge
 mkEdge energies = Edge { reach = Set.fromList energies }
@@ -92,47 +97,48 @@ addAction a s =
     s { actions = a : actions s }
 
 turns :: GameState -> Result [PlayerId]
-turns state =
+turns st =
   do
-    ls <- scanState updateTurn initialTurn state :: Result [(PlayerId, [PlayerId])]
+    ls <- scanState updateTurn initialTurn st :: Result [(PlayerId, [PlayerId])]
     return $ map fst ls
 
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
-initialTurn start = case players start of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
+initialTurn strt = case players strt of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
 
 updateTurn :: (PlayerId, [PlayerId]) -> Action -> Either Error (PlayerId, [PlayerId])
 updateTurn (_,_:(x:xs)) _ = Right (x, x:xs)
 updateTurn _ _            = Left "0 Players"
 
 unwrap :: GameState -> [(Action, GameState)]
-unwrap (GameState _ []) = []
-unwrap s@(GameState _ (x:xs)) = let next = s { actions = xs } in (x, next) : unwrap next
+unwrap s = case actions s of
+    []     -> []
+    (x:xs) -> let prev = s { actions = xs } in (x, prev) : unwrap prev
 
 foldState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldState update initial st@(GameState start _) =
+foldState update initial st =
   do
-    s <- mapLeft Fatal $ initial start
+    s <- mapLeft Fatal $ initial $ start st
     foldrM fn s (unwrap st)
       where
-        fn (action,state) result = mapLeft (Rollback state) (update result action)
+        fn (action, ste) result = mapLeft (Rollback ste) (update result action)
 
 foldStateWithTurn :: (a -> (Action, PlayerId) -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldStateWithTurn update initial st@(GameState start _) =
+foldStateWithTurn update initial st =
   do
     ts <- turns st
-    s <- mapLeft Fatal $ initial start
+    s <- mapLeft Fatal $ initial $ start st
     foldrM fn s (zip (unwrap st) ts)
       where
-        fn ((action,state),turn) result = mapLeft (Rollback state) (update result (action, turn))
+        fn ((action, ste),turn) result = mapLeft (Rollback ste) (update result (action, turn))
 
 scanState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result [a]
-scanState update initial st@(GameState start actions) =
-  scanrTailM fn (mapLeft Fatal $ initial start) (unwrap st)
+scanState update initial st =
+  scanrTailM fn (mapLeft Fatal $ initial $ start st) (unwrap st)
     where
-      fn result (action, state) = mapLeft (Rollback state) (update result action)
+      fn result (action, s) = mapLeft (Rollback s) (update result action)
 
 printStatesWithTurns :: GameState -> IO ()
-printStatesWithTurns state = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) state of
+printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) st of
   Right io -> io
   Left err -> putStrLn (Transport.error err)
 
@@ -156,11 +162,36 @@ updatePositions' gs pid _ v Pass         = Right v
 initialTickets :: Start -> Either Error PlayersTickets
 initialTickets ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
 
+
 updateTickets :: GameState -> PlayersTickets -> (Action, PlayerId) -> Either Error PlayersTickets
 updateTickets gs v (a, pid) = applyAction (updateTickets' gs pid) v a
 
 corruptedPid :: GameState -> PlayerId
 corruptedPid _ = 0
+
+updateTickets' :: GameState -> PlayerId -> PlayersTickets -> Move -> Either Error PlayersTickets
+updateTickets' gs pid v (Move t _) =
+  let
+    subTicket old = let ts = findWithDefault 0 t old in (if (ts - 1) >= 0 then Just else const Nothing) $ Map.insert t (ts - 1) old
+    addTicket old = Map.insert t (1 + findWithDefault 0 t old) old
+    in
+      case v !? pid of
+        Nothing -> Left "Player not found or Player has no tickets"
+        Just old -> case subTicket old of
+          Nothing -> Left "No more tickets"
+          Just new -> case if corruptedPid gs == pid then return [] else do {
+            cold <- v !? corruptedPid gs;
+            return [(corruptedPid gs, addTicket cold)]
+          } of
+            Nothing -> Left "Error updating corrupted core"
+            Just ls -> Right $ v // ((pid, new):ls)
+updateTickets' _ _ v Pass = Right v
+
+example :: Map.Map Energy Int
+example = Map.insert (Energy Orange) 5 Map.empty
+
+example2 :: Map.Map Energy Int
+example2 = Map.insert (Energy Blue) 5 Map.empty
 
 (=>>) :: (Monad m) => (a -> b -> m a) -> (a -> c -> b -> m c) -> (a, c) -> b -> m (a, c)
 (=>>) g h (a, c) b =
@@ -175,27 +206,3 @@ corruptedPid _ = 0
     newA <- g b
     newC <- h newA b
     return (newA, newC)
-
-updateTickets' :: GameState -> PlayerId -> PlayersTickets -> Move -> Either Error PlayersTickets
-updateTickets' gs pid v (Move t _) =
-  let
-    subTicket old = let ts = findWithDefault 0 t old in (if (ts - 1) >= 0 then Just else const Nothing) $ Map.insert t (ts - 1) old
-    addTicket old = Map.insert t (1 + findWithDefault 0 t old) old
-    in
-      case v !? pid of
-        Nothing -> Left "Player not found or Player has no tickets"
-        Just old -> case subTicket old of
-          Nothing -> Left "No more tickets"
-          Just new -> case if corruptedPid gs == pid then return [] else do {
-            old <- v !? corruptedPid gs;
-            return [(corruptedPid gs, addTicket old)]
-          } of
-            Nothing -> Left "Error updating corrupted core"
-            Just ls -> Right $ v // ((pid, new):ls)
-updateTickets' _ _ v Pass = Right v
-
-example :: Map.Map Energy Int
-example = Map.insert (Energy Orange) 5 Map.empty
-
-example2 :: Map.Map Energy Int
-example2 = Map.insert (Energy Blue) 5 Map.empty
