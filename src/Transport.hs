@@ -52,6 +52,7 @@ someNet =
         [([(mkEdge [Energy Orange, Energy Blue], 2), (mkEdge [Energy Orange], 3)], 1, Vertex)
         ,([(mkEdge [BlackEnergy], 3)], 2, Vertex)
         ,([(mkEdge [Energy Red], 4)], 3, Vertex)
+        ,([], 4, Vertex)
         ]
 
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
