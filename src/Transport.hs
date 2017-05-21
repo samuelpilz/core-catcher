@@ -11,10 +11,11 @@ import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
 import qualified Data.List                         as List
+import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
-import           Data.Vector                       ((//), (!?))
-import           Lib                               (scanrTailM, mapLeft, scanrTailM)
-import qualified Data.Map as Map
+import           Data.Vector                       ((!?), (//))
+import           Lib                               (mapLeft, scanrTailM,
+                                                    scanrTailM)
 
 type PlayerId = Int
 type VertexId = Graph.Node
@@ -92,9 +93,9 @@ addAction a s =
     s { actions = a : actions s }
 
 turns :: GameState -> Result [PlayerId]
-turns state =
+turns st =
   do
-    ls <- scanState updateTurn initialTurn state :: Result [(PlayerId, [PlayerId])]
+    ls <- scanState updateTurn initialTurn st :: Result [(PlayerId, [PlayerId])]
     return $ map fst ls
 
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
@@ -105,31 +106,32 @@ updateTurn (_,_:(x:xs)) _ = Right (x, x:xs)
 updateTurn _ _            = Left "0 Players"
 
 unwrap :: GameState -> [(Action, GameState)]
-unwrap (GameState _ []) = []
-unwrap s@(GameState _ (x:xs)) = let next = s { actions = xs } in (x, next) : unwrap next
+unwrap s = case actions s of
+    []     -> []
+    (x:xs) -> let prev = s { actions = xs } in (x, prev) : unwrap prev
 
 foldState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldState update initial st@(GameState start _) =
+foldState update initial st =
   do
-    s <- mapLeft Fatal $ initial start
+    s <- mapLeft Fatal $ initial $ start st
     foldrM fn s (unwrap st)
       where
         fn (action,state) result = mapLeft (Rollback state) (update result action)
 
 foldStateWithTurn :: (a -> (Action, PlayerId) -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldStateWithTurn update initial st@(GameState start _) =
+foldStateWithTurn update initial st =
   do
     ts <- turns st
-    s <- mapLeft Fatal $ initial start
+    s <- mapLeft Fatal $ initial $ start st
     foldrM fn s (zip (unwrap st) ts)
       where
-        fn ((action,state),turn) result = mapLeft (Rollback state) (update result (action, turn))
+        fn ((action, ste),turn) result = mapLeft (Rollback ste) (update result (action, turn))
 
 scanState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result [a]
-scanState update initial st@(GameState start actions) =
-  scanrTailM fn (mapLeft Fatal $ initial start) (unwrap st)
+scanState update initial st =
+  scanrTailM fn (mapLeft Fatal $ initial $ start st) (unwrap st)
     where
-      fn result (action, state) = mapLeft (Rollback state) (update result action)
+      fn result (action, s) = mapLeft (Rollback s) (update result action)
 
 printStatesWithTurns :: GameState -> IO ()
 printStatesWithTurns state = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) state of
@@ -155,6 +157,7 @@ tickets gs = foldStateWithTurn (updateTickets gs) initialTickets gs
 
 initialTickets :: Start -> Either Error PlayersTickets
 initialTickets ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
+
 
 updateTickets :: GameState -> PlayersTickets -> (Action, PlayerId) -> Either Error PlayersTickets
 updateTickets gs v (a, pid) = applyAction (updateTickets' gs pid) v a
