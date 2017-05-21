@@ -9,6 +9,7 @@ module Lib
     , scanrInitM
     , mapLeft
     , mapRight
+    , maybeToEither
     ) where
 
 import           ClassyPrelude
@@ -54,3 +55,7 @@ scanrM' fn z0 =
     start = do n <- z0; return (n, [])
   in
     foldr f start
+
+maybeToEither :: Maybe a -> b -> Either b a
+maybeToEither (Just a) _ = Right a
+maybeToEither Nothing b = Left b

@@ -14,8 +14,8 @@ import qualified Data.List                         as List
 import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
 import           Data.Vector                       ((!?), (//))
-import           Lib                               (mapLeft, scanrTailM,
-                                                    scanrTailM)
+import           Lib                               (mapLeft, mapRight, scanrTailM,
+                                                    scanrTailM, maybeToEither)
 
 type PlayerId = Int
 type VertexId = Graph.Node
@@ -38,13 +38,13 @@ newtype Network =
     Network (PTree.Gr Vertex Edge)
     deriving (Show)
 
-adjacentWithEnergy :: Network -> VertexId -> Energy -> [VertexId]
-adjacentWithEnergy (Network gr) v e =
-    map snd $ filter (\(c,_) -> Set.member e (reach c)) $ Graph.lneighbors gr v
+adjacentWithEnergy :: Network -> VertexId -> [Energy] -> [VertexId]
+adjacentWithEnergy (Network gr) v es =
+    map snd $ filter (\(c,_) -> any  (`Set.member` reach c) es) $ Graph.lneighbors gr v
 
 canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
 canMove net from ticket to =
-    to `elem` adjacentWithEnergy net from ticket
+    to `elem` adjacentWithEnergy net from [ticket]
 
 someGraph :: Graph.DynGraph gr => gr Vertex Edge
 someGraph =
@@ -152,8 +152,16 @@ updatePositions :: GameState -> PlayersTickets -> PlayersPos -> (Action, PlayerI
 updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 
 updatePositions' :: GameState -> PlayerId -> PlayersTickets -> PlayersPos -> Move -> Either Error PlayersPos
-updatePositions' gs pid _ v (Move _ vtx) = Right $ v // [(pid, vtx)]
-updatePositions' gs pid _ v Pass         = Right v
+updatePositions' gs pid t v (Move e vtx) = do
+              pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
+              let valid = vtx `List.elem` adjacentWithEnergy (network gs) pos [e]
+              if valid then Right $ v // [(pid, vtx)] else Left "Player moved incorrectly"
+updatePositions' gs pid t v Pass         =  do
+              pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
+              energy <- maybeToEither (t !? pid) "Player not found or Player has no energy"
+              let colors = map fst $ Map.toList $ Map.filter (> 0) energy
+              let valid = null $ adjacentWithEnergy (network gs) pos colors
+              if valid then Right v else Left "Player did not move"
 
 -- tickets (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
 --tickets :: GameState -> Result PlayersTickets
@@ -162,7 +170,6 @@ updatePositions' gs pid _ v Pass         = Right v
 initialTickets :: Start -> Either Error PlayersTickets
 initialTickets ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
 
-
 updateTickets :: GameState -> PlayersTickets -> (Action, PlayerId) -> Either Error PlayersTickets
 updateTickets gs v (a, pid) = applyAction (updateTickets' gs pid) v a
 
@@ -170,21 +177,15 @@ corruptedPid :: GameState -> PlayerId
 corruptedPid _ = 0
 
 updateTickets' :: GameState -> PlayerId -> PlayersTickets -> Move -> Either Error PlayersTickets
-updateTickets' gs pid v (Move t _) =
-  let
-    subTicket old = let ts = findWithDefault 0 t old in (if (ts - 1) >= 0 then Just else const Nothing) $ Map.insert t (ts - 1) old
-    addTicket old = Map.insert t (1 + findWithDefault 0 t old) old
-    in
-      case v !? pid of
-        Nothing -> Left "Player not found or Player has no tickets"
-        Just old -> case subTicket old of
-          Nothing -> Left "No more tickets"
-          Just new -> case if corruptedPid gs == pid then return [] else do {
-            cold <- v !? corruptedPid gs;
-            return [(corruptedPid gs, addTicket cold)]
-          } of
-            Nothing -> Left "Error updating corrupted core"
-            Just ls -> Right $ v // ((pid, new):ls)
+updateTickets' gs pid v (Move t _) = do
+  old <- maybeToEither (v !? pid) "Player not found or Player has no energy"
+  let ts = findWithDefault 0 t old
+  new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more tickets"
+  ls <- if corruptedPid gs == pid then return [] else do
+    oldm <- maybeToEither (v !? corruptedPid gs) "Error updating corrupted core"
+    let oldv = 1 + findWithDefault 0 t oldm
+    return [(corruptedPid gs, Map.insert t oldv oldm)]
+  return $ v // ((pid, new):ls)
 updateTickets' _ _ v Pass = Right v
 
 example :: Map.Map Energy Int
