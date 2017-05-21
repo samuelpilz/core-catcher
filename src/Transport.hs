@@ -6,7 +6,7 @@
 module Transport where
 
 import           ClassyPrelude
-import           Control.Monad
+import           Control.Monad                     as Monad
 import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
@@ -49,10 +49,12 @@ canMove net from ticket to =
 someNet :: Network
 someNet =
     Network $ buildGr
-        [([(mkEdge [Energy Orange, Energy Blue], 2), (mkEdge [Energy Orange], 3)], 1, Vertex)
-        ,([(mkEdge [BlackEnergy], 3)], 2, Vertex)
+        [([(mkEdge [Energy Red, Energy Blue], 2), (mkEdge [Energy Orange], 3), (mkEdge [Energy Orange], 6)], 1, Vertex)
+        ,([(mkEdge [BlackEnergy], 3), (mkEdge [Energy Red, Energy Orange, Energy Blue], 5)], 2, Vertex)
         ,([(mkEdge [Energy Red], 4)], 3, Vertex)
         ,([], 4, Vertex)
+        ,([(mkEdge [Energy Red, Energy Blue], 6)], 5, Vertex)
+        ,([], 6, Vertex)
         ]
 
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
