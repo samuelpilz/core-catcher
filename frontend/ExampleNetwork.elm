@@ -72,7 +72,7 @@ colorMap =
     Dict.fromList
         [ ( "underground", "red" )
         , ( "bus", "blue" )
-        , ( "taxi", "yellow" )
+        , ( "taxi", "orange" )
         ]
 
 

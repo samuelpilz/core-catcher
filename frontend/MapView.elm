@@ -11,52 +11,6 @@ import Data exposing (..)
 import Network exposing (..)
 import ExampleNetwork as Example
 
-
-{-
-   type alias Edge =
-       ( Node, Node, Color, Int )
-
-
-   type alias Network =
-       ( List Node, List Edge )
--}
--- network
-{-
-   mapViewOfNetwork : Network -> Html.Html Msg
-   mapViewOfNetwork ( nodes, edges ) =
-       svg
-           [ height (toString mapHeight)
-           , width (toString mapWidth)
-           , Html.Attributes.style [ ( "backgroundColor", "#cccccc" ) ]
-           ]
-       <|
-           List.map edgeLine (sortBy (\( _, _, _, x ) -> -x) edges)
-               ++ List.map nodeCircle nodes
-               ++ List.map nodeText nodes
--}
-{-
-   network : Network
-   network =
-       ( range 1 6
-       , [ ( 1, 2, "black", 2 )
-         , ( 1, 3, "red", 15 )
-         , ( 1, 5, "red", 15 )
-         , ( 1, 5, "yellow", 2 )
-         , ( 2, 3, "blue", 8 )
-         , ( 2, 5, "blue", 8 )
-         , ( 2, 5, "yellow", 2 )
-         , ( 3, 4, "yellow", 2 )
-         , ( 3, 5, "yellow", 2 )
-         , ( 3, 6, "red", 15 )
-         , ( 3, 6, "blue", 8 )
-         , ( 1, 6, "red", 15 )
-         , ( 1, 6, "blue", 8 )
-         , ( 1, 6, "yellow", 2 )
-         ]
-       )
--}
-
-
 mapView : Html.Html Msg
 mapView =
     mapViewOfNetwork Example.displayInfo Example.network
