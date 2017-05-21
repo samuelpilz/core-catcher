@@ -66,6 +66,9 @@ exampleInvalidMove1 = playerState $ (\x -> GameState {start = fromList [1,2,3], 
 exampleInvalidMove2 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 2]
 
+exampleValidMove0 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+  [OneMove $ Move (Energy Blue) 5, OneMove $ Move (Energy Orange) 6]
+
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
 
 buildGr :: Graph.DynGraph gr => [UniContext a b] -> gr a b
@@ -159,8 +162,11 @@ printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) 
   Right io -> io
   Left err -> putStrLn (Transport.error err)
 
-playerState :: GameState -> Result (PlayersTickets, PlayersPos)
-playerState gs = foldStateWithTurn (updateTickets gs =>> updatePositions gs) (initialTickets >>| initialPositions) gs
+playerState :: GameState -> Result (PlayersTickets, PlayersPos, Int)
+playerState gs = do
+  (ts, ps) <- foldStateWithTurn (updateTickets gs =>> updatePositions gs) (initialTickets >>| initialPositions) gs
+  tm <- foldStateWithTurn (updateTwoMove gs) initialTwoMove gs
+  return (ts, ps, tm)
 
 initialPositions :: PlayersTickets -> Start -> Either Error PlayersPos
 initialPositions _ = Right
@@ -207,6 +213,17 @@ updateTickets' gs pid v (Move t _) = do
     return [(corruptedPid gs, Map.insert t oldv oldm)]
   return $ v // ((pid, new):ls)
 updateTickets' _ _ v Pass = Right v
+
+initialTwoMove :: Start -> Either Error Int
+initialTwoMove _ = Right 2
+
+updateTwoMove :: GameState -> Int -> (Action, PlayerId) -> Either Error Int
+updateTwoMove gs m (TwoMoves a b, pid) = do
+  when (a == Pass || b == Pass) $ Left "Can not pass a move within a two-moves"
+  unless (pid == corruptedPid gs) $ Left "Player can not move with two-moves"
+  unless (m > 0) $ Left "The corrupted core already used all its two-moves "
+  return $ m - 1
+updateTwoMove _ m (OneMove _, _) = Right m
 
 example :: Map.Map Energy Int
 example = Map.insert (Energy Orange) 5 Map.empty
