@@ -43,8 +43,8 @@ adjacentWithEnergy (Network gr) v e =
     map snd $ filter (\(c,_) -> Set.member e (reach c)) $ Graph.lneighbors gr v
 
 canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
-canMove network from ticket to =
-    to `elem` adjacentWithEnergy network from ticket
+canMove net from ticket to =
+    to `elem` adjacentWithEnergy net from ticket
 
 someGraph :: Graph.DynGraph gr => gr Vertex Edge
 someGraph =
@@ -120,7 +120,7 @@ foldState update initial st =
     s <- mapLeft Fatal $ initial $ start st
     foldrM fn s (unwrap st)
       where
-        fn (action,state) result = mapLeft (Rollback state) (update result action)
+        fn (action, ste) result = mapLeft (Rollback ste) (update result action)
 
 foldStateWithTurn :: (a -> (Action, PlayerId) -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
 foldStateWithTurn update initial st =
@@ -138,7 +138,7 @@ scanState update initial st =
       fn result (action, s) = mapLeft (Rollback s) (update result action)
 
 printStatesWithTurns :: GameState -> IO ()
-printStatesWithTurns state = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) state of
+printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) st of
   Right io -> io
   Left err -> putStrLn (Transport.error err)
 
@@ -180,8 +180,8 @@ updateTickets' gs pid v (Move t _) =
         Just old -> case subTicket old of
           Nothing -> Left "No more tickets"
           Just new -> case if corruptedPid gs == pid then return [] else do {
-            old <- v !? corruptedPid gs;
-            return [(corruptedPid gs, addTicket old)]
+            cold <- v !? corruptedPid gs;
+            return [(corruptedPid gs, addTicket cold)]
           } of
             Nothing -> Left "Error updating corrupted core"
             Just ls -> Right $ v // ((pid, new):ls)
