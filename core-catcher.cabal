@@ -19,6 +19,9 @@ library
                      , Transport
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
+                     , vector
+                     , fgl
+                     , containers
   default-language:    Haskell2010
 
 executable core-catcher-exe
