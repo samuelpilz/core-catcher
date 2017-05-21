@@ -57,7 +57,7 @@ someNet =
         ,([], 6, Vertex)
         ]
 
-exampleMove = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove0 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
 
 exampleInvalidMove1 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
