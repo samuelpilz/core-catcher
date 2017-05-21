@@ -54,6 +54,15 @@ someNet =
         ,([(mkEdge [Energy Red], 4)], 3, Vertex)
         ]
 
+exampleMove = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+  [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
+
+exampleInvalidMove1 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+  [OneMove $ Move (Energy Orange) 1, OneMove $ Move BlackEnergy 3, OneMove $ Move (Energy Orange) 3]
+
+exampleInvalidMove2 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+  [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 2]
+
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
 
 buildGr :: Graph.DynGraph gr => [UniContext a b] -> gr a b
@@ -159,14 +168,17 @@ updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 updatePositions' :: GameState -> PlayerId -> PlayersTickets -> PlayersPos -> Move -> Either Error PlayersPos
 updatePositions' gs pid t v (Move e vtx) = do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
-              let valid = vtx `List.elem` adjacentWithEnergy (network gs) pos [e]
-              if valid then Right $ v // [(pid, vtx)] else Left "Player moved incorrectly"
+              unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
+              unless notOccupied $ Left "Player collided with another one"
+              Right $ v // [(pid, vtx)]
+                where notOccupied = vtx `notElem` v
 updatePositions' gs pid t v Pass         =  do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
               energy <- maybeToEither (t !? pid) "Player not found or Player has no energy"
-              let colors = map fst $ Map.toList $ Map.filter (> 0) energy
-              let valid = null $ adjacentWithEnergy (network gs) pos colors
+              let colors = map fst $ Map.toList $ Map.filter (>0) energy
+              let valid = allOccupied $ adjacentWithEnergy (network gs) pos colors
               if valid then Right v else Left "Player did not move"
+                where allOccupied = all (\avail -> any (\other -> avail == other) v)
 
 -- tickets (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
 --tickets :: GameState -> Result PlayersTickets
