@@ -103,7 +103,7 @@ turns st =
     return $ map fst ls
 
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
-initialTurn start = case players start of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
+initialTurn strt = case players strt of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
 
 updateTurn :: (PlayerId, [PlayerId]) -> Action -> Either Error (PlayerId, [PlayerId])
 updateTurn (_,_:(x:xs)) _ = Right (x, x:xs)
