@@ -46,13 +46,18 @@ canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
 canMove net from ticket to =
     to `elem` adjacentWithEnergy net from [ticket]
 
-someGraph :: Graph.DynGraph gr => gr Vertex Edge
-someGraph =
-    Graph.buildGr
-        [([(mkEdge [Energy Blue],3)],
-        1,
-        Vertex,
-        [(mkEdge [Energy Red],2)])]
+someNet :: Network
+someNet =
+    Network $ buildGr
+        [([(mkEdge [Energy Orange, Energy Blue], 2), (mkEdge [Energy Orange], 3)], 1, Vertex)
+        ,([(mkEdge [BlackEnergy], 3)], 2, Vertex)
+        ,([(mkEdge [Energy Red], 4)], 3, Vertex)
+        ]
+
+type UniContext a b = (Graph.Adj b, Graph.Node, a)
+
+buildGr :: Graph.DynGraph gr => [UniContext a b] -> gr a b
+buildGr ctx = Graph.buildGr [(e, n, v, e) | (e, n, v) <- ctx]
 
 data Move
     = Move Energy VertexId
