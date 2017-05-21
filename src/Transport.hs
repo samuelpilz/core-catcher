@@ -29,11 +29,14 @@ data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read)
 data GameState =
     GameState
         { start   :: Start
+        , network :: Network
         , actions :: [Action]
         }
         deriving (Show)
 
-newtype Network = Network (PTree.Gr Vertex Edge)
+newtype Network =
+    Network (PTree.Gr Vertex Edge)
+    deriving (Show)
 
 adjacentWithEnergy :: Network -> VertexId -> Energy -> [VertexId]
 adjacentWithEnergy (Network gr) v e =
@@ -81,6 +84,7 @@ newtype Edge =
     Edge
         { reach :: Set.Set Energy
         }
+    deriving (Show)
 
 mkEdge :: [Energy] -> Edge
 mkEdge energies = Edge { reach = Set.fromList energies }
