@@ -11,11 +11,10 @@ import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
 import qualified Data.List                         as List
-import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
-import           Data.Vector                       ((!?), (//))
-import           Lib                               (mapLeft, scanrTailM,
-                                                    scanrTailM)
+import           Data.Vector                       ((//), (!?))
+import           Lib                               (scanrTailM, mapLeft, scanrTailM)
+import qualified Data.Map as Map
 
 type PlayerId = Int
 type VertexId = Graph.Node
@@ -35,13 +34,13 @@ data GameState =
 
 newtype Network = Network (PTree.Gr Vertex Edge)
 
-adjacentWithEnergy :: Network -> VertexId -> Energy -> [VertexId]
-adjacentWithEnergy (Network gr) v e =
-    map snd $ filter (\(c,_) -> Set.member e (reach c)) $ Graph.lneighbors gr v
+adjacentWithEnergy :: Network -> VertexId -> [Energy] -> [VertexId]
+adjacentWithEnergy (Network gr) v en =
+    map snd $ filter (\(c,_) -> (or $ map (\e -> Set.member e (reach c)) en)) $ Graph.lneighbors gr v
 
 canMove :: Network -> VertexId -> Energy -> VertexId -> Bool
 canMove network from ticket to =
-    to `elem` adjacentWithEnergy network from ticket
+    to `elem` adjacentWithEnergy network from [ticket]
 
 someGraph :: Graph.DynGraph gr => gr Vertex Edge
 someGraph =
@@ -93,9 +92,9 @@ addAction a s =
     s { actions = a : actions s }
 
 turns :: GameState -> Result [PlayerId]
-turns st =
+turns state =
   do
-    ls <- scanState updateTurn initialTurn st :: Result [(PlayerId, [PlayerId])]
+    ls <- scanState updateTurn initialTurn state :: Result [(PlayerId, [PlayerId])]
     return $ map fst ls
 
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
@@ -106,64 +105,76 @@ updateTurn (_,_:(x:xs)) _ = Right (x, x:xs)
 updateTurn _ _            = Left "0 Players"
 
 unwrap :: GameState -> [(Action, GameState)]
-unwrap s = case actions s of
-    []     -> []
-    (x:xs) -> let prev = s { actions = xs } in (x, prev) : unwrap prev
+unwrap (GameState _ []) = []
+unwrap s@(GameState _ (x:xs)) = let next = s { actions = xs } in (x, next) : unwrap next
 
 foldState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldState update initial st =
+foldState update initial st@(GameState start _) =
   do
-    s <- mapLeft Fatal $ initial $ start st
+    s <- mapLeft Fatal $ initial start
     foldrM fn s (unwrap st)
       where
         fn (action,state) result = mapLeft (Rollback state) (update result action)
 
 foldStateWithTurn :: (a -> (Action, PlayerId) -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result a
-foldStateWithTurn update initial st =
+foldStateWithTurn update initial st@(GameState start _) =
   do
     ts <- turns st
-    s <- mapLeft Fatal $ initial $ start st
+    s <- mapLeft Fatal $ initial start
     foldrM fn s (zip (unwrap st) ts)
       where
-        fn ((action, ste),turn) result = mapLeft (Rollback ste) (update result (action, turn))
+        fn ((action,state),turn) result = mapLeft (Rollback state) (update result (action, turn))
 
 scanState :: (a -> Action -> Either Error a) -> (Start -> Either Error a) -> GameState -> Result [a]
-scanState update initial st =
-  scanrTailM fn (mapLeft Fatal $ initial $ start st) (unwrap st)
+scanState update initial st@(GameState start actions) =
+  scanrTailM fn (mapLeft Fatal $ initial start) (unwrap st)
     where
-      fn result (action, s) = mapLeft (Rollback s) (update result action)
+      fn result (action, state) = mapLeft (Rollback state) (update result action)
 
 printStatesWithTurns :: GameState -> IO ()
 printStatesWithTurns state = case foldStateWithTurn (\y x -> Right $ y >> print x) (const $ Right $ return ()) state of
   Right io -> io
   Left err -> putStrLn (Transport.error err)
 
-positions :: GameState -> Result PlayersPos
-positions = foldStateWithTurn updatePositions initialPositions
+playerState :: GameState -> Result (PlayersTickets, PlayersPos)
+playerState gs = foldStateWithTurn (updateTickets gs =>> updatePositions gs) (initialTickets >>| initialPositions) gs
 
-initialPositions :: Start -> Either Error PlayersPos
-initialPositions = Right
+initialPositions :: PlayersTickets -> Start -> Either Error PlayersPos
+initialPositions _ = Right
 
-updatePositions :: PlayersPos -> (Action, PlayerId) -> Either Error PlayersPos
-updatePositions v (a, pid) = applyAction (updatePositions' pid) v a
+updatePositions :: GameState -> PlayersTickets -> PlayersPos -> (Action, PlayerId) -> Either Error PlayersPos
+updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 
-updatePositions' :: PlayerId -> PlayersPos -> Move -> Either Error PlayersPos
-updatePositions' pid v (Move _ vtx) = Right $ v // [(pid, vtx)]
-updatePositions' pid v Pass         = Right v
+updatePositions' :: GameState -> PlayerId -> PlayersTickets -> PlayersPos -> Move -> Either Error PlayersPos
+updatePositions' gs pid _ v (Move _ vtx) = Right $ v // [(pid, vtx)]
+updatePositions' gs pid _ v Pass         = Right v
 
 -- tickets (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
-tickets :: GameState -> Result PlayersTickets
-tickets gs = foldStateWithTurn (updateTickets gs) initialTickets gs
+--tickets :: GameState -> Result PlayersTickets
+--tickets gs = foldStateWithTurn (updateTickets gs) initialTickets gs
 
 initialTickets :: Start -> Either Error PlayersTickets
 initialTickets ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
-
 
 updateTickets :: GameState -> PlayersTickets -> (Action, PlayerId) -> Either Error PlayersTickets
 updateTickets gs v (a, pid) = applyAction (updateTickets' gs pid) v a
 
 corruptedPid :: GameState -> PlayerId
 corruptedPid _ = 0
+
+(=>>) :: (Monad m) => (a -> b -> m a) -> (a -> c -> b -> m c) -> (a, c) -> b -> m (a, c)
+(=>>) g h (a, c) b =
+  do
+    newA <- g a b
+    newC <- h newA c b
+    return (newA, newC)
+
+(>>|) :: (Monad m) => (b -> m a) -> (a -> b -> m c) -> b -> m (a, c)
+(>>|) g h b =
+  do
+    newA <- g b
+    newC <- h newA b
+    return (newA, newC)
 
 updateTickets' :: GameState -> PlayerId -> PlayersTickets -> Move -> Either Error PlayersTickets
 updateTickets' gs pid v (Move t _) =
