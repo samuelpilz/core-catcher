@@ -1,12 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module Transport where
 
 import           ClassyPrelude
 import           Control.Monad                     as Monad
+import qualified Data.Aeson                        as Aeson
 import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
@@ -14,17 +16,30 @@ import qualified Data.List                         as List
 import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
 import           Data.Vector                       ((!?), (//))
-import           Lib                               (mapLeft, mapRight, scanrTailM,
-                                                    scanrTailM, maybeToEither)
+import qualified GHC.Generics                      ()
+import           Lib                               (mapLeft, maybeToEither,
+                                                    scanrTailM, scanrTailM)
 
 type PlayerId = Int
 type VertexId = Graph.Node
 type PlayersPos = Vector VertexId
-type PlayersTickets = Vector (Map.Map Energy Int)
+type PlayersEnergies = Vector (Map.Map Energy Int)
 type Start = PlayersPos
 
-data Color = Blue | Orange | Red deriving (Show, Eq, Ord, Read, Enum)
-data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read)
+data Color = Blue | Orange | Red deriving (Show, Eq, Ord, Read, Enum, Generic)
+instance Aeson.ToJSONKey Color where
+instance Aeson.ToJSON Color where
+data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read, Generic)
+instance Aeson.ToJSONKey Energy where
+instance Aeson.ToJSON Energy where
+
+newtype FlatGameState =
+  FlatGameState {
+    gamestate :: Maybe (PlayersEnergies, PlayersPos, Int)
+  }
+  deriving (Generic, Show)
+instance Aeson.ToJSON FlatGameState where
+
 
 data GameState =
     GameState
@@ -32,11 +47,29 @@ data GameState =
         , network :: Network
         , actions :: [Action]
         }
-        deriving (Show)
+        deriving (Show, Generic)
 
 newtype Network =
     Network (PTree.Gr Vertex Edge)
     deriving (Show)
+
+data Move
+    = Move Energy VertexId
+    | Pass
+    deriving (Show, Eq, Ord, Read)
+
+data Action
+    = OneMove Move
+    | TwoMoves Move Move
+    deriving (Show, Eq, Ord, Read)
+
+type Error = Text
+data ErrorHandler
+  = Rollback { state :: GameState, error :: Error }
+  | Fatal { error :: Error }
+  deriving (Show, Generic)
+
+type Result a = Either ErrorHandler a
 
 adjacentWithEnergy :: Network -> VertexId -> [Energy] -> [VertexId]
 adjacentWithEnergy (Network gr) v es =
@@ -57,40 +90,22 @@ someNet =
         ,([], 6, Vertex)
         ]
 
-exampleInvalidMove0 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove0 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
 
-exampleInvalidMove1 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove1 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move BlackEnergy 3, OneMove $ Move (Energy Orange) 3]
 
-exampleInvalidMove2 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove2 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 2]
 
-exampleValidMove0 = playerState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleValidMove0 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Blue) 5, OneMove $ Move (Energy Orange) 6]
 
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
 
 buildGr :: Graph.DynGraph gr => [UniContext a b] -> gr a b
 buildGr ctx = Graph.buildGr [(e, n, v, e) | (e, n, v) <- ctx]
-
-data Move
-    = Move Energy VertexId
-    | Pass
-    deriving (Show, Eq, Ord, Read)
-
-data Action
-    = OneMove Move
-    | TwoMoves Move Move
-    deriving (Show, Eq, Ord, Read)
-
-type Error = Text
-data ErrorHandler
-  = Rollback { state :: GameState, error :: Error }
-  | Fatal { error :: Error }
-  deriving (Show)
-
-type Result a = Either ErrorHandler a
 
 applyAction :: Monad m => (a -> Move -> m a) -> a -> Action -> m a
 applyAction f x (OneMove a)    = f x a
@@ -165,19 +180,28 @@ printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) 
   Right io -> io
   Left err -> putStrLn (Transport.error err)
 
-playerState :: GameState -> Result (PlayersTickets, PlayersPos, Int)
-playerState gs = do
-  (ts, ps) <- foldStateWithTurn (updateTickets gs =>> updatePositions gs) (initialTickets >>| initialPositions) gs
+playersState :: GameState -> Result (PlayersEnergies, PlayersPos, Int)
+playersState gs = do
+  (ts, ps) <- foldStateWithTurn (updateEnergies gs =>> updatePositions gs) (initialEnergies >>| initialPositions) gs
   tm <- foldStateWithTurn (updateTwoMove gs) initialTwoMove gs
   return (ts, ps, tm)
 
-initialPositions :: PlayersTickets -> Start -> Either Error PlayersPos
+flattenState :: GameState -> FlatGameState
+flattenState = FlatGameState . (\x ->
+  case x of
+    Right s -> Just s
+    Left (Rollback x _) -> case flattenState x of
+      FlatGameState Nothing -> Nothing
+      FlatGameState x       -> x
+    Left _                 -> Nothing)  . playersState
+
+initialPositions :: PlayersEnergies -> Start -> Either Error PlayersPos
 initialPositions _ = Right
 
-updatePositions :: GameState -> PlayersTickets -> PlayersPos -> (Action, PlayerId) -> Either Error PlayersPos
+updatePositions :: GameState -> PlayersEnergies -> PlayersPos -> (Action, PlayerId) -> Either Error PlayersPos
 updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 
-updatePositions' :: GameState -> PlayerId -> PlayersTickets -> PlayersPos -> Move -> Either Error PlayersPos
+updatePositions' :: GameState -> PlayerId -> PlayersEnergies -> PlayersPos -> Move -> Either Error PlayersPos
 updatePositions' gs pid t v (Move e vtx) = do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
               unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
@@ -192,30 +216,30 @@ updatePositions' gs pid t v Pass         =  do
               if valid then Right v else Left "Player did not move"
                 where allOccupied = all (\avail -> any (\other -> avail == other) v)
 
--- tickets (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
---tickets :: GameState -> Result PlayersTickets
---tickets gs = foldStateWithTurn (updateTickets gs) initialTickets gs
+-- energies (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
+--energies :: GameState -> Result PlayersEnergies
+--energies gs = foldStateWithTurn (updateEnergies gs) initialEnergies gs
 
-initialTickets :: Start -> Either Error PlayersTickets
-initialTickets ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
+initialEnergies :: Start -> Either Error PlayersEnergies
+initialEnergies ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
 
-updateTickets :: GameState -> PlayersTickets -> (Action, PlayerId) -> Either Error PlayersTickets
-updateTickets gs v (a, pid) = applyAction (updateTickets' gs pid) v a
+updateEnergies :: GameState -> PlayersEnergies -> (Action, PlayerId) -> Either Error PlayersEnergies
+updateEnergies gs v (a, pid) = applyAction (updateEnergies' gs pid) v a
 
 corruptedPid :: GameState -> PlayerId
 corruptedPid _ = 0
 
-updateTickets' :: GameState -> PlayerId -> PlayersTickets -> Move -> Either Error PlayersTickets
-updateTickets' gs pid v (Move t _) = do
+updateEnergies' :: GameState -> PlayerId -> PlayersEnergies -> Move -> Either Error PlayersEnergies
+updateEnergies' gs pid v (Move t _) = do
   old <- maybeToEither (v !? pid) "Player not found or Player has no energy"
   let ts = findWithDefault 0 t old
-  new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more tickets"
+  new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more energies"
   ls <- if corruptedPid gs == pid then return [] else do
     oldm <- maybeToEither (v !? corruptedPid gs) "Error updating corrupted core"
     let oldv = 1 + findWithDefault 0 t oldm
     return [(corruptedPid gs, Map.insert t oldv oldm)]
   return $ v // ((pid, new):ls)
-updateTickets' _ _ v Pass = Right v
+updateEnergies' _ _ v Pass = Right v
 
 initialTwoMove :: Start -> Either Error Int
 initialTwoMove _ = Right 2

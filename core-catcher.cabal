@@ -22,6 +22,7 @@ library
                      , vector
                      , fgl
                      , containers
+                     , aeson
   default-language:    Haskell2010
 
 executable core-catcher-exe
