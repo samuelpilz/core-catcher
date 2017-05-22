@@ -1,4 +1,4 @@
-module Network exposing (..)
+module Game exposing (..)
 
 {-
    - one possibility for Network type
@@ -48,6 +48,21 @@ The edges must only connect the nodes contained in the first list.
 -}
 type alias NetworkOverlay =
     ( List Node, List Edge )
+
+
+{-| Type that describes a player (an Id for now)
+-}
+type alias Player =
+    Int
+
+
+{-| Type that models the game state.
+
+Each player stands on a specific node.
+
+-}
+type alias GameState =
+    Dict Player Node
 
 
 {-| Types of colors possible for overlays. For now: a string
@@ -103,6 +118,10 @@ type alias NodeXyMap =
     Dict Node ( Int, Int )
 
 
+type alias PlayerColorMap =
+    Dict Player Color
+
+
 {-| A tuple that contains all information needed to display a network.
 
 The first 3 entries are maps that store the color, edgeWidth and nodeSize per transport type
@@ -112,9 +131,11 @@ The 4th entry is a map of coordinates per node
 The 5th entry is the list of transportations used in order which they should be rendered.
 The smallest / thinnest transport type should be namen last.
 
+The 6th entry is a map that mapps each player to a color
+
 -}
 type alias NetworkDisplayInfo =
-    ( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transportation )
+    ( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transportation, PlayerColorMap )
 
 
 {-| A tuple that contains all information needed to display a single networkOverlay.
@@ -129,6 +150,10 @@ type alias OverlayDisplayInfo =
     ( Color, EdgeWidth, NodeSize, NodeXyMap )
 
 
+type alias Game =
+    ( Network, NetworkDisplayInfo, GameState )
+
+
 {-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transportation type.
 
 Returns `Nothing` if the given transportation type is missing in at least one of the
@@ -136,7 +161,7 @@ NetworkDisplayInfo maps is missing.
 
 -}
 displayInfoForOverlay : NetworkDisplayInfo -> Transportation -> Maybe OverlayDisplayInfo
-displayInfoForOverlay ( cm, ewm, nsm, nxym, _ ) t =
+displayInfoForOverlay ( cm, ewm, nsm, nxym, _, _ ) t =
     Maybe.map4 (\a b c d -> ( a, b, c, d ))
         (get t cm)
         (get t ewm)
@@ -175,7 +200,7 @@ nodeY nodeXyMap n =
 {-| gets the nodeXyMap from a NetworkDisplayTuple
 -}
 getNodeXyMap : NetworkDisplayInfo -> NodeXyMap
-getNodeXyMap ( _, _, _, m, _ ) =
+getNodeXyMap ( _, _, _, m, _, _ ) =
     m
 
 
@@ -199,7 +224,13 @@ indexOf a l =
 The overlays with higher priority are drawn first
 
 This is the reverse order of the list in NetworkDisplayInfo
+
 -}
 getPriority : NetworkDisplayInfo -> Transportation -> Int
-getPriority ( _, _, _, _, priorityList ) t =
+getPriority ( _, _, _, _, priorityList, _ ) t =
     Maybe.withDefault -1 << indexOf t <| priorityList
+
+
+movePlayerInGame : Game -> Player -> Node -> Game
+movePlayerInGame ( n, d, gameState ) player newNode =
+    ( n, d, Dict.update player (\_ -> Just newNode) gameState )

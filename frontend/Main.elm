@@ -6,11 +6,12 @@ import Html.Events exposing (..)
 import WebSocket
 import MapView exposing (mapView)
 import Debug exposing (log)
-import Regex exposing (..)
 import Data exposing (..)
+import Game exposing (..)
+import ExampleGame as ExampleGame
 
 
-main : Program Never Model Msg
+main : Program Never Game Msg
 main =
     program
         { init = init
@@ -20,20 +21,16 @@ main =
         }
 
 
-init : ( Model, Cmd Msg )
+init : ( Game, Cmd Msg )
 init =
-    ( ( 0, Ok 1 ), Cmd.none )
+    ( ExampleGame.game, Cmd.none )
 
 
-view : Model -> Html Msg
-view ( poked, pokingState ) =
+view : Game -> Html Msg
+view game =
     div []
-        [ p [] [ text <| "Pokes: " ++ toString poked ]
-        , div []
-            [ input [ value (printPokingState pokingState), onInput UpdateNum ] []
-            , button [ onClick Send ] [ text "Poke others" ]
-            ]
-        , MapView.mapView
+        [ h1 [] [ text "Core catcher" ]
+        , MapView.mapView game
         ]
 
 
@@ -42,75 +39,14 @@ wsUrl =
     "ws://localhost:3000"
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Game -> Sub Msg
 subscriptions _ =
-    WebSocket.listen wsUrl Receive
+    --WebSocket.listen wsUrl Receive
+    Sub.none
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> Game -> ( Game, Cmd Msg )
+update msg game =
     case log "msg" msg of
-        Receive m ->
-            if contains pokeRegex m then
-                ( Tuple.first model + getNumberFromPokeString m, Tuple.second model ) ! []
-            else
-                model ! []
-
-        Send ->
-            model ! [ WebSocket.send wsUrl ("poke" ++ printPokingState (Tuple.second model)) ]
-
-        UpdateNum s ->
-            ( Tuple.first model, handleInputString s ) ! []
-
         Clicked n ->
-            model ! []
-
-
-handleInputString : String -> Result String Int
-handleInputString s =
-    case String.toInt s of
-        Ok i ->
-            Ok i
-
-        Err _ ->
-            Err s
-
-
-printPokingState : Result String Int -> String
-printPokingState x =
-    case x of
-        Ok i ->
-            toString i
-
-        Err s ->
-            s
-
-
-pokeRegex : Regex
-pokeRegex =
-    regex "poke(-?\\d+)"
-
-
-getNumberFromPokeString : String -> Int
-getNumberFromPokeString s =
-    let
-        match : Maybe Regex.Match
-        match =
-            List.head <| find (AtMost 1) pokeRegex s
-
-        extractedString : Maybe String
-        extractedString =
-            Maybe.andThen identity
-                << Maybe.andThen (\m -> List.head m.submatches)
-            <|
-                match
-
-        extractedNumber : Maybe Int
-        extractedNumber =
-            Maybe.andThen (\x -> Result.toMaybe << String.toInt <| x) extractedString
-
-        number : Int
-        number =
-            Maybe.withDefault -1 extractedNumber
-    in
-        number
+            log "new game" (movePlayerInGame game 1 n) ! []

@@ -8,12 +8,12 @@ import Svg.Attributes exposing (..)
 import List exposing (..)
 import Dict exposing (..)
 import Data exposing (..)
-import Network exposing (..)
-import ExampleNetwork as Example
+import Game exposing (..)
 
-mapView : Html.Html Msg
-mapView =
-    mapViewOfNetwork Example.displayInfo Example.network
+
+mapView : Game -> Html.Html Msg
+mapView game =
+    mapViewOfNetwork game
 
 
 mapWidth : Int
@@ -26,8 +26,8 @@ mapHeight =
     600
 
 
-mapViewOfNetwork : NetworkDisplayInfo -> Network -> Html.Html Msg
-mapViewOfNetwork displayInfo ( nodes, overlays ) =
+mapViewOfNetwork : ( Network, NetworkDisplayInfo, GameState ) -> Html.Html Msg
+mapViewOfNetwork ( ( nodes, overlays ), displayInfo, gameState ) =
     svg
         [ height (toString mapHeight)
         , width (toString mapWidth)
@@ -41,6 +41,7 @@ mapViewOfNetwork displayInfo ( nodes, overlays ) =
             (List.sortBy (getPriority displayInfo) << Dict.keys <| overlays)
             -- base network
             ++ List.map (nodeCircle (getNodeXyMap displayInfo)) nodes
+            ++ List.map (playerCircle (getNodeXyMap displayInfo)) (Dict.toList gameState)
             ++ List.map (nodeText (getNodeXyMap displayInfo)) nodes
 
 
@@ -51,7 +52,8 @@ mapViewOfNetwork displayInfo ( nodes, overlays ) =
 mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> String -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo ( nodes, overlays ) overlayName =
     (Maybe.withDefault []
-        << Maybe.map2 (mapViewOfNetworkOverlay) (displayInfoForOverlay displayInfo overlayName)
+        << Maybe.map2 (mapViewOfNetworkOverlay)
+            (displayInfoForOverlay displayInfo overlayName)
      <|
         Dict.get overlayName overlays
     )
@@ -87,8 +89,30 @@ nodeCircle nodeXyMap node =
         , cy << toString << nodeY nodeXyMap <| node
         , r "20"
         , fill "#111111"
+        , Svg.Attributes.cursor "pointer"
         , onClick (Clicked node)
-        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
+        ]
+        []
+
+
+playerCircle : NodeXyMap -> ( Player, Node ) -> Svg Msg
+playerCircle nodeXyMap ( player, node ) =
+    circle
+        [ cx << toString << nodeX nodeXyMap <| node
+        , cy << toString << nodeY nodeXyMap <| node
+        , r "15"
+        , fill "none"
+        , stroke
+            (if player == 1 then
+                "yellow"
+             else if player == 2 then
+                "green"
+             else
+                "white"
+            )
+        , Svg.Attributes.cursor "pointer"
+        , onClick (Clicked node)
+        , Svg.Attributes.strokeDasharray "5,5"
         ]
         []
 
@@ -99,8 +123,8 @@ nodeText nodeXyMap n =
         [ x << toString <| -5 + nodeX nodeXyMap n
         , y << toString <| 5 + nodeY nodeXyMap n
         , fill "#ffffff"
+        , Svg.Attributes.cursor "pointer"
         , onClick (Clicked n)
-        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
         ]
         [ text (toString n) ]
 
