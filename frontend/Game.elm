@@ -26,6 +26,10 @@ type alias Transportation =
     String
 
 
+
+-- TODO: adapt comments
+
+
 {-| Network: Nodes and Map Transportation to Overlay.
 
 The overlays contain the actual Edges
@@ -35,7 +39,9 @@ Representation is handled via NetworkDisplayInfo
 
 -}
 type alias Network =
-    ( List Node, Dict Transportation NetworkOverlay )
+    { nodes : List Node
+    , overlays : Dict Transportation NetworkOverlay
+    }
 
 
 {-| NetworkOverlay: Sub-Graph that contains several nodes
@@ -47,7 +53,9 @@ The edges must only connect the nodes contained in the first list.
 
 -}
 type alias NetworkOverlay =
-    ( List Node, List Edge )
+    { nodes : List Node
+    , edges : List Edge
+    }
 
 
 {-| Type that describes a player (an Id for now)
@@ -135,7 +143,17 @@ The 6th entry is a map that mapps each player to a color
 
 -}
 type alias NetworkDisplayInfo =
-    ( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transportation, PlayerColorMap )
+    { colorMap : ColorMap
+    , edgeWidthMap : EdgeWidthMap
+    , nodeSizeMap : NodeSizeMap
+    , nodeXyMap : NodeXyMap
+    , transportPriorityList : List Transportation
+    , playerColorMap : PlayerColorMap
+    }
+
+
+
+--( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transportation, PlayerColorMap )
 
 
 {-| A tuple that contains all information needed to display a single networkOverlay.
@@ -147,11 +165,18 @@ The 4th entry is a map of coordinates per node, the same in the NetworkDisplayIn
 
 -}
 type alias OverlayDisplayInfo =
-    ( Color, EdgeWidth, NodeSize, NodeXyMap )
+    { color : Color
+    , edgeWidth : EdgeWidth
+    , nodeSize : NodeSize
+    , nodeXyMap : NodeXyMap
+    }
 
 
 type alias Game =
-    ( Network, NetworkDisplayInfo, GameState )
+    { network : Network
+    , displayInfo : NetworkDisplayInfo
+    , gameState : GameState
+    }
 
 
 {-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transportation type.
@@ -160,13 +185,20 @@ Returns `Nothing` if the given transportation type is missing in at least one of
 NetworkDisplayInfo maps is missing.
 
 -}
-displayInfoForOverlay : NetworkDisplayInfo -> Transportation -> Maybe OverlayDisplayInfo
-displayInfoForOverlay ( cm, ewm, nsm, nxym, _, _ ) t =
-    Maybe.map4 (\a b c d -> ( a, b, c, d ))
-        (get t cm)
-        (get t ewm)
-        (get t nsm)
-        (Just nxym)
+displayInfoForTransportation : NetworkDisplayInfo -> Transportation -> Maybe OverlayDisplayInfo
+displayInfoForTransportation { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } transport =
+    Maybe.map4
+        (\c e n xy ->
+            { color = c
+            , edgeWidth = e
+            , nodeSize = n
+            , nodeXyMap = xy
+            }
+        )
+        (get transport colorMap)
+        (get transport edgeWidthMap)
+        (get transport nodeSizeMap)
+        (Just nodeXyMap)
 
 
 {-| get the X coordinates of the node within the svg, given the map of coordinates
@@ -197,13 +229,6 @@ nodeY nodeXyMap n =
           )
 
 
-{-| gets the nodeXyMap from a NetworkDisplayTuple
--}
-getNodeXyMap : NetworkDisplayInfo -> NodeXyMap
-getNodeXyMap ( _, _, _, m, _, _ ) =
-    m
-
-
 {-| helper function to extract the index of an element in the list (not in core)
 -}
 indexOf : a -> List a -> Maybe Int
@@ -227,10 +252,10 @@ This is the reverse order of the list in NetworkDisplayInfo
 
 -}
 getPriority : NetworkDisplayInfo -> Transportation -> Int
-getPriority ( _, _, _, _, priorityList, _ ) t =
-    Maybe.withDefault -1 << indexOf t <| priorityList
+getPriority { transportPriorityList } t =
+    Maybe.withDefault -1 << indexOf t <| transportPriorityList
 
 
 movePlayerInGame : Game -> Player -> Node -> Game
-movePlayerInGame ( n, d, gameState ) player newNode =
-    ( n, d, Dict.update player (\_ -> Just newNode) gameState )
+movePlayerInGame game player newNode =
+    { game | gameState = Dict.update player (\_ -> Just newNode) game.gameState }

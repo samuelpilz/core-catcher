@@ -8,65 +8,69 @@ import Maybe exposing (..)
 
 network : Network
 network =
-    ( (range 1 8)
-    , Dict.fromList
-        [ ( "underground", undergroundOverlay )
-        , ( "bus", busOverlay )
-        , ( "taxi", taxiOverlay )
-        ]
-    )
+    { nodes = (range 1 8)
+    , overlays =
+        Dict.fromList
+            [ ( "underground", undergroundOverlay )
+            , ( "bus", busOverlay )
+            , ( "taxi", taxiOverlay )
+            ]
+    }
 
 
 undergroundOverlay : NetworkOverlay
 undergroundOverlay =
-    ( [ 1, 5, 6, 3 ]
-    , [ ( 1, 5 )
-      , ( 5, 6 )
-      , ( 1, 6 )
-      , ( 1, 3 )
-      ]
-    )
+    { nodes = [ 1, 5, 6, 3 ]
+    , edges =
+        [ ( 1, 5 )
+        , ( 5, 6 )
+        , ( 1, 6 )
+        , ( 1, 3 )
+        ]
+    }
 
 
 busOverlay : NetworkOverlay
 busOverlay =
-    ( [ 1, 3, 4, 5, 2, 8 ]
-    , [ ( 1, 3 )
-      , ( 3, 4 )
-      , ( 3, 2 )
-      , ( 1, 2 )
-      , ( 1, 5 )
-      , ( 2, 5 )
-      , ( 2, 8 )
-      ]
-    )
+    { nodes = [ 1, 3, 4, 5, 2, 8 ]
+    , edges =
+        [ ( 1, 3 )
+        , ( 3, 4 )
+        , ( 3, 2 )
+        , ( 1, 2 )
+        , ( 1, 5 )
+        , ( 2, 5 )
+        , ( 2, 8 )
+        ]
+    }
 
 
 taxiOverlay : NetworkOverlay
 taxiOverlay =
-    ( range 1 7
-    , [ ( 1, 2 )
-      , ( 6, 4 )
-      , ( 3, 5 )
-      , ( 2, 5 )
-      , ( 1, 6 )
-      , ( 1, 3 )
-      , ( 4, 7 )
-      , ( 5, 7 )
-      , ( 3, 6 )
-      ]
-    )
+    { nodes = range 1 7
+    , edges =
+        [ ( 1, 2 )
+        , ( 6, 4 )
+        , ( 3, 5 )
+        , ( 2, 5 )
+        , ( 1, 6 )
+        , ( 1, 3 )
+        , ( 4, 7 )
+        , ( 5, 7 )
+        , ( 3, 6 )
+        ]
+    }
 
 
 displayInfo : NetworkDisplayInfo
 displayInfo =
-    ( colorMap
-    , edgeWidthMap
-    , nodeSizeMap
-    , nodeXyMap
-    , [ "underground", "bus", "taxi" ]
-    , playerColorMap
-    )
+    { colorMap = colorMap
+    , edgeWidthMap = edgeWidthMap
+    , nodeSizeMap = nodeSizeMap
+    , nodeXyMap = nodeXyMap
+    , transportPriorityList = [ "underground", "bus", "taxi" ]
+    , playerColorMap = playerColorMap
+    }
 
 
 colorMap : ColorMap
@@ -127,5 +131,10 @@ playerColorMap =
         , ( 3, "blue" )
         ]
 
+
 game : Game
-game = (network, displayInfo, gameState)
+game =
+    { network = network
+    , displayInfo = displayInfo
+    , gameState = gameState
+    }

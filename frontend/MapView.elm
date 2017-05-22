@@ -11,11 +11,6 @@ import Data exposing (..)
 import Game exposing (..)
 
 
-mapView : Game -> Html.Html Msg
-mapView game =
-    mapViewOfNetwork game
-
-
 mapWidth : Int
 mapWidth =
     1000
@@ -26,8 +21,8 @@ mapHeight =
     600
 
 
-mapViewOfNetwork : ( Network, NetworkDisplayInfo, GameState ) -> Html.Html Msg
-mapViewOfNetwork ( ( nodes, overlays ), displayInfo, gameState ) =
+mapView : Game -> Html.Html Msg
+mapView { network, displayInfo, gameState } =
     svg
         [ height (toString mapHeight)
         , width (toString mapWidth)
@@ -37,30 +32,26 @@ mapViewOfNetwork ( ( nodes, overlays ), displayInfo, gameState ) =
     <|
         List.concatMap
             -- overlays
-            (mapViewOfNetworkOverlayName displayInfo ( nodes, overlays ))
-            (List.sortBy (getPriority displayInfo) << Dict.keys <| overlays)
+            (mapViewOfNetworkOverlayName displayInfo network)
+            (List.sortBy (\( name, _ ) -> getPriority displayInfo name) <| Dict.toList network.overlays)
             -- base network
-            ++ List.map (nodeCircle (getNodeXyMap displayInfo)) nodes
-            ++ List.map (playerCircle (getNodeXyMap displayInfo)) (Dict.toList gameState)
-            ++ List.map (nodeText (getNodeXyMap displayInfo)) nodes
+            ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
+            ++ List.map (playerCircle displayInfo.nodeXyMap) (Dict.toList gameState)
+            ++ List.map (nodeText displayInfo.nodeXyMap) network.nodes
 
 
-
--- takes overlay name and constructs svg elements (wraps mapViewOfNetworkOverlay)
-
-
-mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> String -> List (Svg.Svg Msg)
-mapViewOfNetworkOverlayName displayInfo ( nodes, overlays ) overlayName =
+mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> ( String, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay)
-            (displayInfoForOverlay displayInfo overlayName)
+            (displayInfoForTransportation displayInfo overlayName)
      <|
-        Dict.get overlayName overlays
+        Just overlay
     )
 
 
 mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay ( color, edgeWidth, nodeSize, nodeXyMap ) ( nodes, edges ) =
+mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { nodes, edges } =
     List.map (edgeLine nodeXyMap color edgeWidth) edges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) nodes
 
