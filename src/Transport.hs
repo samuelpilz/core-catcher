@@ -122,6 +122,9 @@ turns st =
     ls <- scanState updateTurn initialTurn st :: Result [(PlayerId, [PlayerId])]
     return $ map fst ls
 
+stateStream :: Monad m => (GameState -> m ()) -> GameState -> [Action] -> m ()
+stateStream f initial = Monad.mapM_ f . List.scanl (flip addAction) initial
+
 initialTurn :: Start -> Either Error (PlayerId, [PlayerId])
 initialTurn strt = case players strt of [] -> Left "0 Players"; (x:xs) -> Right (x, List.cycle (x:xs))
 
