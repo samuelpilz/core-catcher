@@ -1,38 +1,19 @@
 module MapView exposing (mapView)
 
 import Html as Html
+import Html.Attributes exposing (style)
+import Html.Events exposing (onClick)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
+import Dict exposing (..)
+import Data exposing (..)
+import Network exposing (..)
+import ExampleNetwork as Example
 
-
-type alias Node =
-    Int
-
-
-type alias Color =
-    String
-
-
-type alias Edge =
-    ( Node, Node, Color )
-
-
-type alias Network =
-    ( List Node, List Edge )
-
-
-mapView : Html.Html msg
+mapView : Html.Html Msg
 mapView =
-    mapView2 network
-
-
-
-{- svg [ height "300", width "500" ]
-   [ line [ x1 "10", y1 "10", x2 "100", y2 "100", strokeWidth "2", stroke "black" ] []
-   , circle [ cx "100", cy "100", r "20", fill "#0000ff" ] []
-   ]
--}
+    mapViewOfNetwork Example.displayInfo Example.network
 
 
 mapWidth : Int
@@ -45,58 +26,93 @@ mapHeight =
     600
 
 
-network : Network
-network =
-    ( range 1 5
-    , [ ( 1, 2, "black" )
-      , ( 3, 4, "green" )
-      , ( 3, 5, "yellow" )
-      , ( 1, 5, "red" )
-      ]
+mapViewOfNetwork : NetworkDisplayInfo -> Network -> Html.Html Msg
+mapViewOfNetwork displayInfo ( nodes, overlays ) =
+    svg
+        [ height (toString mapHeight)
+        , width (toString mapWidth)
+        , Html.Attributes.style [ ( "backgroundColor", "#cccccc" ) ]
+        ]
+    -- elements of svg now
+    <|
+        List.concatMap
+            -- overlays
+            (mapViewOfNetworkOverlayName displayInfo ( nodes, overlays ))
+            (List.sortBy (getPriority displayInfo) << Dict.keys <| overlays)
+            -- base network
+            ++ List.map (nodeCircle (getNodeXyMap displayInfo)) nodes
+            ++ List.map (nodeText (getNodeXyMap displayInfo)) nodes
+
+
+
+-- takes overlay name and constructs svg elements (wraps mapViewOfNetworkOverlay)
+
+
+mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> String -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName displayInfo ( nodes, overlays ) overlayName =
+    (Maybe.withDefault []
+        << Maybe.map2 (mapViewOfNetworkOverlay) (displayInfoForOverlay displayInfo overlayName)
+     <|
+        Dict.get overlayName overlays
     )
 
 
-mapView2 : Network -> Html.Html msg
-mapView2 ( nodes, edges ) =
-    svg [ height "800", width "800" ] <|
-        List.map edgeLine edges
-            ++ List.map nodeCircle nodes
-            ++ List.map nodeText nodes
+mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
+mapViewOfNetworkOverlay ( color, edgeWidth, nodeSize, nodeXyMap ) ( nodes, edges ) =
+    List.map (edgeLine nodeXyMap color edgeWidth) edges
+        ++ List.map (nodeCircleStop nodeXyMap color nodeSize) nodes
 
 
-nodeX : Node -> Int
-nodeX n =
-    50 + ((n + 2) * 3) % 7 * (mapWidth // 7)
+
+-- svg create functions
 
 
-nodeY : Node -> Int
-nodeY n =
-    50 + (n * 5) % 7 * (mapHeight // 7)
+nodeCircleStop : NodeXyMap -> Color -> NodeSize -> Node -> Svg Msg
+nodeCircleStop nodeXyMap color size node =
+    circle
+        [ cx << toString <| nodeX nodeXyMap node
+        , cy << toString <| nodeY nodeXyMap node
+        , r (toString size)
+        , fill color
+        , onClick (Clicked node)
+        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
+        ]
+        []
 
 
-nodeCircle : Node -> Svg msg
-nodeCircle n =
-    circle [ cx << toString <| nodeX n, cy << toString <| nodeY n, r "20", fill "#0000ff" ] []
+nodeCircle : NodeXyMap -> Node -> Svg Msg
+nodeCircle nodeXyMap node =
+    circle
+        [ cx << toString << nodeX nodeXyMap <| node
+        , cy << toString << nodeY nodeXyMap <| node
+        , r "20"
+        , fill "#111111"
+        , onClick (Clicked node)
+        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
+        ]
+        []
 
 
-nodeText : Node -> Svg msg
-nodeText n =
+nodeText : NodeXyMap -> Node -> Svg Msg
+nodeText nodeXyMap n =
     text_
-        [ x << toString <| -5 + nodeX n
-        , y << toString <| 5 + nodeY n
+        [ x << toString <| -5 + nodeX nodeXyMap n
+        , y << toString <| 5 + nodeY nodeXyMap n
         , fill "#ffffff"
+        , onClick (Clicked n)
+        , Html.Attributes.style [ ( "cursor", "pointer" ) ]
         ]
         [ text (toString n) ]
 
 
-edgeLine : Edge -> Svg msg
-edgeLine ( n1, n2, c ) =
+edgeLine : NodeXyMap -> Color -> EdgeWidth -> Edge -> Svg msg
+edgeLine nodeXyMap color edgeWidth ( n1, n2 ) =
     line
-        [ x1 << toString << nodeX <| n1
-        , y1 << toString << nodeY <| n1
-        , x2 << toString << nodeX <| n2
-        , y2 << toString << nodeY <| n2
-        , strokeWidth "2"
-        , stroke c
+        [ x1 << toString << nodeX nodeXyMap <| n1
+        , y1 << toString << nodeY nodeXyMap <| n1
+        , x2 << toString << nodeX nodeXyMap <| n2
+        , y2 << toString << nodeY nodeXyMap <| n2
+        , strokeWidth (toString edgeWidth)
+        , stroke color
         ]
         []
