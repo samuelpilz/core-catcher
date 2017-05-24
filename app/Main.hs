@@ -8,30 +8,44 @@ import           ClassyPrelude
 import qualified Control.Concurrent             as Concurrent
 import qualified Control.Exception              as Exception
 import qualified Control.Monad                  as Monad
+import qualified Data.Aeson                     as Aeson
 import qualified Data.Maybe                     as Maybe
 import qualified Data.Sequence                  as Seq
 import qualified Data.Text                      as Text
+import qualified GameLogic
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import qualified Transport
 
 
 type ClientId = Int
 type Client   = (ClientId, WS.Connection)
-type State    = Seq.Seq Client
+type Clients    = Seq.Seq Client
+data Game = Game {
+    gameClients :: Clients,
+    gameState   :: GameLogic.GameState
+}
+type State = Game
 
+initialState :: State
+initialState =
+    Game {
+        gameClients = Seq.empty,
+        gameState = GameLogic.GameState {GameLogic.start = fromList [1,2,3], GameLogic.network = GameLogic.someNet, GameLogic.actions = []}
+    }
 
-nextId :: State -> ClientId
+nextId :: Clients -> ClientId
 nextId =
     Maybe.maybe 0 (1+) . maximumMay . map fst
 
 main :: IO ()
 main = do
-    state <- Concurrent.newMVar Seq.empty
-    Warp.run 3000 $ WS.websocketsOr
+    let port = 3000
+    putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
+    state <- Concurrent.newMVar initialState
+    Warp.run port $ WS.websocketsOr
       WS.defaultConnectionOptions
       (wsApp state)
       httpApp
@@ -44,10 +58,11 @@ connectClient :: WS.Connection -> Concurrent.MVar State -> IO ClientId
 connectClient conn stateRef =
     Concurrent.modifyMVar stateRef
         $ \state -> do
-            let clientId = nextId state
-            return ((clientId, conn) `cons` state, clientId)
+            let clients = gameClients state
+            let clientId = nextId clients
+            return (state { gameClients = (clientId, conn) `cons` clients }, clientId)
 
-withoutClient :: ClientId -> State -> State
+withoutClient :: ClientId -> Clients -> Clients
 withoutClient clientId =
     filter ((/=) clientId . fst)
 
@@ -55,7 +70,7 @@ disconnectClient :: ClientId -> Concurrent.MVar State -> IO ()
 disconnectClient clientId stateRef =
     Concurrent.modifyMVar_ stateRef
         $ \state ->
-            return $ withoutClient clientId state
+            return state { gameClients = withoutClient clientId $ gameClients state }
 
 listen :: WS.Connection -> ClientId -> Concurrent.MVar State -> IO ()
 listen conn clientId stateRef =
@@ -64,16 +79,17 @@ listen conn clientId stateRef =
 
 broadcast :: ClientId -> Concurrent.MVar State -> Text.Text -> IO ()
 broadcast clientId stateRef msg = do
-    clients <- Concurrent.readMVar stateRef
-    let otherClients = withoutClient clientId clients
-    Monad.forM_ otherClients $ \(_, conn) ->
+    state <- Concurrent.readMVar stateRef
+    let clients = gameClients state
+    Monad.forM_ clients $ \(_, conn) ->
         WS.sendTextData conn msg
 
 wsApp :: Concurrent.MVar State -> WS.ServerApp
 wsApp stateRef pendingConn = do
-    state <- readMVar stateRef
+    state <- Concurrent.readMVar stateRef
+    let clients = gameClients state
     -- TODO: not thread safe
-    if length state < 4 then do
+    if length clients < 4 then do
         putStrLn "Accept request"
         conn <- WS.acceptRequest pendingConn
         clientId <- connectClient conn stateRef
