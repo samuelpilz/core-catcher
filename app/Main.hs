@@ -81,7 +81,6 @@ disconnectClient clientId stateRef =
 listen :: WS.Connection -> ClientId -> Concurrent.MVar State -> IO ()
 listen conn clientId stateRef =
     Monad.forever $ Concurrent.modifyMVar_ stateRef $ \state -> do
-        broadcast (gameClients $ stateGame state) (Aeson.encode $ GameLogic.flattenState $ gameState $ stateGame state)
         wsdata <- liftIO $ WS.receiveData conn
         case Aeson.decode wsdata of
             Just action -> do
