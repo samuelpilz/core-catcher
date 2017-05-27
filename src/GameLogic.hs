@@ -33,10 +33,12 @@ type Start = PlayersPos
 data Color = Blue | Orange | Red deriving (Show, Eq, Ord, Read, Enum, Generic)
 instance Aeson.ToJSONKey Color where
 instance Aeson.ToJSON Color where
+instance Aeson.FromJSON Color where
 -- Energy types, where BlackEnergy allows traversing an edge of any energy color
 data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read, Generic)
 instance Aeson.ToJSONKey Energy where
 instance Aeson.ToJSON Energy where
+instance Aeson.FromJSON Energy where
 
 -- GameState as clients understand it
 newtype FlatGameState =
@@ -62,12 +64,16 @@ newtype Network =
 data Move
     = Move Energy VertexId -- A player is moving towards VertexId using Energy
     | Pass                 -- A player is not moving in this Move
-    deriving (Show, Eq, Ord, Read)
+    deriving (Show, Eq, Ord, Read, Generic)
+instance Aeson.FromJSON Move where
+instance Aeson.ToJSON Move where
 
 data Action
     = OneMove Move       -- A player performs a single move
     | TwoMoves Move Move -- Rogue Core is performing two moves in a single turn
-    deriving (Show, Eq, Ord, Read)
+    deriving (Show, Eq, Ord, Read, Generic)
+instance Aeson.FromJSON Action where
+instance Aeson.ToJSON Action where
 
 -- When clients send invalid actions or the initial state is invalid
 -- a FlatGameState cannot be derived causing the derivation function

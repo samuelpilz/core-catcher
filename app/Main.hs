@@ -8,6 +8,8 @@ import           ClassyPrelude
 import qualified Control.Concurrent             as Concurrent
 import qualified Control.Exception              as Exception
 import qualified Control.Monad                  as Monad
+import qualified Control.Monad.Trans            as Trans
+import qualified Control.Monad.Trans.Maybe      as MaybeT
 import qualified Data.Aeson                     as Aeson
 import qualified Data.Maybe                     as Maybe
 import qualified Data.Sequence                  as Seq
@@ -27,13 +29,17 @@ data Game = Game {
     gameClients :: Clients,
     gameState   :: GameLogic.GameState
 }
-type State = Game
+newtype State = State {
+    stateGame :: Game
+}
 
 initialState :: State
 initialState =
-    Game {
-        gameClients = Seq.empty,
-        gameState = GameLogic.GameState {GameLogic.start = fromList [1,2,3], GameLogic.network = GameLogic.someNet, GameLogic.actions = []}
+    State { stateGame =
+        Game {
+            gameClients = Seq.empty,
+            gameState = GameLogic.GameState {GameLogic.start = fromList [1,2,3], GameLogic.network = GameLogic.someNet, GameLogic.actions = []}
+        }
     }
 
 nextId :: Clients -> ClientId
@@ -58,9 +64,9 @@ connectClient :: WS.Connection -> Concurrent.MVar State -> IO ClientId
 connectClient conn stateRef =
     Concurrent.modifyMVar stateRef
         $ \state -> do
-            let clients = gameClients state
+            let clients = gameClients $ stateGame state
             let clientId = nextId clients
-            return (state { gameClients = (clientId, conn) `cons` clients }, clientId)
+            return (state { stateGame = (stateGame state) { gameClients = (clientId, conn) `cons` clients } }, clientId)
 
 withoutClient :: ClientId -> Clients -> Clients
 withoutClient clientId =
@@ -70,24 +76,31 @@ disconnectClient :: ClientId -> Concurrent.MVar State -> IO ()
 disconnectClient clientId stateRef =
     Concurrent.modifyMVar_ stateRef
         $ \state ->
-            return state { gameClients = withoutClient clientId $ gameClients state }
+            return State { stateGame = (stateGame state) { gameClients = withoutClient clientId $ gameClients $ stateGame state } }
 
 listen :: WS.Connection -> ClientId -> Concurrent.MVar State -> IO ()
 listen conn clientId stateRef =
-    Monad.forever $
-        WS.receiveData conn >>= broadcast clientId stateRef
+    Monad.forever $ Concurrent.modifyMVar_ stateRef $ \state -> do
+        broadcast (gameClients $ stateGame state) (Aeson.encode $ GameLogic.flattenState $ gameState $ stateGame state)
+        wsdata <- liftIO $ WS.receiveData conn
+        case Aeson.decode wsdata of
+            Just action -> do
+                -- FIXME: check if player's turn
+                let st = GameLogic.addAction (gameState $ stateGame state) action
+                broadcast (gameClients $ stateGame state) (Aeson.encode $ GameLogic.flattenState st)
+                -- FIXME: don't add action if rollback or flattenState failed
+                return State { stateGame = (stateGame state) { gameState = st } }
+            Nothing -> return state
 
-broadcast :: ClientId -> Concurrent.MVar State -> Text.Text -> IO ()
-broadcast clientId stateRef msg = do
-    state <- Concurrent.readMVar stateRef
-    let clients = gameClients state
+broadcast :: WS.WebSocketsData a => Clients -> a -> IO ()
+broadcast clients msg =
     Monad.forM_ clients $ \(_, conn) ->
         WS.sendTextData conn msg
 
 wsApp :: Concurrent.MVar State -> WS.ServerApp
 wsApp stateRef pendingConn = do
     state <- Concurrent.readMVar stateRef
-    let clients = gameClients state
+    let clients = gameClients $ stateGame state
     -- TODO: not thread safe
     if length clients < 4 then do
         putStrLn "Accept request"
@@ -95,15 +108,10 @@ wsApp stateRef pendingConn = do
         clientId <- connectClient conn stateRef
         WS.forkPingThread conn 30
         WS.sendTextData conn ("You have been added to the game\n" :: Text.Text)
-        informOthersAbout clientId stateRef
+        broadcast clients ("Player " ++ tshow clientId ++ " joined the Game!")
         Exception.finally
             (listen conn clientId stateRef)
             (disconnectClient clientId stateRef)
     else do
         putStrLn "Reject request"
         WS.rejectRequest pendingConn "Too many players have joined the game\n"
-
-
-informOthersAbout :: ClientId -> Concurrent.MVar State  -> IO ()
-informOthersAbout clientId stateRef =
-      broadcast clientId stateRef ("Player " ++ tshow clientId ++ " joined the Game!")

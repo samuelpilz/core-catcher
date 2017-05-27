@@ -40,6 +40,8 @@ executable core-catcher-exe
                      , classy-prelude
                      , containers
                      , aeson
+                     , mtl
+                     , transformers
   default-language:    Haskell2010
 
 test-suite core-catcher-test
