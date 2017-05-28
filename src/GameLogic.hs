@@ -222,8 +222,7 @@ flattenState :: GameState -> FlatGameState
 flattenState st = FlatGameState $ case playersState st of
     Right s -> Just s
     Left (Rollback x _) -> case flattenState x of
-      FlatGameState Nothing -> Nothing
-      FlatGameState x       -> x
+      FlatGameState fs -> fs
     Left _                 -> Nothing
 
 initialPositions :: PlayersEnergies -> Start -> Either Error PlayersPos
