@@ -24,13 +24,6 @@ addons:
   apt:
     packages:
       - libgmp-dev
-  sonarqube:
-    organization: "fendor-github"
-    branches:
-      - dev
-
-script:
-  - sonar-scanner
 
 
 before_install:
@@ -38,8 +31,6 @@ before_install:
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - stack update
-  - stack install hlint
 
 install:
 # Build dependencies
@@ -47,11 +38,11 @@ install:
 
 script:
 # Build the package, its tests, and its docs and run the tests
-  - stack --no-terminal test --coverage --haddock --no-haddock-deps && stack build
+  - stack --no-terminal test --coverage --haddock --no-haddock-deps
   - hlint app --json > hlintReport.json
   - hlint src --json >> hlintReport.json
   - sonar-scanner
 
-after_script:
-  - travis_retry curl -L https://github.com/rubik/stack-hpc-coveralls/releases/download/v0.0.4.0/shc-linux-x64-$GHCVER.tar.bz2 | tar -xj
-  - ./shc core-catcher-exe core-catcher-test
+#after_script:
+#  - travis_retry curl -L https://github.com/rubik/stack-hpc-coveralls/releases/download/v0.0.4.0/shc-linux-x64-$GHCVER.tar.bz2 | tar -xj
+#  - ./shc core-catcher-exe core-catcher-test
