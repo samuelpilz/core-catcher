@@ -12,7 +12,7 @@
 sudo: false
 
 # Do not choose a language; we provide our own build tools.
-language: generic
+language: haskell
 
 # Caching so the next build will be fast too.
 cache:
@@ -25,21 +25,38 @@ addons:
     packages:
       - libgmp-dev
 
-
 before_install:
-# Download and unpack the stack executable
+  # Download and unpack the stack executable
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
+  - export TRAVIS=travis-ci
+  - export TRAVIS_JOB_ID=1234 # random number
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - cd ..
+  - git clone https://github.com/fendor/stack-hpc-coveralls.git
+  - cd stack-hpc-coveralls
+  - stack build
+  - cp .stack-work/install/x86_64-linux/lts-8.13/8.0.2/bin/shc ~/.local/bin/
+  - cd ../core-catcher
+  - ls ../ # debug reasons
+
+
 
 install:
-# Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
+  # Build dependencies
+  - stack --no-terminal --install-ghc test --only-dependencies
 
 script:
-# Build the package, its tests, and its docs and run the tests
-  - stack --no-terminal test --coverage --haddock --no-haddock-deps
+  # Build the package, its tests, and its docs and run the tests
+  - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
 
-#after_script:
-#  - travis_retry curl -L https://github.com/rubik/stack-hpc-coveralls/releases/download/v0.0.4.0/shc-linux-x64-$GHCVER.tar.bz2 | tar -xj
-#  - ./shc core-catcher-exe core-catcher-test
+after_script:
+  # publish coverage results coveralls.io
+  # after_script might clean some things
+  - ls .stack-work/install/x86_64-linux/lts-8.13/8.0.2/hpc
+  - ls -al ~/.local/bin/shc
+  - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
+  - file ~/.local/bin/shc
+  - ldd ~/.local/bin/shc
+  - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
+  - cat json.file

@@ -161,8 +161,7 @@ addAction s a =
     s { actions = a : actions s }
 
 turns :: GameState -> Result [PlayerId]
-turns st =
-  do
+turns st = do
     ls <- scanState updateTurn initialTurn st :: Result [(PlayerId, [PlayerId])]
     return $ map fst ls
 
