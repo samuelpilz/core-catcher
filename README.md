@@ -1,4 +1,4 @@
-# Core-Catcher
+# Core-Catcher [![Build Status](https://travis-ci.org/Haskell-Praxis/core-catcher.svg?branch=dev)](https://travis-ci.org/Haskell-Praxis/core-catcher)
 
 A multiplayer game server and frontend, written in Haskell and Elm.
 
