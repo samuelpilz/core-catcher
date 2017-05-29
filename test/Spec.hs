@@ -11,7 +11,7 @@ main = htfMain htf_thisModulesTests
 test_mapRightDoubleValue :: IO ()
 test_mapRightDoubleValue =
     let
-      x = Right 4 :: Either String Int
+      x = Right 3 :: Either String Int
       y = Right 8 :: Either String Int
     in
       assertEqual y (mapRight (2*) x)
