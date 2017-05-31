@@ -42,10 +42,11 @@ instance Aeson.FromJSON Energy where
 
 -- GameState as clients understand it
 newtype FlatGameState =
-  FlatGameState {
-    gamestate :: Maybe (PlayersEnergies, PlayersPos, Int)
-  }
-  deriving (Generic, Show)
+    FlatGameState
+        { gamestate :: Maybe (PlayersEnergies, PlayersPos, Int)
+        }
+        deriving (Generic, Show)
+        
 instance Aeson.ToJSON FlatGameState where
 
 data GameState =
