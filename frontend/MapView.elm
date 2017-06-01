@@ -44,7 +44,7 @@ mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> ( String, Network
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay)
-            (displayInfoForTransportation displayInfo overlayName)
+            (displayInfoForTransport displayInfo overlayName)
      <|
         Just overlay
     )

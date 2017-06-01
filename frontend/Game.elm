@@ -20,9 +20,9 @@ type alias Edge =
     ( Node, Node )
 
 
-{-| The type of transportation is a string
+{-| The type of transport is a string
 -}
-type alias Transportation =
+type alias Transport =
     String
 
 
@@ -30,7 +30,7 @@ type alias Transportation =
 -- TODO: adapt comments
 
 
-{-| Network: Nodes and Map Transportation to Overlay.
+{-| Network: Nodes and Map Transport to Overlay.
 
 The overlays contain the actual Edges
 
@@ -40,7 +40,7 @@ Representation is handled via NetworkDisplayInfo
 -}
 type alias Network =
     { nodes : List Node
-    , overlays : Dict Transportation NetworkOverlay
+    , overlays : Dict Transport NetworkOverlay
     }
 
 
@@ -91,33 +91,33 @@ type alias NodeSize =
     Int
 
 
-{-| A map that contains the mappings from transportation type to color.
+{-| A map that contains the mappings from transport type to color.
 
-Each transportation type should be present in this map.
+Each transport type should be present in this map.
 
 -}
 type alias ColorMap =
-    Dict Transportation Color
+    Dict Transport Color
 
 
-{-| A map that contains the edge widths for each Transportation type.
+{-| A map that contains the edge widths for each Transport type.
 
-Each transportation type should be present in this map.
+Each transport type should be present in this map.
 
 -}
 type alias EdgeWidthMap =
-    Dict Transportation EdgeWidth
+    Dict Transport EdgeWidth
 
 
-{-| A map that contains the node sizes for each Transportation type.
+{-| A map that contains the node sizes for each Transport type.
 This is the size of the circle that lies behind a node to represent
 that the node has a stop for the given transport
 
-Each transportation type should be present in this map.
+Each transport type should be present in this map.
 
 -}
 type alias NodeSizeMap =
-    Dict Transportation NodeSize
+    Dict Transport NodeSize
 
 
 {-| A map that mapps nodes to coordinates
@@ -136,7 +136,7 @@ The first 3 entries are maps that store the color, edgeWidth and nodeSize per tr
 
 The 4th entry is a map of coordinates per node
 
-The 5th entry is the list of transportations used in order which they should be rendered.
+The 5th entry is the list of transports used in order which they should be rendered.
 The smallest / thinnest transport type should be namen last.
 
 The 6th entry is a map that mapps each player to a color
@@ -147,13 +147,13 @@ type alias NetworkDisplayInfo =
     , edgeWidthMap : EdgeWidthMap
     , nodeSizeMap : NodeSizeMap
     , nodeXyMap : NodeXyMap
-    , transportPriorityList : List Transportation
+    , transportPriorityList : List Transport
     , playerColorMap : PlayerColorMap
     }
 
 
 
---( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transportation, PlayerColorMap )
+--( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transport, PlayerColorMap )
 
 
 {-| A tuple that contains all information needed to display a single networkOverlay.
@@ -179,14 +179,14 @@ type alias Game =
     }
 
 
-{-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transportation type.
+{-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transport type.
 
-Returns `Nothing` if the given transportation type is missing in at least one of the
+Returns `Nothing` if the given transport type is missing in at least one of the
 NetworkDisplayInfo maps is missing.
 
 -}
-displayInfoForTransportation : NetworkDisplayInfo -> Transportation -> Maybe OverlayDisplayInfo
-displayInfoForTransportation { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } transport =
+displayInfoForTransport : NetworkDisplayInfo -> Transport -> Maybe OverlayDisplayInfo
+displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } transport =
     Maybe.map4
         (\c e n xy ->
             { color = c
@@ -244,14 +244,14 @@ indexOf a l =
                 Maybe.map ((+) 1) <| indexOf a xs
 
 
-{-| gets the priority value for the given transportation.
+{-| gets the priority value for the given transport.
 
 The overlays with higher priority are drawn first
 
 This is the reverse order of the list in NetworkDisplayInfo
 
 -}
-getPriority : NetworkDisplayInfo -> Transportation -> Int
+getPriority : NetworkDisplayInfo -> Transport -> Int
 getPriority { transportPriorityList } t =
     Maybe.withDefault -1 << indexOf t <| transportPriorityList
 

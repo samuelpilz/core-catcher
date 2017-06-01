@@ -90,3 +90,32 @@ data CatcherGameView =
         }
 
 --instance GameView RogueGameView where
+
+{-| Network: Nodes and Map Transport to Overlay.
+
+The overlays contain the actual Edges
+
+The network itself has no information about its representation.
+Representation is handled via NetworkDisplayInfo
+
+-}
+data Network =
+    Network {
+    nodes      :: [Node]
+    , overlays :: Map Transport NetworkOverlay
+    }
+
+
+{-| NetworkOverlay: Sub-Graph that contains several nodes
+
+First part: the contained nodes in the Overlay.
+The nodes have to be contained in the nodes of the enclosing network
+Second part: the edges of the
+The edges must only connect the nodes contained in the first list.
+
+-}
+data NetworkOverlay =
+    NetworkOverlay {
+    nodes   :: [Node]
+    , edges :: [Edge]
+    }
