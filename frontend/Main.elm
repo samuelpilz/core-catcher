@@ -9,6 +9,7 @@ import Debug exposing (log)
 import Data exposing (..)
 import Game exposing (..)
 import ExampleGame as ExampleGame
+import Protocol
 
 
 main : Program Never Game Msg

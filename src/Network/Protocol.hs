@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -18,13 +19,25 @@ This class is a semantic protocol definition. The data-types are sent in json fo
 -}
 
 -- |Players and Nodes are Ints (=Ids). The rouge-player has id 0
-type Player = Int
+newtype Player =
+    Player { playerId :: Int }
+    deriving (Show, Read, Eq, Ord, Generic)
+
 -- |Node representation
-type Node = Int
+newtype Node =
+    Node { nodeId :: Int }
+    deriving (Show, Read, Eq, Ord, Generic)
+
 -- |Edge is a tuple of two Nodes
-type Edge = (Node, Node)
+newtype Edge =
+    Edge { edge :: (Node, Node) }
+    deriving (Show, Read, Eq, Ord, Generic)
+
 -- |Transport is a string
-type Transport = String
+newtype Transport =
+    Transport { transportName :: String }
+    deriving (Show, Read, Eq, Ord, Generic)
+
 {- |A engergy-map is keeps track how much energy per transport a player has left.
 -}
 newtype EnergyMap =
@@ -66,8 +79,11 @@ newtype PlayerPositions =
 
 {- |The history of transports used by the rouge core.
 -}
-type RogueTransportHistory =
-    [Transport] -- display infos
+newtype RogueTransportHistory =
+    RogueTransportHistory
+        { rogueTransportHistory :: [Transport]  -- ^display infos
+        }
+      deriving (Show, Read, Eq, Generic)
 
 {--
 data GameState =
@@ -190,19 +206,43 @@ instance FromJSON Network where
 
 instance FromJSON NetworkOverlay where
 --}
+instance FromJSONKey Player where
 
+instance FromJSONKey Node where
+
+instance FromJSONKey Transport where
+
+instance ToJSONKey Player where
+
+instance ToJSONKey Transport where
+
+instance Arbitrary Player  where
+    arbitrary =
+        Player <$> arbitrary
+
+instance Arbitrary Node  where
+    arbitrary =
+        Node <$> arbitrary
+
+instance Arbitrary Edge  where
+    arbitrary =
+        Edge <$> ((,) <$> arbitrary <*> arbitrary)
+
+instance Arbitrary Transport  where
+    arbitrary =
+        Transport <$> arbitrary
 
 instance Arbitrary Action where
     arbitrary = do
         player <- arbitrary
         transport <- arbitrary
         node <- arbitrary
-        return $ Move { player, transport, node}
+        return Move { player, transport, node}
 
 instance Arbitrary PlayerPositions where
     arbitrary = do
         playerPos <- arbitrary
-        return $ PlayerPositions { playerPositions_ = playerPos }
+        return PlayerPositions { playerPositions_ = playerPos }
 
 
 deriveBoth Elm.Derive.defaultOptions ''Action
@@ -213,3 +253,8 @@ deriveBoth Elm.Derive.defaultOptions ''PlayerEnergies
 deriveBoth Elm.Derive.defaultOptions ''EnergyMap
 deriveBoth Elm.Derive.defaultOptions ''Network
 deriveBoth Elm.Derive.defaultOptions ''NetworkOverlay
+deriveBoth Elm.Derive.defaultOptions ''Player
+deriveBoth Elm.Derive.defaultOptions ''Edge
+deriveBoth Elm.Derive.defaultOptions ''Node
+deriveBoth Elm.Derive.defaultOptions ''Transport
+deriveBoth Elm.Derive.defaultOptions ''RogueTransportHistory

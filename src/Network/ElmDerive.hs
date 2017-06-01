@@ -22,4 +22,9 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy EnergyMap)
             , DefineElm (Proxy :: Proxy Network)
             , DefineElm (Proxy :: Proxy NetworkOverlay)
+            , DefineElm (Proxy :: Proxy Player)
+            , DefineElm (Proxy :: Proxy Edge)
+            , DefineElm (Proxy :: Proxy Node)
+            , DefineElm (Proxy :: Proxy Transport)
+            , DefineElm (Proxy :: Proxy RogueTransportHistory)
             ]
