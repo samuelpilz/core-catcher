@@ -1,8 +1,12 @@
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+
+
 module Network.Protocol where
 
 import           ClassyPrelude
-
+import           Data.Aeson
+import           GHC.Generics  ()
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
@@ -29,16 +33,23 @@ type PlayerEnergies = Map Player EnergyMap
 Currently this is only a move, but this may be expanded in the future.
 -}
 data Action =
-    Move Player Transport Node
-    deriving (Show, Eq)
+    Move
+      { player    :: Player
+      , transport :: Transport
+      , node      :: Node
+      }
+    deriving (Show, Read, Eq, Generic)
 
 {- |The playerPositions map keeps track of the current nodes each player is on.
 
 It is possible that the map is not complete.
 This should be the case if the missing player should not be seen.
 -}
-data PlayerPositions =
-    Map Player Node -- player 0 is the rogue core
+newtype PlayerPositions =
+    PlayerMap
+      { playerMap :: Map Player Node -- ^player 0 is the rogue core
+      }
+    deriving (Show, Read, Eq, Generic)
 
 {- |The history of transports used by the rouge core.
 -}
@@ -58,7 +69,7 @@ data GameState =
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state
 -}
-class GameView view where
+class (ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
     energyMap :: view -> EnergyMap
     rogueHistory :: view -> RogueTransportHistory
@@ -73,6 +84,7 @@ data RogueGameView =
         , rogueOwnHistory      :: RogueTransportHistory
         , rogueRogueLastSeen   :: Maybe Node
         }
+        deriving (Show, Read,  Eq, Generic)
 
 {- |A game view as seen by the catchers
 -}
@@ -83,6 +95,7 @@ data CatcherGameView =
         , catcherRogueHistory    :: RogueTransportHistory
         , catcherRogueLastSeen   :: Maybe Node
         }
+        deriving (Show, Read, Eq, Generic)
 
 instance GameView RogueGameView where
     playerPositions = roguePlayerPositions
@@ -110,6 +123,7 @@ data Network =
         { nodes    :: [Node]
         , overlays :: Map Transport NetworkOverlay
         }
+        deriving (Show, Read, Eq, Generic)
 
 
 {- |NetworkOverlay: Sub-Graph that contains several nodes
@@ -125,3 +139,16 @@ data NetworkOverlay =
         { overlayNodes :: [Node]
         , edges        :: [Edge]
         }
+        deriving (Show, Read, Eq, Generic)
+
+
+instance ToJSON Action where
+
+instance ToJSON PlayerPositions where
+
+instance ToJSON RogueGameView where
+
+instance ToJSON CatcherGameView where
+instance ToJSON Network where
+
+instance ToJSON NetworkOverlay where
