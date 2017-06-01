@@ -4,6 +4,7 @@
 import           ClassyPrelude
 import           GameLogic      ((>>|))
 import           Lib            (mapRight)
+import           ProtocolTest
 import           Test.Framework
 main :: IO ()
 main = htfMain htf_thisModulesTests
@@ -23,5 +24,5 @@ prop_mapRightWithIdFunction x =
 test_dummy :: IO ()
 test_dummy = do
     actual <- (return >>| (\a _ -> return a)) (1 :: Int)
-    expected  <- return (1,1)
+    let expected  = (1,1)
     assertEqual expected actual
