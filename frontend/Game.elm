@@ -46,14 +46,14 @@ type alias Network =
 
 {-| NetworkOverlay: Sub-Graph that contains several nodes
 
-First part: the contained nodes in the Overlay.
+overlayNodes: the contained nodes in the Overlay.
 The nodes have to be contained in the nodes of the enclosing network
 Second part: the edges of the
 The edges must only connect the nodes contained in the first list.
 
 -}
 type alias NetworkOverlay =
-    { nodes : List Node
+    { overlayNodes : List Node
     , edges : List Edge
     }
 

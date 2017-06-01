@@ -51,9 +51,9 @@ mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
 
 
 mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { nodes, edges } =
+mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, edges } =
     List.map (edgeLine nodeXyMap color edgeWidth) edges
-        ++ List.map (nodeCircleStop nodeXyMap color nodeSize) nodes
+        ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
 
 
 

@@ -20,7 +20,7 @@ network =
 
 undergroundOverlay : NetworkOverlay
 undergroundOverlay =
-    { nodes = [ 1, 5, 6, 3 ]
+    { overlayNodes = [ 1, 5, 6, 3 ]
     , edges =
         [ ( 1, 5 )
         , ( 5, 6 )
@@ -32,7 +32,7 @@ undergroundOverlay =
 
 busOverlay : NetworkOverlay
 busOverlay =
-    { nodes = [ 1, 3, 4, 5, 2, 8 ]
+    { overlayNodes = [ 1, 3, 4, 5, 2, 8 ]
     , edges =
         [ ( 1, 3 )
         , ( 3, 4 )
@@ -47,7 +47,7 @@ busOverlay =
 
 taxiOverlay : NetworkOverlay
 taxiOverlay =
-    { nodes = range 1 7
+    { overlayNodes = range 1 7
     , edges =
         [ ( 1, 2 )
         , ( 6, 4 )
