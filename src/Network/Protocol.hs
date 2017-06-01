@@ -201,8 +201,8 @@ instance Arbitrary Action where
 
 instance Arbitrary PlayerPositions where
     arbitrary = do
-        playerPositions <- arbitrary
-        return $ PlayerPositions { playerPositions_ = playerPositions }
+        playerPos <- arbitrary
+        return $ PlayerPositions { playerPositions_ = playerPos }
 
 
 deriveBoth Elm.Derive.defaultOptions ''Action
