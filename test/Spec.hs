@@ -4,8 +4,9 @@
 import           ClassyPrelude
 import           GameLogic      ((>>|))
 import           Lib            (mapRight)
-import           ProtocolTest
+
 import           Test.Framework
+
 main :: IO ()
 main = htfMain htf_thisModulesTests
 
