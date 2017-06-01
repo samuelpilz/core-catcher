@@ -16,13 +16,13 @@ import qualified Data.Sequence                  as Seq
 import qualified Data.Text                      as Text
 import qualified GameLogic
 import qualified Network.ClientConnection       as CC
+import qualified Network.ElmDerive              as Elm
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Protocol               as Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-
 type ClientId = Int
 type Client   = (ClientId, WS.Connection)
 type Clients    = Seq.Seq Client
@@ -49,6 +49,7 @@ nextId =
 
 main :: IO ()
 main = do
+    writeFileUtf8 "frontend/Protocol.elm" Elm.elmProtocolModule
     let port = 3000
     putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
     state <- Concurrent.newMVar initialState

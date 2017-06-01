@@ -4,15 +4,23 @@
 module Network.ElmDerive where
 
 import           ClassyPrelude
-import           Data.ByteString.Lazy
 
 import           Network.Protocol
 
 import           Data.Proxy
 import           Elm.Module
 
-ma :: String
-ma =
-    makeElmModule "Foo"
-        [ DefineElm (Proxy :: Proxy Action)
-        ]
+elmProtocolModule :: Text
+elmProtocolModule =
+    pack
+        $ makeElmModule "Protocol"
+            [ DefineElm (Proxy :: Proxy Action)
+            , DefineElm (Proxy :: Proxy Action)
+            , DefineElm (Proxy :: Proxy PlayerPositions)
+            , DefineElm (Proxy :: Proxy RogueGameView)
+            , DefineElm (Proxy :: Proxy CatcherGameView)
+            , DefineElm (Proxy :: Proxy PlayerEnergies)
+            , DefineElm (Proxy :: Proxy EnergyMap)
+            , DefineElm (Proxy :: Proxy Network)
+            , DefineElm (Proxy :: Proxy NetworkOverlay)
+            ]

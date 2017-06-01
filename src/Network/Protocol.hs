@@ -149,7 +149,7 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
-{--}
+{--
 instance ToJSON Action where
     toEncoding = genericToEncoding Aeson.defaultOptions
 
@@ -189,7 +189,7 @@ instance FromJSON EnergyMap where
 instance FromJSON Network where
 
 instance FromJSON NetworkOverlay where
-
+--}
 
 
 instance Arbitrary Action where
@@ -205,11 +205,11 @@ instance Arbitrary PlayerPositions where
         return $ PlayerPositions { playerPositions' = playerPositions }
 
 
-deriveElmDef Elm.Derive.defaultOptions ''Action
-deriveElmDef Elm.Derive.defaultOptions ''PlayerPositions
-deriveElmDef Elm.Derive.defaultOptions ''RogueGameView
-deriveElmDef Elm.Derive.defaultOptions ''CatcherGameView
-deriveElmDef Elm.Derive.defaultOptions ''PlayerEnergies
-deriveElmDef Elm.Derive.defaultOptions ''EnergyMap
-deriveElmDef Elm.Derive.defaultOptions ''Network
-deriveElmDef Elm.Derive.defaultOptions ''NetworkOverlay
+deriveBoth Elm.Derive.defaultOptions ''Action
+deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
+deriveBoth Elm.Derive.defaultOptions ''RogueGameView
+deriveBoth Elm.Derive.defaultOptions ''CatcherGameView
+deriveBoth Elm.Derive.defaultOptions ''PlayerEnergies
+deriveBoth Elm.Derive.defaultOptions ''EnergyMap
+deriveBoth Elm.Derive.defaultOptions ''Network
+deriveBoth Elm.Derive.defaultOptions ''NetworkOverlay
