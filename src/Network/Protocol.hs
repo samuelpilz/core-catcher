@@ -1,11 +1,12 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Network.Protocol where
 
 import           ClassyPrelude
-import           Data.Aeson
+import           Data.Aeson    as Aeson
+import           Elm.Derive
 import           GHC.Generics  ()
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
@@ -24,10 +25,20 @@ type Edge = (Node, Node)
 type Transport = String
 {- |A engergy-map is keeps track how much energy per transport a player has left.
 -}
-type EnergyMap = Map Transport Int
+newtype EnergyMap =
+    EnergyMap
+        { energyMap :: Map Transport Int
+        }
+        deriving (Show, Read, Eq, Generic)
+
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
-type PlayerEnergies = Map Player EnergyMap
+newtype PlayerEnergies =
+    PlayerEnergies
+        { playerEnergies :: Map Player EnergyMap
+        }
+        deriving (Show, Read, Eq, Generic)
+
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
@@ -71,7 +82,7 @@ A game view should be determined by the player it is constructed for and a game 
 -}
 class (FromJSON view, ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
-    energyMap :: view -> EnergyMap
+    energies :: view -> EnergyMap
     rogueHistory :: view -> RogueTransportHistory
     rogueLastSeen :: view -> Maybe Node
 
@@ -99,13 +110,13 @@ data CatcherGameView =
 
 instance GameView RogueGameView where
     playerPositions = roguePlayerPositions
-    energyMap = rogueEnergyMap
+    energies = rogueEnergyMap
     rogueHistory = rogueOwnHistory
     rogueLastSeen = rogueRogueLastSeen
 
 instance GameView CatcherGameView where
     playerPositions = catcherPlayerPositions
-    energyMap = catcherEenergyMap
+    energies = catcherEenergyMap
     rogueHistory = catcherRogueHistory
     rogueLastSeen = catcherRogueLastSeen
 
@@ -136,24 +147,30 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
-
+{--}
 instance ToJSON Action where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance ToJSON PlayerPositions where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance ToJSON RogueGameView where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance ToJSON CatcherGameView where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
+
+instance ToJSON PlayerEnergies where
+    toEncoding = genericToEncoding Aeson.defaultOptions
+
+instance ToJSON EnergyMap where
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance ToJSON Network where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance ToJSON NetworkOverlay where
-    toEncoding = genericToEncoding defaultOptions
+    toEncoding = genericToEncoding Aeson.defaultOptions
 
 instance FromJSON Action where
 
@@ -163,6 +180,20 @@ instance FromJSON RogueGameView where
 
 instance FromJSON CatcherGameView where
 
+instance FromJSON PlayerEnergies where
+
+instance FromJSON EnergyMap where
+
 instance FromJSON Network where
 
 instance FromJSON NetworkOverlay where
+--}
+
+deriveElmDef Elm.Derive.defaultOptions ''Action
+deriveElmDef Elm.Derive.defaultOptions ''PlayerPositions
+deriveElmDef Elm.Derive.defaultOptions ''RogueGameView
+deriveElmDef Elm.Derive.defaultOptions ''CatcherGameView
+deriveElmDef Elm.Derive.defaultOptions ''PlayerEnergies
+deriveElmDef Elm.Derive.defaultOptions ''EnergyMap
+deriveElmDef Elm.Derive.defaultOptions ''Network
+deriveElmDef Elm.Derive.defaultOptions ''NetworkOverlay
