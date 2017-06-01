@@ -1,11 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-module ProtocolTest where
-
 import           ClassyPrelude
+
 import           Test.Framework
 
-test_protocolDummy :: IO ()
-test_protocolDummy =
-    assertEqual 1 1
+import {-@ HTF_TESTS @-} ProtocolTest
+import {-@ HTF_TESTS @-} SpecTest
+
+main :: IO ()
+main = htfMain htf_importedTests
