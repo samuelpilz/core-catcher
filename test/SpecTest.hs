@@ -1,14 +1,12 @@
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+
+module SpecTest where
 import           ClassyPrelude
 import           GameLogic      ((>>|))
 import           Lib            (mapRight)
 
 import           Test.Framework
-
-main :: IO ()
-main = htfMain htf_thisModulesTests
 
 test_mapRightDoubleValue :: IO ()
 test_mapRightDoubleValue =

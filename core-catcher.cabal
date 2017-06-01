@@ -53,7 +53,7 @@ executable core-catcher-exe
 test-suite core-catcher-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
+  main-is:             TestMain.hs
   build-depends:       base
                      , core-catcher
                      , classy-prelude
