@@ -128,16 +128,11 @@ data Network =
 
 {- |NetworkOverlay: Sub-Graph that contains several nodes
 
-First part: the contained nodes in the Overlay.
-The nodes have to be contained in the nodes of the enclosing network
-Second part: the edges of the
-The edges must only connect the nodes contained in the first list.
-
 -}
 data NetworkOverlay =
     NetworkOverlay
-        { overlayNodes :: [Node]
-        , edges        :: [Edge]
+        { overlayNodes :: [Node] -- ^the contained nodes in the Overlay.
+        , edges        :: [Edge] -- ^The edges must only connect the nodes contained in the first list.
         }
         deriving (Show, Read, Eq, Generic)
 

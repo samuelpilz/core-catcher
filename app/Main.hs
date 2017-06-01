@@ -15,6 +15,7 @@ import qualified Data.Maybe                     as Maybe
 import qualified Data.Sequence                  as Seq
 import qualified Data.Text                      as Text
 import qualified GameLogic
+import qualified Network.ClientConnection       as CC
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Protocol               as Protocol
 import qualified Network.Wai                    as Wai

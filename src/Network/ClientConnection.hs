@@ -6,9 +6,9 @@ This module manages one client connections.
 -}
 
 import           ClassyPrelude
+import qualified Data.Aeson         as Aeson
 import           Network.Protocol
-import qualified Network.Wai.Handler.WebSockets as WS
-import qualified Network.WebSockets             as WS
+import qualified Network.WebSockets as WS
 
 
 data ClientConnection =
@@ -17,13 +17,16 @@ data ClientConnection =
         , wsConnection :: WS.Connection
         }
 
--- TODO: functions that make sense (Hannes plz)
-sendView :: GameView view => ClientConnection -> view -> messageSent
-sendView _ _ = undefined
+sendView :: (GameView view) => view -> ClientConnection -> IO ()
+sendView view ci =
+    WS.sendTextData (wsConnection ci) (Aeson.encode view)
 
-recvAction :: GameView view => ClientConnection -> view -> action
-recvAction _ _ = undefined
+recvAction :: ClientConnection -> IO (Maybe Action)
+recvAction ci = do
+    wsData <- WS.receiveData (wsConnection ci)
+    return (Aeson.decode wsData)
 
-broadcast :: GameView view => [ClientConnection] -> view  -> messageSent
-broadcast _ _ = undefined
+broadcast :: (GameView view) => view -> [ClientConnection] -> IO ()
+broadcast view  =
+    mapM_ (sendView view)
 {- other maybe-useful functions ... -}
