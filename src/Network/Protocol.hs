@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 
@@ -6,7 +7,8 @@ module Network.Protocol where
 
 import           ClassyPrelude
 import           Data.Aeson
-import           GHC.Generics  ()
+import           GHC.Generics              ()
+import           Test.QuickCheck.Arbitrary
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
@@ -46,8 +48,8 @@ It is possible that the map is not complete.
 This should be the case if the missing player should not be seen.
 -}
 newtype PlayerPositions =
-    PlayerMap
-      { playerMap :: Map Player Node -- ^player 0 is the rogue core
+    PlayerPositions
+      { playerPositions' :: Map Player Node -- ^player 0 is the rogue core
       }
     deriving (Show, Read, Eq, Generic)
 
@@ -166,3 +168,15 @@ instance FromJSON CatcherGameView where
 instance FromJSON Network where
 
 instance FromJSON NetworkOverlay where
+
+instance Arbitrary Action where
+    arbitrary = do
+        player <- arbitrary
+        transport <- arbitrary
+        node <- arbitrary
+        return $ Move { player, transport, node}
+
+instance Arbitrary PlayerPositions where
+    arbitrary = do
+        playerPositions <- arbitrary
+        return $ PlayerPositions { playerPositions' = playerPositions }
