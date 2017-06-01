@@ -14,8 +14,6 @@ import           Test.QuickCheck.Arbitrary
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
-
-
 -}
 
 -- |Players and Nodes are Ints (=Ids). The rouge-player has id 0
@@ -53,7 +51,6 @@ newtype PlayerEnergies =
         { playerEnergies :: Map Player EnergyMap
         }
         deriving (Show, Read, Eq, Generic)
-
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
@@ -165,47 +162,6 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
-{--
-instance ToJSON Action where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON PlayerPositions where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON RogueGameView where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON CatcherGameView where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON PlayerEnergies where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON EnergyMap where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON Network where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance ToJSON NetworkOverlay where
-    toEncoding = genericToEncoding Aeson.defaultOptions
-
-instance FromJSON Action where
-
-instance FromJSON PlayerPositions where
-
-instance FromJSON RogueGameView where
-
-instance FromJSON CatcherGameView where
-
-instance FromJSON PlayerEnergies where
-
-instance FromJSON EnergyMap where
-
-instance FromJSON Network where
-
-instance FromJSON NetworkOverlay where
---}
 instance FromJSONKey Player where
 
 instance FromJSONKey Node where
