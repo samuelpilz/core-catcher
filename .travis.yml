@@ -35,7 +35,7 @@ before_install:
   - cd ..
   - git clone https://github.com/fendor/stack-hpc-coveralls.git
   - cd stack-hpc-coveralls
-  - stack build
+  - stack build --no-terminall --install-ghc --only-dependencies
   - cp .stack-work/install/x86_64-linux/lts-8.13/8.0.2/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
