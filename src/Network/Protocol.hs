@@ -60,7 +60,7 @@ This should be the case if the missing player should not be seen.
 -}
 newtype PlayerPositions =
     PlayerPositions
-      { playerPositions' :: Map Player Node -- ^player 0 is the rogue core
+      { playerPositions_ :: Map Player Node -- ^player 0 is the rogue core
       }
     deriving (Show, Read, Eq, Generic)
 
@@ -202,7 +202,7 @@ instance Arbitrary Action where
 instance Arbitrary PlayerPositions where
     arbitrary = do
         playerPositions <- arbitrary
-        return $ PlayerPositions { playerPositions' = playerPositions }
+        return $ PlayerPositions { playerPositions_ = playerPositions }
 
 
 deriveBoth Elm.Derive.defaultOptions ''Action
