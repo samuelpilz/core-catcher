@@ -143,12 +143,31 @@ data NetworkOverlay =
 
 
 instance ToJSON Action where
+    toEncoding = genericToEncoding defaultOptions
 
 instance ToJSON PlayerPositions where
+    toEncoding = genericToEncoding defaultOptions
 
 instance ToJSON RogueGameView where
+    toEncoding = genericToEncoding defaultOptions
 
 instance ToJSON CatcherGameView where
+    toEncoding = genericToEncoding defaultOptions
+
 instance ToJSON Network where
+    toEncoding = genericToEncoding defaultOptions
 
 instance ToJSON NetworkOverlay where
+    toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON Action where
+
+instance FromJSON PlayerPositions where
+
+instance FromJSON RogueGameView where
+
+instance FromJSON CatcherGameView where
+
+instance FromJSON Network where
+
+instance FromJSON NetworkOverlay where
