@@ -32,42 +32,19 @@ jsonEncAction  val =
 
 
 
-type alias Action  =
-   { player: Player
-   , transport: Transport
-   , node: Node
-   }
-
-jsonDecAction : Json.Decode.Decoder ( Action )
-jsonDecAction =
-   ("player" := jsonDecPlayer) >>= \pplayer ->
-   ("transport" := jsonDecTransport) >>= \ptransport ->
-   ("node" := jsonDecNode) >>= \pnode ->
-   Json.Decode.succeed {player = pplayer, transport = ptransport, node = pnode}
-
-jsonEncAction : Action -> Value
-jsonEncAction  val =
-   Json.Encode.object
-   [ ("player", jsonEncPlayer val.player)
-   , ("transport", jsonEncTransport val.transport)
-   , ("node", jsonEncNode val.node)
-   ]
-
-
-
 type alias PlayerPositions  =
-   { playerPositions': (List (Player, Node))
+   { playerPositions_: (List (Player, Node))
    }
 
 jsonDecPlayerPositions : Json.Decode.Decoder ( PlayerPositions )
 jsonDecPlayerPositions =
-   ("playerPositions'" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecNode)))) >>= \pplayerPositions' ->
-   Json.Decode.succeed {playerPositions' = pplayerPositions'}
+   ("playerPositions_" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecNode)))) >>= \pplayerPositions_ ->
+   Json.Decode.succeed {playerPositions_ = pplayerPositions_}
 
 jsonEncPlayerPositions : PlayerPositions -> Value
 jsonEncPlayerPositions  val =
    Json.Encode.object
-   [ ("playerPositions'", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncNode) v2])) val.playerPositions')
+   [ ("playerPositions_", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncNode) v2])) val.playerPositions_)
    ]
 
 

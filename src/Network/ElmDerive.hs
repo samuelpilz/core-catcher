@@ -15,7 +15,6 @@ elmProtocolModule =
     pack
         $ makeElmModule "Protocol"
             [ DefineElm (Proxy :: Proxy Action)
-            , DefineElm (Proxy :: Proxy Action)
             , DefineElm (Proxy :: Proxy PlayerPositions)
             , DefineElm (Proxy :: Proxy RogueGameView)
             , DefineElm (Proxy :: Proxy CatcherGameView)
