@@ -16,11 +16,11 @@ import qualified Data.Sequence                  as Seq
 import qualified Data.Text                      as Text
 import qualified GameLogic
 import qualified Network.HTTP.Types             as Http
+import           Network.Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-
 
 type ClientId = Int
 type Client   = (ClientId, WS.Connection)

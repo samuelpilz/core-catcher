@@ -17,7 +17,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , GameLogic
-  ghc-options:         -Wall -threaded
+                     , Network.Protocol
+  ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
                      , vector
