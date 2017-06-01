@@ -35,7 +35,10 @@ before_install:
   - cd ..
   - git clone https://github.com/fendor/stack-hpc-coveralls.git
   - cd stack-hpc-coveralls
-  - stack --no-terminal --install-ghc build --only-dependencies
+  - stack --no-terminal --install-ghc test --only-dependencies
+  - stack build
+  - echo `stack path --local-install-root`/bin/shc
+  - echo `stack path --local-install-root`
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
