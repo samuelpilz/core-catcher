@@ -69,7 +69,7 @@ data GameState =
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state
 -}
-class (ToJSON view) => GameView view where
+class (FromJSON view, ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
     energyMap :: view -> EnergyMap
     rogueHistory :: view -> RogueTransportHistory
