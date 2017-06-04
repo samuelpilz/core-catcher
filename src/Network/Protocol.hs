@@ -189,17 +189,12 @@ instance Arbitrary Transport  where
         Transport <$> arbitrary
 
 instance Arbitrary Action where
-    arbitrary = do
-        player <- arbitrary
-        transport <- arbitrary
-        node <- arbitrary
-        return Move { player, transport, node}
+    arbitrary =
+        Move <$> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary PlayerPositions where
-    arbitrary = do
-        playerPos <- arbitrary
-        return PlayerPositions { playerPositions_ = playerPos }
-
+    arbitrary =
+        PlayerPositions <$> arbitrary
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions

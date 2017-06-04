@@ -37,7 +37,7 @@ library
 
 executable core-catcher-exe
   hs-source-dirs:      app
-  main-is:             Main.hs
+  main-is:             MainSam.hs
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher
@@ -50,8 +50,7 @@ executable core-catcher-exe
                      , classy-prelude
                      , containers
                      , aeson
-                     , mtl
-                     , transformers
+                     , stm
   default-language:    Haskell2010
 
 test-suite core-catcher-test

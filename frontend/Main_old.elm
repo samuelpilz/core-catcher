@@ -4,14 +4,15 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
-import MapView exposing (mapView)
 import Debug exposing (log)
 import Regex exposing (..)
 
 
-type alias Model =
-    ( Int, Result String Int)
-
+type alias Model = 
+    { pokeCount : Int
+    , fieldText : String
+    , fieldValue : Maybe Int
+    }
 
 type Msg
     = Receive String
@@ -31,18 +32,17 @@ main =
 
 init : ( Model, Cmd Msg )
 init =
-    ( ( 0, Ok 1 ), Cmd.none )
+    ( {pokeCount = 0, fieldText = "1", fieldValue = Just 1}, Cmd.none )
 
 
 view : Model -> Html Msg
-view ( poked, pokingState ) =
+view model =
     div []
-        [ p [] [ text <| "Pokes: " ++ toString poked ]
+        [ p [] [ text <| "Pokes: " ++ toString model.pokeCount ]
         , div []
-            [ input [ value (printPokingState pokingState), onInput UpdateNum ] []
+            [ input [ value model.fieldText, onInput UpdateNum ] []
             , button [ onClick Send ] [ text "Poke others" ]
             ]
-        , MapView.mapView
         ]
 
 
@@ -61,38 +61,23 @@ update msg model =
     case log "msg" msg of
         Receive m ->
             if contains pokeRegex m then
-                ( Tuple.first model + getNumberFromPokeString m, Tuple.second model ) ! []
+                {model | pokeCount = model.pokeCount + getNumberFromPokeString m } ! []
             else
                 model ! []
 
         Send ->
-            model ! [ WebSocket.send wsUrl ("poke" ++ printPokingState (Tuple.second model)) ]
+            case model.fieldValue of
+                Just p ->
+                    model ! [ WebSocket.send wsUrl ("poke" ++ toString p ) ]
 
+                Nothing ->
+                    model ! []
+            
         UpdateNum s ->
-            ( Tuple.first model, handleInputString s ) ! []
+            {model | fieldText = s , fieldValue = Result.toMaybe <| String.toInt <| s} ! []
 
         Clicked n ->
             model ! []
-
-
-handleInputString : String -> Result String Int
-handleInputString s =
-    case String.toInt s of
-        Ok i ->
-            Ok i
-
-        Err _ ->
-            Err s
-
-
-printPokingState : Result String Int -> String
-printPokingState x =
-    case x of
-        Ok i ->
-            toString i
-
-        Err s ->
-            s
 
 
 pokeRegex : Regex
