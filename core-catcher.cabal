@@ -38,6 +38,8 @@ library
 executable core-catcher-exe
   hs-source-dirs:      app
   main-is:             MainSam.hs
+  other-modules:       WsApp
+                     , ConnectionMgnt
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher
@@ -51,6 +53,7 @@ executable core-catcher-exe
                      , containers
                      , aeson
                      , stm
+                     , transformers
   default-language:    Haskell2010
 
 test-suite core-catcher-test

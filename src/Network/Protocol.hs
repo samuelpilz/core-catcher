@@ -82,15 +82,12 @@ newtype RogueTransportHistory =
         }
       deriving (Show, Read, Eq, Generic)
 
-{--
 data GameState =
     State
-        { playerPositions :: PlayerPositions
-        , energyMap       :: EnergyMap
-        , rogueHistory    :: RogueHistory
-        {- ... gamestate fields -}
+        { playerPositions__ :: PlayerPositions
+        , energyMap_        :: EnergyMap
+        , rogueHistory_     :: RogueTransportHistory
         }
---}
 
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state
