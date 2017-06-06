@@ -260,21 +260,21 @@ jsonEncRogueTransportHistory  val =
 
 
 type GameViewToSend  =
-    CatcherView CatcherGameView
-    | RogueView RogueGameView
+    ViewForCatcher CatcherGameView
+    | ViewForRogue RogueGameView
 
 jsonDecGameViewToSend : Json.Decode.Decoder ( GameViewToSend )
 jsonDecGameViewToSend =
     let jsonDecDictGameViewToSend = Dict.fromList
-            [ ("CatcherGameView", Json.Decode.map CatcherView (jsonDecCatcherGameView))
-            , ("RogueGameView", Json.Decode.map RogueView (jsonDecRogueGameView))
+            [ ("ViewForCatcher", Json.Decode.map ViewForCatcher (jsonDecCatcherGameView))
+            , ("ViewForRogue", Json.Decode.map ViewForRogue (jsonDecRogueGameView))
             ]
     in  decodeSumObjectWithSingleField  "GameViewToSend" jsonDecDictGameViewToSend
 
 jsonEncGameViewToSend : GameViewToSend -> Value
 jsonEncGameViewToSend  val =
     let keyval v = case v of
-                    CatcherView v1 -> ("CatcherGameView", encodeValue (jsonEncCatcherGameView v1))
-                    RogueView v1 -> ("RogueGameView", encodeValue (jsonEncRogueGameView v1))
+                    ViewForCatcher v1 -> ("ViewForCatcher", encodeValue (jsonEncCatcherGameView v1))
+                    ViewForRogue v1 -> ("ViewForRogue", encodeValue (jsonEncRogueGameView v1))
     in encodeSumObjectWithSingleField keyval val
 
