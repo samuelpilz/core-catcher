@@ -16,7 +16,7 @@ import           ConnectionMgnt
 import qualified Control.Exception              as Exception
 import qualified Data.Aeson                     as Aeson
 import qualified Network.HTTP.Types             as Http
-import           Network.Protocol               (Action)
+import           Network.Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
@@ -50,7 +50,8 @@ wsApp pendingConn = do
 wsListen :: WS.Connection -> ClientId -> TVar ServerState -> IO ()
 wsListen conn clientId stateVar = forever $ do
     text <- WS.receiveData conn
-    putStrLn $ "reveived \"" ++ tshow text ++ "\" from client " ++ tshow clientId
+    putStrLn $ "reveived from client " ++ tshow clientId
+    BSL.putStrLn text
     let maybeAction = Aeson.decode text :: Maybe Action
     case maybeAction of
         Just action -> do

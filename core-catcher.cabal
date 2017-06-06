@@ -55,6 +55,7 @@ executable core-catcher-exe
                      , aeson
                      , stm
                      , transformers
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite core-catcher-test
