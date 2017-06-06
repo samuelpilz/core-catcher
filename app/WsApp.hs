@@ -6,37 +6,57 @@ module WsApp (WsApp.handle) where
 
 import           ClassyPrelude
 import           ConnectionMgnt
-import           Network.Protocol (Action (..), CatcherGameView, GameView,
-                                   RogueGameView)
+import           GameLogic        (addAction)
+import qualified GameLogic        as GL
+import           Network.Protocol (CatcherGameView, GameView, RogueGameView)
+import qualified Network.Protocol as Protocol
 import           State
 import           WsAppUtils
 
-handle :: TVar ServerState -> Action -> IO ()
+handle :: TVar ServerState -> Protocol.Action -> IO ()
 handle serverVar action = do
     state <- readTVarIO serverVar
-    let newGameState = updateState action $ gameState state
-    case newGameState of
-        Just game -> do
-            let catchers = withoutClient 0 (connections state)
-            let maybeRogue = findConnectionById 0 state
-            let rogueGameView = gameStateToRogueView game
-            let catcherGameView = gameStateToCatcherView game
-            broadcast catcherGameView catchers
+    let game = updateState action $ gameState state
+    let catchers = withoutClient 0 (connections state)
+    let maybeRogue = findConnectionById 0 state
+    let rogueGameView = gameStateToRogueView game
+    let catcherGameView = gameStateToCatcherView game
 
-            case maybeRogue of
-                Just rogue -> sendView rogueGameView rogue
-                Nothing    -> putStrLn "There is no rogue connected"
-            return ()
+    case maybeRogue of
+        Just rogue -> sendView rogueGameView rogue
+        Nothing    -> putStrLn "There is no rogue connected"
 
-        Nothing ->
-            putStrLn $ "The sent move was apparently not a valid move.\nInform the player: " ++ tshow (player action)
+    broadcast catcherGameView catchers
 
-updateState :: Action -> GameState -> Maybe GameState
+    return ()
+
+toRealAction :: Protocol.Action -> GL.Action
+toRealAction act =
+    GL.OneMove
+        (GL.Move
+            (strToColor $ (Protocol.transportName . Protocol.transport) act)
+            ((Protocol.nodeId . Protocol.node) act)
+        )
+
+updateState :: Protocol.Action -> GameState -> GameState
 -- TODO: someone implement
-updateState  _ = undefined
+updateState act game = game `addAction` toRealAction act
 
 gameStateToCatcherView :: GameState -> CatcherGameView
-gameStateToCatcherView state = undefined
+gameStateToCatcherView state =
+    let
+        flattened = GL.flattenState state
+    in case GL.gamestate flattened of
+        Just (energies, pos, _) -> undefined
+        Nothing                 -> undefined
 
 gameStateToRogueView :: GameState -> RogueGameView
 gameStateToRogueView state = undefined
+
+strToColor :: String -> GL.Energy
+strToColor "black"  = GL.BlackEnergy
+strToColor "red"    = GL.Energy GL.Red
+strToColor "orange" = GL.Energy GL.Orange
+strToColor "blue"   = GL.Energy GL.Blue
+strToColor _        = error "WsApp.strToColor: The Protocol has been broken"
+-- FIXME^: server should not die

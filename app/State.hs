@@ -4,8 +4,9 @@ module State (ServerState(..), HasConnections, GameState) where
 
 import           ClassyPrelude
 import           ConnectionMgnt
+import qualified GameLogic      as GL
 
-type GameState = String
+type GameState = GL.GameState
 
 data ServerState  =
     ServerState

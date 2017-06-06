@@ -44,6 +44,12 @@ newtype EnergyMap =
         }
         deriving (Show, Read, Eq, Generic)
 
+newtype GameError =
+    GameError
+        { myError :: String
+        }
+        deriving (Show, Read, Eq, Generic)
+
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
 newtype PlayerEnergies =
@@ -70,8 +76,8 @@ This should be the case if the missing player should not be seen.
 -}
 newtype PlayerPositions =
     PlayerPositions
-      { playerPositions_ :: Map Player Node -- ^player 0 is the rogue core
-      }
+        { playerPositions_ :: Map Player Node -- ^player 0 is the rogue core
+        }
     deriving (Show, Read, Eq, Generic)
 
 {- |The history of transports used by the rouge core.
@@ -99,18 +105,20 @@ Views can contain different information based on the receiver.
 -}
 class (FromJSON view, ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
-    energies :: view -> EnergyMap
+    energies :: view -> PlayerEnergies
     rogueHistory :: view -> RogueTransportHistory
     rogueLastSeen :: view -> Maybe Node
+    viewError :: view -> Maybe GameError
 
 {- |A game view as seen by the rouge-core.
 -}
 data RogueGameView =
     RogueView
         { roguePlayerPositions :: PlayerPositions
-        , rogueEnergyMap       :: EnergyMap
+        , rogueEnergies        :: PlayerEnergies
         , rogueOwnHistory      :: RogueTransportHistory
         , rogueRogueLastSeen   :: Maybe Node
+        , rogueViewError       :: Maybe GameError
         }
         deriving (Show, Read,  Eq, Generic)
 
@@ -119,26 +127,27 @@ data RogueGameView =
 data CatcherGameView =
     CatcherView
         { catcherPlayerPositions :: PlayerPositions
-        , catcherEenergyMap      :: EnergyMap
+        , catcherEnergies        :: PlayerEnergies
         , catcherRogueHistory    :: RogueTransportHistory
         , catcherRogueLastSeen   :: Maybe Node
+        , catcherViewError       :: Maybe GameError
         }
         deriving (Show, Read, Eq, Generic)
 
 instance GameView RogueGameView where
     playerPositions = roguePlayerPositions
-    energies = rogueEnergyMap
+    energies = rogueEnergies
     rogueHistory = rogueOwnHistory
     rogueLastSeen = rogueRogueLastSeen
+    viewError = rogueViewError
 
 instance GameView CatcherGameView where
     playerPositions = catcherPlayerPositions
-    energies = catcherEenergyMap
+    energies = catcherEnergies
     rogueHistory = catcherRogueHistory
     rogueLastSeen = catcherRogueLastSeen
+    viewError = catcherViewError
 
-data GameViewToSend = ViewForCatcher CatcherGameView | ViewForRogue RogueGameView
-        deriving (Show, Read, Eq, Generic)
 
 {- |Network: Nodes and Map Transport to Overlay.
 
@@ -200,6 +209,10 @@ instance Arbitrary PlayerPositions where
     arbitrary =
         PlayerPositions <$> arbitrary
 
+instance Arbitrary PlayerEnergies where
+    arbitrary =
+        PlayerEnergies <$> arbitrary
+
 instance Arbitrary EnergyMap where
     arbitrary =
         EnergyMap <$> arbitrary
@@ -208,24 +221,23 @@ instance Arbitrary RogueTransportHistory where
     arbitrary =
         RogueTransportHistory <$> arbitrary
 
+instance Arbitrary GameError where
+    arbitrary =
+        GameError <$> arbitrary
+
 instance Arbitrary CatcherGameView where
     arbitrary =
-        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
-instance Arbitrary GameViewToSend where
-    arbitrary = do
-        catcher <- arbitrary
-        if catcher then
-            ViewForCatcher <$> arbitrary
-        else
-            undefined
-            -- ViewForRogue <$> arbitrary
+instance Arbitrary RogueGameView where
+    arbitrary =
+        RogueView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
 deriveBoth Elm.Derive.defaultOptions ''RogueGameView
 deriveBoth Elm.Derive.defaultOptions ''CatcherGameView
-deriveBoth Elm.Derive.defaultOptions ''GameViewToSend
+deriveBoth Elm.Derive.defaultOptions ''GameError
 deriveBoth Elm.Derive.defaultOptions ''PlayerEnergies
 deriveBoth Elm.Derive.defaultOptions ''EnergyMap
 deriveBoth Elm.Derive.defaultOptions ''Network

@@ -22,6 +22,7 @@ import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           State
+import           Util                           (defaultGame)
 import qualified WsApp
 import qualified WsAppUtils
 
@@ -39,25 +40,22 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 
 wsApp :: WS.ServerApp
 wsApp pendingConn = do
-    stateVar <- newTVarIO $ ServerState {connections = empty, gameState = ""}
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = defaultGame}
     conn <- WS.acceptRequest pendingConn
     clientId <- connectClient conn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
     Exception.finally
-        (wsListen conn clientId stateVar)
+        (wsListen (clientId, conn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
 
-wsListen :: WS.Connection -> ClientId -> TVar ServerState -> IO ()
-wsListen conn clientId stateVar = forever $ do
-    text <- WS.receiveData conn
-    putStrLn $ "reveived from client " ++ tshow clientId
-    BSL.putStrLn text
-    let maybeAction = Aeson.decode text :: Maybe Action
+wsListen :: ClientConnection -> TVar ServerState -> IO ()
+wsListen client stateVar = forever $ do
+    maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
-            WS.sendTextData conn ("1" :: Text)
+            WS.sendTextData (snd client) ("1" :: Text)
             WsApp.handle stateVar action
             return ()
         Nothing     -> do
-            WS.sendTextData conn ("2" :: Text)
+            WS.sendTextData (snd client) ("2" :: Text)
             putStrLn "ERROR: The message could not be decoded"
