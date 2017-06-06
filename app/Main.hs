@@ -14,7 +14,10 @@ module Main where
 import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
+import qualified Data.Aeson                     as Aeson
+import qualified Data.ByteString.Lazy           as BSL
 import qualified Network.HTTP.Types             as Http
+import           Network.Protocol               (Action)
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
@@ -56,15 +59,12 @@ wsApp pendingConn = do
 wsListen :: WS.Connection -> ClientId -> TVar ServerState -> IO ()
 wsListen conn clientId stateVar = forever $ do
     text <- WS.receiveData conn
-    putStrLn $ "reveived \"" ++ text ++ "\" from client " ++ tshow clientId
-    broadcast clientId stateVar text -- TODO: Hook for business logic here
-    -- real business logic:
-    --objFromClient :: UnionOfProtocolDataThatAClientCanSend <- Protocol.... -- call to protocol
-    --handleObj objFomClient additionalData
-
-broadcast :: ClientId -> TVar ServerState -> Text -> IO ()
-broadcast clientId stateVar msg = do
-    state <- readTVarIO stateVar
-    let otherClients = filter ((/=) clientId.fst) $ connections state
-    forM_ otherClients $ \(_, conn) ->
-        WS.sendTextData conn msg
+    putStrLn $ "reveived \"" ++ tshow text ++ "\" from client " ++ tshow clientId
+    let maybeAction = Aeson.decode text :: Maybe Action
+    case maybeAction of
+        Just action -> do
+            WS.sendTextData conn ("1" :: Text)
+            return ()
+        Nothing     -> do
+            WS.sendTextData conn ("2" :: Text)
+            putStrLn "ERROR: The message could not be decoded"

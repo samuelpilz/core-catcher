@@ -20,7 +20,7 @@ module ConnectionMgnt (
 import           ClassyPrelude
 import qualified Network.WebSockets as WS
 
-type ClientId     = Int
+type ClientId = Int
 type ClientConnection = (ClientId, WS.Connection)
 type ClientConnections = [ClientConnection]
 
@@ -61,4 +61,3 @@ nextId = fromMaybe 0 . map (+1) . maximumMay . map fst
 
 withoutClient :: ClientId -> ClientConnections -> ClientConnections
 withoutClient clientId = filter ((/=) clientId . fst)
-
