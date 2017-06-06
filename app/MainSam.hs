@@ -36,11 +36,12 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 data ServerState  =
     ServerState
         { connections :: [ClientConnection]
-        , gameState   :: String}
+        , gameState   :: String
+        }
 
 instance HasConnections ServerState where
     getConnections = connections
-    setConnections conn state = state {connections = conn}
+    setConnections conn state = state { connections = conn }
 
 wsApp :: WS.ServerApp
 wsApp pendingConn = do
@@ -64,4 +65,3 @@ broadcast clientId stateVar msg = do
     let otherClients = filter ((/=) clientId.fst) $ connections state
     forM_ otherClients $ \(_, conn) ->
         WS.sendTextData conn msg
-

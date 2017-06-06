@@ -82,15 +82,20 @@ newtype RogueTransportHistory =
         }
       deriving (Show, Read, Eq, Generic)
 
+{-- |GameState is implemented in GameLogic Module which is only exposes GameView's
 data GameState =
     State
         { playerPositions__ :: PlayerPositions
         , energyMap_        :: EnergyMap
         , rogueHistory_     :: RogueTransportHistory
         }
+--}
 
 {- |A game view is a subset of the game-State as seen by one of the players.
-A game view should be determined by the player it is constructed for and a game state
+A game view should be determined by the player it is constructed for and a game state.
+GameView is glue code for the game state. No actual game state is sent between
+the fronend and the backend but only the views.
+Views can contain different information based on the receiver.
 -}
 class (FromJSON view, ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
@@ -98,7 +103,7 @@ class (FromJSON view, ToJSON view) => GameView view where
     rogueHistory :: view -> RogueTransportHistory
     rogueLastSeen :: view -> Maybe Node
 
-{- |A game view as seen by the rouge-core
+{- |A game view as seen by the rouge-core.
 -}
 data RogueGameView =
     RogueView
