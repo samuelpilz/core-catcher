@@ -6,7 +6,7 @@ module WsApp (WsApp.handle) where
 
 import           ClassyPrelude
 import           ConnectionMgnt
-import qualified Glue             as Glue
+import qualified Glue
 import qualified Network.Protocol as Protocol
 import           State
 import           WsAppUtils
@@ -21,6 +21,7 @@ handle serverVar action = do
     let rogueGameView = Glue.gameStateToRogueView game
     let catcherGameView = Glue.gameStateToCatcherView game
     -- TODO: do STM
+    -- TODO: error handling
     case maybeRogue of
         Just rogue -> sendView rogueGameView rogue
         Nothing    -> putStrLn "There is no rogue connected"
