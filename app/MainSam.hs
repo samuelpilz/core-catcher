@@ -58,6 +58,9 @@ wsListen conn clientId stateVar = forever $ do
     text <- WS.receiveData conn
     putStrLn $ "reveived \"" ++ text ++ "\" from client " ++ tshow clientId
     broadcast clientId stateVar text -- TODO: Hook for business logic here
+    -- real business logic:
+    --objFromClient :: UnionOfProtocolDataThatAClientCanSend <- Protocol....
+    --handleObj objFomClient additionalData
 
 broadcast :: ClientId -> TVar ServerState -> Text -> IO ()
 broadcast clientId stateVar msg = do

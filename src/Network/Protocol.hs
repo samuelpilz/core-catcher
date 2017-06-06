@@ -137,6 +137,8 @@ instance GameView CatcherGameView where
     rogueHistory = catcherRogueHistory
     rogueLastSeen = catcherRogueLastSeen
 
+data GameViewToSend = CatcherGameView CatcherGameView | RogueGameView RogueGameView
+        deriving (Show, Read, Eq, Generic)
 
 {- |Network: Nodes and Map Transport to Overlay.
 
@@ -202,6 +204,7 @@ deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
 deriveBoth Elm.Derive.defaultOptions ''RogueGameView
 deriveBoth Elm.Derive.defaultOptions ''CatcherGameView
+deriveBoth Elm.Derive.defaultOptions ''GameViewToSend
 deriveBoth Elm.Derive.defaultOptions ''PlayerEnergies
 deriveBoth Elm.Derive.defaultOptions ''EnergyMap
 deriveBoth Elm.Derive.defaultOptions ''Network
