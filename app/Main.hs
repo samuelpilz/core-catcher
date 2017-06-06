@@ -15,18 +15,19 @@ import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
 import qualified Data.Aeson                     as Aeson
-import qualified Data.ByteString.Lazy           as BSL
 import qualified Network.HTTP.Types             as Http
 import           Network.Protocol               (Action)
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
---import           WsApp
+import           State
+import qualified WsApp
+import qualified WsAppUtils
 
 main :: IO ()
 main = do
-    putStrLn $ "Starting Core-Catcher server on port 3000"
+    putStrLn "Starting Core-Catcher server on port 3000"
     Warp.run 3000 $ WS.websocketsOr
         WS.defaultConnectionOptions
         wsApp
@@ -35,16 +36,6 @@ main = do
 httpApp :: Wai.Application
 httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket request"
 
-
-data ServerState  =
-    ServerState
-        { connections :: [ClientConnection]
-        , gameState   :: String
-        }
-
-instance HasConnections ServerState where
-    getConnections = connections
-    setConnections conn state = state { connections = conn }
 
 wsApp :: WS.ServerApp
 wsApp pendingConn = do
@@ -64,6 +55,7 @@ wsListen conn clientId stateVar = forever $ do
     case maybeAction of
         Just action -> do
             WS.sendTextData conn ("1" :: Text)
+            WsApp.handle stateVar action
             return ()
         Nothing     -> do
             WS.sendTextData conn ("2" :: Text)

@@ -2,15 +2,23 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WsApp where
+module WsApp (WsApp.handle) where
 
 import           ClassyPrelude
-import qualified Control.Exception  as Exception
-import qualified Data.Aeson         as Aeson
 import           Network.Protocol   (Action, CatcherGameView, GameView,
                                      RogueGameView)
 import qualified Network.WebSockets as WS
 
 
-handle :: Action -> IO ()
-handle _ = return ()
+handle :: TVar state -> Action -> IO ()
+handle _ _ = return ()
+
+
+updateState :: Action -> state -> STM ()
+updateState _ _ = undefined
+
+stateToCatcherGameView :: gameState -> STM CatcherGameView
+stateToCatcherGameView = undefined
+
+stateToRogueGameView :: gameState -> STM RogueGameView
+stateToRogueGameView = undefined
