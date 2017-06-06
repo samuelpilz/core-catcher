@@ -19,6 +19,10 @@ recvAction ci = do
     wsData <- WS.receiveData (snd ci)
     return (Aeson.decode wsData)
 
-broadcast :: (GameView view) => view -> [ClientConnection] -> IO ()
+broadcast :: (GameView view) => view -> ClientConnections -> IO ()
 broadcast view  =
     mapM_ (sendView view)
+
+withoutClient :: ClientId -> ClientConnections -> ClientConnections
+withoutClient cid =
+    filter ((cid /=) . fst)

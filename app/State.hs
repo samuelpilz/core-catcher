@@ -1,14 +1,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module State (ServerState(..), HasConnections) where
+module State (ServerState(..), HasConnections, GameState) where
 
 import           ClassyPrelude
 import           ConnectionMgnt
 
+type GameState = String
+
 data ServerState  =
     ServerState
-        { connections :: [ClientConnection]
-        , gameState   :: String
+        { connections :: ClientConnections
+        , gameState   :: GameState
         }
 
 instance HasConnections ServerState where

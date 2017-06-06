@@ -14,7 +14,8 @@ module ConnectionMgnt (
     connectClient,
     disconnectClient,
     getConnections,
-    setConnections
+    setConnections,
+    findConnectionById
     ) where
 
 import           ClassyPrelude
@@ -22,7 +23,7 @@ import qualified Network.WebSockets as WS
 
 type ClientId = Int
 type ClientConnection = (ClientId, WS.Connection)
-type ClientConnections = [ClientConnection]
+type ClientConnections = Seq ClientConnection
 
 class HasConnections state where
     getConnections :: state -> ClientConnections
@@ -40,13 +41,19 @@ class HasConnections state where
         atomically $ removeClient clientId stateVar
         putStrLn $ "disconnect " ++ tshow clientId
 
+    findConnectionById :: ClientId -> state -> Maybe ClientConnection
+    findConnectionById cid state =
+        find ((==cid) . fst) $ getConnections state
+
+
+
 -- helper functions (not exported)
 addClient :: HasConnections state => WS.Connection -> TVar state -> STM ClientId
 addClient conn stateVar = do -- update connection list
     state <- readTVar stateVar
     let connections = getConnections state
     let newClientId = nextId connections
-    let newConnections = (newClientId, conn):getConnections state
+    let newConnections = (newClientId, conn) `cons` getConnections state
     writeTVar stateVar (setConnections newConnections state)
     return newClientId
 

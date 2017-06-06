@@ -39,7 +39,7 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 
 wsApp :: WS.ServerApp
 wsApp pendingConn = do
-    stateVar <- newTVarIO $ ServerState {connections = [], gameState = ""}
+    stateVar <- newTVarIO $ ServerState {connections = empty, gameState = ""}
     conn <- WS.acceptRequest pendingConn
     clientId <- connectClient conn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
