@@ -137,7 +137,7 @@ instance GameView CatcherGameView where
     rogueHistory = catcherRogueHistory
     rogueLastSeen = catcherRogueLastSeen
 
-data GameViewToSend = CatcherGameView CatcherGameView | RogueGameView RogueGameView
+data GameViewToSend = CatcherView CatcherGameView | RogueView RogueGameView
         deriving (Show, Read, Eq, Generic)
 
 {- |Network: Nodes and Map Transport to Overlay.

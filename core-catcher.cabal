@@ -37,7 +37,7 @@ library
 
 executable core-catcher-exe
   hs-source-dirs:      app
-  main-is:             MainSam.hs
+  main-is:             Main.hs
   other-modules:       WsApp
                      , ConnectionMgnt
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
