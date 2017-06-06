@@ -18,7 +18,6 @@ library
   exposed-modules:     Lib
                      , GameLogic
                      , Network.Protocol
-                     , Network.ClientConnection
                      , Network.ElmDerive
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
@@ -39,6 +38,8 @@ executable core-catcher-exe
   hs-source-dirs:      app
   main-is:             Main.hs
   other-modules:       WsApp
+                     , WsAppUtils
+                     , State
                      , ConnectionMgnt
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
