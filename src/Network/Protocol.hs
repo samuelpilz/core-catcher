@@ -148,6 +148,25 @@ instance GameView CatcherGameView where
     rogueLastSeen = catcherRogueLastSeen
     viewError = catcherViewError
 
+newCatcherView :: CatcherGameView
+newCatcherView =
+    CatcherView
+        { catcherPlayerPositions = PlayerPositions (mapFromList [])
+        , catcherEnergies = PlayerEnergies (mapFromList [])
+        , catcherRogueHistory = RogueTransportHistory []
+        , catcherRogueLastSeen = Nothing
+        , catcherViewError = Nothing
+        }
+
+newRogueView :: RogueGameView
+newRogueView =
+    RogueView
+        { roguePlayerPositions = PlayerPositions (mapFromList [])
+        , rogueEnergies = PlayerEnergies (mapFromList [])
+        , rogueOwnHistory = RogueTransportHistory []
+        , rogueRogueLastSeen = Nothing
+        , rogueViewError = Nothing
+        }
 
 {- |Network: Nodes and Map Transport to Overlay.
 

@@ -20,6 +20,7 @@ library
                      , Network.Protocol
                      , Network.ElmDerive
                      , Util
+                     , Glue
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
