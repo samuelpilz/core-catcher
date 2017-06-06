@@ -17,7 +17,7 @@ import qualified Control.Exception              as Exception
 import qualified Data.Aeson                     as Aeson
 import qualified Data.ByteString.Lazy           as BSL
 import qualified Network.HTTP.Types             as Http
-import           Network.Protocol               (Action)
+import           Network.Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
@@ -26,6 +26,7 @@ import qualified Network.WebSockets             as WS
 
 main :: IO ()
 main = do
+    BSL.putStrLn $ Aeson.encode ( Move {player = Player 1, transport = Transport "", node = Node 1})
     putStrLn $ "Starting Core-Catcher server on port 3000"
     Warp.run 3000 $ WS.websocketsOr
         WS.defaultConnectionOptions
@@ -59,7 +60,8 @@ wsApp pendingConn = do
 wsListen :: WS.Connection -> ClientId -> TVar ServerState -> IO ()
 wsListen conn clientId stateVar = forever $ do
     text <- WS.receiveData conn
-    putStrLn $ "reveived \"" ++ tshow text ++ "\" from client " ++ tshow clientId
+    putStrLn $ "reveived from client " ++ tshow clientId
+    BSL.putStrLn text
     let maybeAction = Aeson.decode text :: Maybe Action
     case maybeAction of
         Just action -> do

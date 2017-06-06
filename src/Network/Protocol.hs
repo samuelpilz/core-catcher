@@ -200,6 +200,27 @@ instance Arbitrary PlayerPositions where
     arbitrary =
         PlayerPositions <$> arbitrary
 
+instance Arbitrary EnergyMap where
+    arbitrary =
+        EnergyMap <$> arbitrary
+
+instance Arbitrary RogueTransportHistory where
+    arbitrary =
+        RogueTransportHistory <$> arbitrary
+
+instance Arbitrary CatcherGameView where
+    arbitrary =
+        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary GameViewToSend where
+    arbitrary = do
+        catcher <- arbitrary
+        if catcher then
+            ViewForCatcher <$> arbitrary
+        else
+            undefined
+            -- ViewForRogue <$> arbitrary
+
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
 deriveBoth Elm.Derive.defaultOptions ''RogueGameView
