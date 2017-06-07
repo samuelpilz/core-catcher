@@ -12,20 +12,25 @@ import           State
 import           WsAppUtils
 
 handle :: TVar ServerState -> Protocol.Action -> IO ()
-handle serverVar action = do
-    state <- readTVarIO serverVar
-    let game = Glue.updateState action $ gameState state
-    let catchers = withoutClient 0 (connections state)
-    let maybeRogue = findConnectionById 0 state
-    -- TODO: check flattened
-    let rogueGameView = Glue.gameStateToRogueView game
-    let catcherGameView = Glue.gameStateToCatcherView game
-    -- TODO: do STM
-    -- TODO: error handling
-    case maybeRogue of
-        Just rogue -> sendView rogueGameView rogue
-        Nothing    -> putStrLn "There is no rogue connected"
+handle stateVar action = do
+    state <- readTVarIO stateVar-- TODO: do STM
+    let updateResult = Glue.updateState action $ gameState state
 
-    broadcast catcherGameView catchers
+    case updateResult of
+        Right (newGame, rogueGameView, catcherGameView) -> do
+            -- update game state
+            atomically . writeTVar stateVar $ state { gameState = newGame }
+
+            -- send game views
+            let catchers = withoutClient 0 (connections state)
+            let maybeRogue = findConnectionById 0 state
+            broadcast catcherGameView catchers
+            case maybeRogue of
+                Just rogue -> sendView rogueGameView rogue
+                Nothing    -> putStrLn "There is no rogue connected"
+
+        Left gameError -> do
+            putStrLn $ "invalid action (" ++ tshow (Protocol.myError gameError) ++ ")"
+             -- TODO: reply to sender
 
     return ()
