@@ -15,8 +15,8 @@ sendView view ci =
     WS.sendTextData (snd ci) (Aeson.encode view)
 
 recvAction :: ClientConnection -> IO (Maybe Action)
-recvAction ci = do
-    wsData <- WS.receiveData (snd ci)
+recvAction (_,ws) = do
+    wsData <- WS.receiveData ws
     return (Aeson.decode wsData)
 
 broadcast :: (GameView view) => view -> ClientConnections -> IO ()

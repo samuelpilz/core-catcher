@@ -31,9 +31,9 @@ newtype Edge =
     Edge { edge :: (Node, Node) }
     deriving (Show, Read, Eq, Ord, Generic)
 
--- |Transport is a string
+-- |Transport is a text
 newtype Transport =
-    Transport { transportName :: String }
+    Transport { transportName :: Text }
     deriving (Show, Read, Eq, Ord, Generic)
 
 {- |A engergy-map is keeps track how much energy per transport a player has left.
@@ -46,7 +46,7 @@ newtype EnergyMap =
 
 newtype GameError =
     GameError
-        { myError :: String
+        { myError :: Text
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -203,6 +203,9 @@ instance FromJSONKey Transport where
 instance ToJSONKey Player where
 
 instance ToJSONKey Transport where
+
+instance Arbitrary Text where
+    arbitrary = return pack <*> arbitrary
 
 instance Arbitrary Player  where
     arbitrary =

@@ -1,6 +1,7 @@
 module Protocol exposing(..)
 
 import Json.Decode
+import Json.Decode exposing ((:=))
 import Json.Encode exposing (Value)
 -- The following module comes from bartavelle/json-helpers
 import Json.Helpers exposing (..)

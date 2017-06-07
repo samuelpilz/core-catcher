@@ -53,6 +53,7 @@ wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
+            -- TODO: validation playerId==clientId
             WS.sendTextData (snd client) ("1" :: Text)
             WsApp.handle stateVar action
             return ()
