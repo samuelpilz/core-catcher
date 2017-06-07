@@ -50,52 +50,58 @@ jsonEncPlayerPositions  val =
 
 type alias RogueGameView  =
    { roguePlayerPositions: PlayerPositions
-   , rogueEnergyMap: EnergyMap
+   , rogueEnergies: PlayerEnergies
    , rogueOwnHistory: RogueTransportHistory
    , rogueRogueLastSeen: (Maybe Node)
+   , rogueViewError: (Maybe GameError)
    }
 
 jsonDecRogueGameView : Json.Decode.Decoder ( RogueGameView )
 jsonDecRogueGameView =
    ("roguePlayerPositions" := jsonDecPlayerPositions) >>= \proguePlayerPositions ->
-   ("rogueEnergyMap" := jsonDecEnergyMap) >>= \progueEnergyMap ->
+   ("rogueEnergies" := jsonDecPlayerEnergies) >>= \progueEnergies ->
    ("rogueOwnHistory" := jsonDecRogueTransportHistory) >>= \progueOwnHistory ->
    (Json.Decode.maybe ("rogueRogueLastSeen" := jsonDecNode)) >>= \progueRogueLastSeen ->
-   Json.Decode.succeed {roguePlayerPositions = proguePlayerPositions, rogueEnergyMap = progueEnergyMap, rogueOwnHistory = progueOwnHistory, rogueRogueLastSeen = progueRogueLastSeen}
+   (Json.Decode.maybe ("rogueViewError" := jsonDecGameError)) >>= \progueViewError ->
+   Json.Decode.succeed {roguePlayerPositions = proguePlayerPositions, rogueEnergies = progueEnergies, rogueOwnHistory = progueOwnHistory, rogueRogueLastSeen = progueRogueLastSeen, rogueViewError = progueViewError}
 
 jsonEncRogueGameView : RogueGameView -> Value
 jsonEncRogueGameView  val =
    Json.Encode.object
    [ ("roguePlayerPositions", jsonEncPlayerPositions val.roguePlayerPositions)
-   , ("rogueEnergyMap", jsonEncEnergyMap val.rogueEnergyMap)
+   , ("rogueEnergies", jsonEncPlayerEnergies val.rogueEnergies)
    , ("rogueOwnHistory", jsonEncRogueTransportHistory val.rogueOwnHistory)
    , ("rogueRogueLastSeen", (maybeEncode (jsonEncNode)) val.rogueRogueLastSeen)
+   , ("rogueViewError", (maybeEncode (jsonEncGameError)) val.rogueViewError)
    ]
 
 
 
 type alias CatcherGameView  =
    { catcherPlayerPositions: PlayerPositions
-   , catcherEenergyMap: EnergyMap
+   , catcherEnergies: PlayerEnergies
    , catcherRogueHistory: RogueTransportHistory
    , catcherRogueLastSeen: (Maybe Node)
+   , catcherViewError: (Maybe GameError)
    }
 
 jsonDecCatcherGameView : Json.Decode.Decoder ( CatcherGameView )
 jsonDecCatcherGameView =
    ("catcherPlayerPositions" := jsonDecPlayerPositions) >>= \pcatcherPlayerPositions ->
-   ("catcherEenergyMap" := jsonDecEnergyMap) >>= \pcatcherEenergyMap ->
+   ("catcherEnergies" := jsonDecPlayerEnergies) >>= \pcatcherEnergies ->
    ("catcherRogueHistory" := jsonDecRogueTransportHistory) >>= \pcatcherRogueHistory ->
    (Json.Decode.maybe ("catcherRogueLastSeen" := jsonDecNode)) >>= \pcatcherRogueLastSeen ->
-   Json.Decode.succeed {catcherPlayerPositions = pcatcherPlayerPositions, catcherEenergyMap = pcatcherEenergyMap, catcherRogueHistory = pcatcherRogueHistory, catcherRogueLastSeen = pcatcherRogueLastSeen}
+   (Json.Decode.maybe ("catcherViewError" := jsonDecGameError)) >>= \pcatcherViewError ->
+   Json.Decode.succeed {catcherPlayerPositions = pcatcherPlayerPositions, catcherEnergies = pcatcherEnergies, catcherRogueHistory = pcatcherRogueHistory, catcherRogueLastSeen = pcatcherRogueLastSeen, catcherViewError = pcatcherViewError}
 
 jsonEncCatcherGameView : CatcherGameView -> Value
 jsonEncCatcherGameView  val =
    Json.Encode.object
    [ ("catcherPlayerPositions", jsonEncPlayerPositions val.catcherPlayerPositions)
-   , ("catcherEenergyMap", jsonEncEnergyMap val.catcherEenergyMap)
+   , ("catcherEnergies", jsonEncPlayerEnergies val.catcherEnergies)
    , ("catcherRogueHistory", jsonEncRogueTransportHistory val.catcherRogueHistory)
    , ("catcherRogueLastSeen", (maybeEncode (jsonEncNode)) val.catcherRogueLastSeen)
+   , ("catcherViewError", (maybeEncode (jsonEncGameError)) val.catcherViewError)
    ]
 
 
@@ -259,22 +265,18 @@ jsonEncRogueTransportHistory  val =
 
 
 
-type GameViewToSend  =
-    ViewForCatcher CatcherGameView
-    | ViewForRogue RogueGameView
+type alias GameError  =
+   { myError: String
+   }
 
-jsonDecGameViewToSend : Json.Decode.Decoder ( GameViewToSend )
-jsonDecGameViewToSend =
-    let jsonDecDictGameViewToSend = Dict.fromList
-            [ ("ViewForCatcher", Json.Decode.map ViewForCatcher (jsonDecCatcherGameView))
-            , ("ViewForRogue", Json.Decode.map ViewForRogue (jsonDecRogueGameView))
-            ]
-    in  decodeSumObjectWithSingleField  "GameViewToSend" jsonDecDictGameViewToSend
+jsonDecGameError : Json.Decode.Decoder ( GameError )
+jsonDecGameError =
+   ("myError" := Json.Decode.string) >>= \pmyError ->
+   Json.Decode.succeed {myError = pmyError}
 
-jsonEncGameViewToSend : GameViewToSend -> Value
-jsonEncGameViewToSend  val =
-    let keyval v = case v of
-                    ViewForCatcher v1 -> ("ViewForCatcher", encodeValue (jsonEncCatcherGameView v1))
-                    ViewForRogue v1 -> ("ViewForRogue", encodeValue (jsonEncRogueGameView v1))
-    in encodeSumObjectWithSingleField keyval val
+jsonEncGameError : GameError -> Value
+jsonEncGameError  val =
+   Json.Encode.object
+   [ ("myError", Json.Encode.string val.myError)
+   ]
 

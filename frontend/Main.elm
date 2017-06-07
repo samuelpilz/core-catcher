@@ -6,16 +6,22 @@ import Html.Events exposing (..)
 import WebSocket
 import MapView exposing (mapView)
 import Debug exposing (log)
-import Game exposing (..)
-import ExampleGame as ExampleGame
+import Example.ExampleNetwork as Example
+import Example.ExampleGameView as Example
+import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
+import GameViewDisplay exposing (..)
 import Data exposing (..)
 import Json.Encode exposing (encode)
+import AllDict exposing (..)
 
 
-main : Program Never Game Msg
+main : Program Never ClientState Msg
 main =
-    program
+    log2 "start state"
+        initialState
+        -- TODO: remove
+        program
         { init = init
         , update = update
         , view = view
@@ -23,16 +29,16 @@ main =
         }
 
 
-init : ( Game, Cmd Msg )
+init : ( ClientState, Cmd Msg )
 init =
-    ( ExampleGame.game, Cmd.none )
+    ( initialState, Cmd.none )
 
 
-view : Game -> Html Msg
-view game =
+view : ClientState -> Html Msg
+view state =
     div []
         [ h1 [] [ text "Core catcher" ]
-        , MapView.mapView game
+        , MapView.mapView network displayInfo state
         ]
 
 
@@ -41,27 +47,81 @@ wsUrl =
     "ws://localhost:3000"
 
 
-subscriptions : Game -> Sub Msg
+subscriptions : ClientState -> Sub Msg
 subscriptions _ =
     WebSocket.listen wsUrl Received
 
 
-update : Msg -> Game -> ( Game, Cmd Msg )
-update msg game =
+update : Msg -> ClientState -> ( ClientState, Cmd Msg )
+update msg state =
     case log "msg" msg of
         Clicked n ->
-            (movePlayerInGame game 1 n)
-                ! [ WebSocket.send wsUrl <| log "send" <| jsonActionOfNode n ]
+            (movePlayerInGameView state { playerId = 1 } n)
+                ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode n ]
 
         Received s ->
-            game ! []
+            state ! []
 
 
-jsonActionOfNode : Int -> String
+
+-- random dev helper functions and type defs
+
+
+type alias ClientState =
+    CatcherGameView
+
+
+initialState : ClientState
+initialState =
+    Example.catcherGameView
+
+network : Network
+network =
+    Example.network
+
+displayInfo : GameViewDisplayInfo
+displayInfo =
+    Example.displayInfo
+
+
+jsonActionOfNode : Node -> String
 jsonActionOfNode n =
-    encode 0 <|
-        jsonEncAction <|
-            { player = { playerId = 1 }
-            , transport = { transportName = "" }
-            , node = { nodeId = n }
-            }
+    encode 0
+        << jsonEncAction
+    <|
+        { player = { playerId = 1 }
+        , transport = { transportName = "" }
+        , node = n
+        }
+
+
+cons : a -> b -> a
+cons a b =
+    a
+
+
+log2 : String -> a -> b -> b
+log2 s a b =
+    cons b (log s a)
+
+
+movePlayerInGameView : CatcherGameView -> Player -> Node -> CatcherGameView
+movePlayerInGameView game player newNode =
+    { game
+        | catcherPlayerPositions =
+            movePlayerInPlayerPositions game.catcherPlayerPositions player newNode
+    }
+
+
+movePlayerInPlayerPositions : PlayerPositions -> Player -> Node -> PlayerPositions
+movePlayerInPlayerPositions { playerPositions_ } { playerId } newNode =
+    { playerPositions_ =
+        List.map
+            (\( p, n ) ->
+                if p.playerId == playerId then
+                    ( p, newNode )
+                else
+                    ( p, n )
+            )
+            playerPositions_
+    }

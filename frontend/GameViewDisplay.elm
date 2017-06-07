@@ -1,76 +1,11 @@
-module Game exposing (..)
+module GameViewDisplay exposing (..)
 
-{-
-   - one possibility for Network type
+{-| data types for displaying game views
 -}
 
-import Dict exposing (..)
+import Protocol exposing (..)
+import AllDict exposing (..)
 import Maybe exposing (..)
-
-
-{-| The type of node: Id by Int
--}
-type alias Node =
-    Int
-
-
-{-| The type of edge is a connection between nodes.
--}
-type alias Edge =
-    ( Node, Node )
-
-
-{-| The type of transport is a string
--}
-type alias Transport =
-    String
-
-
-
--- TODO: adapt comments
-
-
-{-| Network: Nodes and Map Transport to Overlay.
-
-The overlays contain the actual Edges
-
-The network itself has no information about its representation.
-Representation is handled via NetworkDisplayInfo
-
--}
-type alias Network =
-    { nodes : List Node
-    , overlays : Dict Transport NetworkOverlay
-    }
-
-
-{-| NetworkOverlay: Sub-Graph that contains several nodes
-
-overlayNodes: the contained nodes in the Overlay.
-The nodes have to be contained in the nodes of the enclosing network
-Second part: the edges of the
-The edges must only connect the nodes contained in the first list.
-
--}
-type alias NetworkOverlay =
-    { overlayNodes : List Node
-    , edges : List Edge
-    }
-
-
-{-| Type that describes a player (an Id for now)
--}
-type alias Player =
-    Int
-
-
-{-| Type that models the game state.
-
-Each player stands on a specific node.
-
--}
-type alias GameState =
-    Dict Player Node
 
 
 {-| Types of colors possible for overlays. For now: a string
@@ -97,7 +32,7 @@ Each transport type should be present in this map.
 
 -}
 type alias ColorMap =
-    Dict Transport Color
+    AllDict Transport Color String
 
 
 {-| A map that contains the edge widths for each Transport type.
@@ -106,7 +41,7 @@ Each transport type should be present in this map.
 
 -}
 type alias EdgeWidthMap =
-    Dict Transport EdgeWidth
+    AllDict Transport EdgeWidth String
 
 
 {-| A map that contains the node sizes for each Transport type.
@@ -117,17 +52,17 @@ Each transport type should be present in this map.
 
 -}
 type alias NodeSizeMap =
-    Dict Transport NodeSize
+    AllDict Transport NodeSize String
 
 
 {-| A map that mapps nodes to coordinates
 -}
 type alias NodeXyMap =
-    Dict Node ( Int, Int )
+    AllDict Node ( Int, Int ) Int
 
 
 type alias PlayerColorMap =
-    Dict Player Color
+    AllDict Player Color Int
 
 
 {-| A tuple that contains all information needed to display a network.
@@ -141,8 +76,10 @@ The smallest / thinnest transport type should be namen last.
 
 The 6th entry is a map that mapps each player to a color
 
+TODO: rework
+
 -}
-type alias NetworkDisplayInfo =
+type alias GameViewDisplayInfo =
     { colorMap : ColorMap
     , edgeWidthMap : EdgeWidthMap
     , nodeSizeMap : NodeSizeMap
@@ -152,16 +89,14 @@ type alias NetworkDisplayInfo =
     }
 
 
-
---( ColorMap, EdgeWidthMap, NodeSizeMap, NodeXyMap, List Transport, PlayerColorMap )
-
-
 {-| A tuple that contains all information needed to display a single networkOverlay.
 
 The 1st entry is the color in which the edges and node rings are drawn.
 The 2nd entry is the width of the edges, the 3rd is the size of the rings around the nodes.
 
 The 4th entry is a map of coordinates per node, the same in the NetworkDisplayInfo type.
+
+TODO: rework
 
 -}
 type alias OverlayDisplayInfo =
@@ -172,20 +107,13 @@ type alias OverlayDisplayInfo =
     }
 
 
-type alias Game =
-    { network : Network
-    , displayInfo : NetworkDisplayInfo
-    , gameState : GameState
-    }
-
-
 {-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transport type.
 
 Returns `Nothing` if the given transport type is missing in at least one of the
 NetworkDisplayInfo maps is missing.
 
 -}
-displayInfoForTransport : NetworkDisplayInfo -> Transport -> Maybe OverlayDisplayInfo
+displayInfoForTransport : GameViewDisplayInfo -> Transport -> Maybe OverlayDisplayInfo
 displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } transport =
     Maybe.map4
         (\c e n xy ->
@@ -201,6 +129,10 @@ displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } trans
         (Just nodeXyMap)
 
 
+
+-- TODO: nodeXy : NodeXyMap -> Node -> (Int,Int)?
+
+
 {-| get the X coordinates of the node within the svg, given the map of coordinates
 -}
 nodeX : NodeXyMap -> Node -> Int
@@ -209,7 +141,7 @@ nodeX nodeXyMap n =
         + 100
         * (Maybe.withDefault 0
             << Maybe.map Tuple.first
-            << get n
+            << AllDict.get n
            <|
             nodeXyMap
           )
@@ -251,11 +183,14 @@ The overlays with higher priority are drawn first
 This is the reverse order of the list in NetworkDisplayInfo
 
 -}
-getPriority : NetworkDisplayInfo -> Transport -> Int
+getPriority : GameViewDisplayInfo -> Transport -> Int
 getPriority { transportPriorityList } t =
     Maybe.withDefault -1 << indexOf t <| transportPriorityList
 
 
-movePlayerInGame : Game -> Player -> Node -> Game
-movePlayerInGame game player newNode =
-    { game | gameState = Dict.update player (\_ -> Just newNode) game.gameState }
+
+{-
+   movePlayerInGame : Game -> Player -> Node -> Game
+   movePlayerInGame game player newNode =
+       { game | gameState = Dict.update player (\_ -> Just newNode) game.gameState }
+-}

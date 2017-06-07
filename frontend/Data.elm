@@ -1,5 +1,7 @@
 module Data exposing (Msg(..))
 
+import Protocol exposing (..)
+
 type Msg
-    = Clicked Int
+    = Clicked Node
     | Received String 

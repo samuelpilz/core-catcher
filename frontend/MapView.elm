@@ -7,8 +7,10 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
 import Dict exposing (..)
+import AllDict exposing (..)
 import Data exposing (..)
-import Game exposing (..)
+import Protocol exposing (..)
+import GameViewDisplay exposing (..)
 
 
 mapWidth : Int
@@ -21,8 +23,12 @@ mapHeight =
     600
 
 
-mapView : Game -> Html.Html Msg
-mapView { network, displayInfo, gameState } =
+
+-- TODO: also consider RogueGameView in this function
+
+
+mapView : Network -> GameViewDisplayInfo -> CatcherGameView -> Html.Html Msg
+mapView network displayInfo gameView =
     svg
         [ height (toString mapHeight)
         , width (toString mapWidth)
@@ -33,14 +39,15 @@ mapView { network, displayInfo, gameState } =
         List.concatMap
             -- overlays
             (mapViewOfNetworkOverlayName displayInfo network)
-            (List.sortBy (\( name, _ ) -> getPriority displayInfo name) <| Dict.toList network.overlays)
+            (List.sortBy (\( name, _ ) -> getPriority displayInfo name) <| network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
-            ++ List.map (playerCircle displayInfo.nodeXyMap) (Dict.toList gameState)
+            ++ List.map (playerCircle displayInfo.nodeXyMap)
+                gameView.catcherPlayerPositions.playerPositions_
             ++ List.map (nodeText displayInfo.nodeXyMap) network.nodes
 
 
-mapViewOfNetworkOverlayName : NetworkDisplayInfo -> Network -> ( String, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay)
@@ -87,16 +94,16 @@ nodeCircle nodeXyMap node =
 
 
 playerCircle : NodeXyMap -> ( Player, Node ) -> Svg Msg
-playerCircle nodeXyMap ( player, node ) =
+playerCircle nodeXyMap ( { playerId }, node ) =
     circle
         [ cx << toString << nodeX nodeXyMap <| node
         , cy << toString << nodeY nodeXyMap <| node
         , r "15"
         , fill "none"
         , stroke
-            (if player == 1 then
+            (if playerId == 1 then
                 "yellow"
-             else if player == 2 then
+             else if playerId == 2 then
                 "green"
              else
                 "white"
@@ -109,25 +116,29 @@ playerCircle nodeXyMap ( player, node ) =
 
 
 nodeText : NodeXyMap -> Node -> Svg Msg
-nodeText nodeXyMap n =
+nodeText nodeXyMap node =
     text_
-        [ x << toString <| -5 + nodeX nodeXyMap n
-        , y << toString <| 5 + nodeY nodeXyMap n
+        [ x << toString <| -5 + nodeX nodeXyMap node
+        , y << toString <| 5 + nodeY nodeXyMap node
         , fill "#ffffff"
         , Svg.Attributes.cursor "pointer"
-        , onClick (Clicked n)
+        , onClick (Clicked node)
         ]
-        [ text (toString n) ]
+        [ text (toString node.nodeId) ]
 
 
 edgeLine : NodeXyMap -> Color -> EdgeWidth -> Edge -> Svg msg
-edgeLine nodeXyMap color edgeWidth ( n1, n2 ) =
-    line
-        [ x1 << toString << nodeX nodeXyMap <| n1
-        , y1 << toString << nodeY nodeXyMap <| n1
-        , x2 << toString << nodeX nodeXyMap <| n2
-        , y2 << toString << nodeY nodeXyMap <| n2
-        , strokeWidth (toString edgeWidth)
-        , stroke color
-        ]
-        []
+edgeLine nodeXyMap color edgeWidth { edge } =
+    let
+        ( n1, n2 ) =
+            edge
+    in
+        line
+            [ x1 << toString << nodeX nodeXyMap <| n1
+            , y1 << toString << nodeY nodeXyMap <| n1
+            , x2 << toString << nodeX nodeXyMap <| n2
+            , y2 << toString << nodeY nodeXyMap <| n2
+            , strokeWidth (toString edgeWidth)
+            , stroke color
+            ]
+            []
