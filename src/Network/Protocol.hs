@@ -11,6 +11,7 @@ import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
+import qualified Test.QuickCheck.Gen       as Gen
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
@@ -205,7 +206,7 @@ instance ToJSONKey Player where
 instance ToJSONKey Transport where
 
 instance Arbitrary Text where
-    arbitrary = return pack <*> arbitrary
+    arbitrary = pack <$> arbitrary
 
 instance Arbitrary Player  where
     arbitrary =
@@ -245,7 +246,7 @@ instance Arbitrary RogueTransportHistory where
 
 instance Arbitrary GameError where
     arbitrary =
-        GameError <$> arbitrary
+        GameError <$> (arbitrary :: Gen.Gen Text)
 
 instance Arbitrary CatcherGameView where
     arbitrary =
