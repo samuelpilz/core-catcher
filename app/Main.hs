@@ -42,21 +42,23 @@ wsApp :: WS.ServerApp
 wsApp pendingConn = do
     stateVar <- newTVarIO ServerState {connections = empty, gameState = defaultGame}
     conn <- WS.acceptRequest pendingConn
-    clientId <- connectClient conn stateVar -- call to ConnectionMgnt
+    let gameConn = GameConnection conn
+    clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
     Exception.finally
-        (wsListen (clientId, conn) stateVar)
+        (wsListen (clientId, gameConn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
 
-wsListen :: ClientConnection -> TVar ServerState -> IO ()
+wsListen :: IsConnection conn => ClientConnection conn -> TVar ServerState -> IO ()
 wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
+            -- TODO: what about request forging?
             -- TODO: validation playerId==clientId
-            WS.sendTextData (snd client) ("1" :: Text)
+            sendData (snd client) ("1" :: Text)
             WsApp.handle stateVar action
             return ()
         Nothing     -> do
-            WS.sendTextData (snd client) ("2" :: Text)
+            sendData (snd client) ("2" :: Text)
             putStrLn "ERROR: The message could not be decoded"

@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 {-
 This module implements helps managing Client Connections
@@ -11,6 +12,7 @@ module ConnectionMgnt (
     ClientConnection,
     ClientConnections,
     HasConnections,
+    Conn,
     connectClient,
     disconnectClient,
     getConnections,
@@ -22,15 +24,18 @@ import           ClassyPrelude
 import qualified Network.WebSockets as WS
 
 type ClientId = Int
-type ClientConnection = (ClientId, WS.Connection)
-type ClientConnections = Seq ClientConnection
+type ClientConnection conn = (ClientId, conn)
+
+type ClientConnections conn = Seq (ClientConnection conn)
 
 class HasConnections state where
-    getConnections :: state -> ClientConnections
+    type Conn state :: *
 
-    setConnections :: ClientConnections -> state -> state
+    getConnections :: state -> ClientConnections (Conn state)
 
-    connectClient :: WS.Connection -> TVar state -> IO ClientId
+    setConnections :: ClientConnections (Conn state) -> state -> state
+
+    connectClient :: Conn state -> TVar state -> IO ClientId
     connectClient conn stateVar = do
         clientId <- atomically $ addClient conn stateVar
         putStrLn $ "connect " ++ tshow clientId
@@ -41,14 +46,14 @@ class HasConnections state where
         atomically $ removeClient clientId stateVar
         putStrLn $ "disconnect " ++ tshow clientId
 
-    findConnectionById :: ClientId -> state -> Maybe ClientConnection
+    findConnectionById :: ClientId -> state -> Maybe (ClientConnection (Conn state))
     findConnectionById cid state =
         find ((==cid) . fst) $ getConnections state
 
 
 
 -- helper functions (not exported)
-addClient :: HasConnections state => WS.Connection -> TVar state -> STM ClientId
+addClient :: HasConnections state => Conn state -> TVar state -> STM ClientId
 addClient conn stateVar = do -- update connection list
     state <- readTVar stateVar
     let connections = getConnections state
@@ -63,8 +68,8 @@ removeClient clientId stateVar = do
     let connections = getConnections state
     writeTVar stateVar (setConnections (withoutClient clientId connections) state)
 
-nextId :: ClientConnections -> ClientId
+nextId :: ClientConnections conn -> ClientId
 nextId = fromMaybe 0 . map (+1) . maximumMay . map fst
 
-withoutClient :: ClientId -> ClientConnections -> ClientConnections
+withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient clientId = filter ((/=) clientId . fst)

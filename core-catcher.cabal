@@ -43,6 +43,7 @@ executable core-catcher-exe
                      , WsAppUtils
                      , State
                      , ConnectionMgnt
+                     , Connection
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher
@@ -66,6 +67,7 @@ test-suite core-catcher-test
   main-is:             TestMain.hs
   other-modules:       ProtocolTest
                      , SpecTest
+                     , MainTest
   build-depends:       base
                      , core-catcher
                      , classy-prelude
