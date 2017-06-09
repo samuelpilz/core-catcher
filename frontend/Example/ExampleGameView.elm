@@ -14,6 +14,15 @@ catcherGameView =
     , catcherViewError = Nothing
     }
 
+rogueGameView : RogueGameView
+rogueGameView =
+    { roguePlayerPositions = playerPositions
+    , rogueEnergies = playerEnergies
+    , rogueOwnHistory = {rogueTransportHistory = []}
+    , rogueRogueLastSeen = Nothing
+    , rogueViewError = Nothing
+    }
+
 
 playerPositions : PlayerPositions
 playerPositions =

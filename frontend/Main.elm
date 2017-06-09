@@ -13,6 +13,7 @@ import Protocol exposing (..)
 import GameViewDisplay exposing (..)
 import Data exposing (..)
 import Json.Encode exposing (encode)
+import Json.Decode exposing (decodeString)
 import AllDict exposing (..)
 
 
@@ -56,11 +57,17 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            (movePlayerInGameView state { playerId = 1 } n)
+            --log "moved state" (movePlayerInRogueView state { playerId = 1 } n)
+            state
                 ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode n ]
 
         Received s ->
-            state ! []
+            case decodeString jsonDecRogueGameView s of
+                Ok newState ->
+                    newState ! []
+                Err err ->
+                    log2 "error" err state ! []
+            
 
 
 
@@ -68,12 +75,12 @@ update msg state =
 
 
 type alias ClientState =
-    CatcherGameView
+    RogueGameView
 
 
 initialState : ClientState
 initialState =
-    Example.catcherGameView
+    Example.rogueGameView
 
 network : Network
 network =
@@ -105,11 +112,19 @@ log2 s a b =
     cons b (log s a)
 
 
-movePlayerInGameView : CatcherGameView -> Player -> Node -> CatcherGameView
-movePlayerInGameView game player newNode =
+movePlayerInCatcherView : CatcherGameView -> Player -> Node -> CatcherGameView
+movePlayerInCatcherView game player newNode =
     { game
         | catcherPlayerPositions =
             movePlayerInPlayerPositions game.catcherPlayerPositions player newNode
+    }
+
+
+movePlayerInRogueView : RogueGameView -> Player -> Node -> RogueGameView
+movePlayerInRogueView game player newNode =
+    { game
+        | roguePlayerPositions =
+            movePlayerInPlayerPositions game.roguePlayerPositions player newNode
     }
 
 

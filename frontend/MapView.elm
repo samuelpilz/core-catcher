@@ -27,7 +27,7 @@ mapHeight =
 -- TODO: also consider RogueGameView in this function
 
 
-mapView : Network -> GameViewDisplayInfo -> CatcherGameView -> Html.Html Msg
+mapView : Network -> GameViewDisplayInfo -> RogueGameView -> Html.Html Msg
 mapView network displayInfo gameView =
     svg
         [ height (toString mapHeight)
@@ -43,7 +43,7 @@ mapView network displayInfo gameView =
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap)
-                gameView.catcherPlayerPositions.playerPositions_
+                gameView.roguePlayerPositions.playerPositions_
             ++ List.map (nodeText displayInfo.nodeXyMap) network.nodes
 
 
