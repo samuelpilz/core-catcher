@@ -40,15 +40,6 @@ instance Aeson.ToJSONKey Energy where
 instance Aeson.ToJSON Energy where
 instance Aeson.FromJSON Energy where
 
--- GameState as clients understand it
-newtype FlatGameState =
-    FlatGameState
-        { gamestate :: Maybe (PlayersEnergies, PlayersPos, Int)
-        }
-        deriving (Generic, Show)
-        
-instance Aeson.ToJSON FlatGameState where
-
 data GameState =
     GameState
         { start   :: Start
@@ -110,16 +101,16 @@ someNet =
         ,([], 6, Vertex)
         ]
 
-exampleInvalidMove0 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove0 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
 
-exampleInvalidMove1 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove1 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move BlackEnergy 3, OneMove $ Move (Energy Orange) 3]
 
-exampleInvalidMove2 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleInvalidMove2 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 2]
 
-exampleValidMove0 = flattenState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
+exampleValidMove0 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Blue) 5, OneMove $ Move (Energy Orange) 6]
 
 -- Graph context for unidirected graphs
@@ -210,20 +201,15 @@ printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) 
   Right io -> io
   Left err -> putStrLn (GameLogic.error err)
 
-playersState :: GameState -> Result (PlayersEnergies, PlayersPos, Int)
+
+playersState :: GameState -> Result (PlayerId, PlayersEnergies, PlayersPos, Int)
 playersState gs = do
   (ts, ps) <- foldStateWithTurn (updateEnergies gs =>> updatePositions gs) (initialEnergies >>| initialPositions) gs
   tm <- foldStateWithTurn (updateTwoMove gs) initialTwoMove gs
-  return (ts, ps, tm)
-
--- Returns the client representation of a GameState
--- automatically applys a rollback upon failure
-flattenState :: GameState -> FlatGameState
-flattenState st = FlatGameState $ case playersState st of
-    Right s -> Just s
-    Left (Rollback x _) -> case flattenState x of
-      FlatGameState fs -> fs
-    Left _                 -> Nothing
+  turn <- case turns gs of
+        Right t -> maybeToEither (headMay t) (Fatal "Failed to derive turns")
+        Left eh -> Left eh
+  return (turn, ts, ps, tm)
 
 initialPositions :: PlayersEnergies -> Start -> Either Error PlayersPos
 initialPositions _ = Right
@@ -232,7 +218,7 @@ updatePositions :: GameState -> PlayersEnergies -> PlayersPos -> (Action, Player
 updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 
 updatePositions' :: GameState -> PlayerId -> PlayersEnergies -> PlayersPos -> Move -> Either Error PlayersPos
-updatePositions' gs pid t v (Move e vtx) = do
+updatePositions' gs pid _ v (Move e vtx) = do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
               unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
               unless notOccupied $ Left "Player collided with another one"
