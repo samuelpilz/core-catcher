@@ -57,7 +57,6 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            --log "moved state" (movePlayerInRogueView state { playerId = 1 } n)
             state
                 ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode n ]
 

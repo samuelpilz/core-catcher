@@ -56,9 +56,7 @@ wsListen client stateVar = forever $ do
         Just action -> do
             -- TODO: what about request forging?
             -- TODO: validation playerId==clientId
-            sendData (snd client) ("1" :: Text)
             WsApp.handle stateVar action
             return ()
         Nothing     -> do
-            sendData (snd client) ("2" :: Text)
             putStrLn "ERROR: The message could not be decoded"
