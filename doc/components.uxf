@@ -4,8 +4,8 @@
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>944</x>
-      <y>256</y>
+      <x>888</x>
+      <y>248</y>
       <w>88</w>
       <h>64</h>
     </coordinates>
@@ -17,8 +17,8 @@ GameLogic</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>872</x>
-      <y>272</y>
+      <x>816</x>
+      <y>264</y>
       <w>88</w>
       <h>48</h>
     </coordinates>
@@ -31,8 +31,8 @@ state
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>808</x>
-      <y>272</y>
+      <x>752</x>
+      <y>264</y>
       <w>80</w>
       <h>40</h>
     </coordinates>
@@ -42,8 +42,8 @@ state
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>504</x>
-      <y>120</y>
+      <x>448</x>
+      <y>112</y>
       <w>312</w>
       <h>200</h>
     </coordinates>
@@ -54,8 +54,8 @@ Haskell Impure</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>496</x>
-      <y>400</y>
+      <x>440</x>
+      <y>392</y>
       <w>136</w>
       <h>72</h>
     </coordinates>
@@ -66,8 +66,8 @@ Protocol</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>576</x>
-      <y>312</y>
+      <x>520</x>
+      <y>304</y>
       <w>88</w>
       <h>104</h>
     </coordinates>
@@ -78,8 +78,8 @@ Protocol</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>56</x>
-      <y>160</y>
+      <x>0</x>
+      <y>152</y>
       <w>320</w>
       <h>320</h>
     </coordinates>
@@ -90,8 +90,8 @@ Protocol</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>704</x>
-      <y>168</y>
+      <x>648</x>
+      <y>160</y>
       <w>88</w>
       <h>64</h>
     </coordinates>
@@ -104,8 +104,8 @@ Management</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>536</x>
-      <y>192</y>
+      <x>480</x>
+      <y>184</y>
       <w>40</w>
       <h>48</h>
     </coordinates>
@@ -117,8 +117,8 @@ Main</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>704</x>
-      <y>248</y>
+      <x>648</x>
+      <y>240</y>
       <w>72</w>
       <h>48</h>
     </coordinates>
@@ -130,8 +130,8 @@ WsApp</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>624</x>
-      <y>168</y>
+      <x>568</x>
+      <y>160</y>
       <w>96</w>
       <h>40</h>
     </coordinates>
@@ -143,8 +143,8 @@ disconnect</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>768</x>
-      <y>264</y>
+      <x>712</x>
+      <y>256</y>
       <w>56</w>
       <h>40</h>
     </coordinates>
@@ -155,8 +155,8 @@ disconnect</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>568</x>
-      <y>168</y>
+      <x>512</x>
+      <y>160</y>
       <w>72</w>
       <h>40</h>
     </coordinates>
@@ -166,8 +166,8 @@ disconnect</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>568</x>
-      <y>224</y>
+      <x>512</x>
+      <y>216</y>
       <w>72</w>
       <h>64</h>
     </coordinates>
@@ -177,8 +177,8 @@ disconnect</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>624</x>
-      <y>248</y>
+      <x>568</x>
+      <y>240</y>
       <w>96</w>
       <h>40</h>
     </coordinates>
@@ -190,8 +190,8 @@ Action</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>488</x>
-      <y>88</y>
+      <x>432</x>
+      <y>80</y>
       <w>576</w>
       <h>424</h>
     </coordinates>
@@ -202,8 +202,8 @@ Action</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>208</x>
-      <y>392</y>
+      <x>152</x>
+      <y>384</y>
       <w>136</w>
       <h>72</h>
     </coordinates>
@@ -214,8 +214,8 @@ Protocol</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>336</x>
-      <y>408</y>
+      <x>280</x>
+      <y>400</y>
       <w>176</w>
       <h>40</h>
     </coordinates>
@@ -227,8 +227,8 @@ via elm-bridge</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>280</x>
-      <y>208</y>
+      <x>224</x>
+      <y>200</y>
       <w>40</w>
       <h>48</h>
     </coordinates>
@@ -240,8 +240,8 @@ Main</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>88</x>
-      <y>208</y>
+      <x>32</x>
+      <y>200</y>
       <w>64</w>
       <h>48</h>
     </coordinates>
@@ -253,8 +253,8 @@ MapView</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>232</x>
-      <y>208</y>
+      <x>176</x>
+      <y>200</y>
       <w>64</w>
       <h>40</h>
     </coordinates>
@@ -264,8 +264,8 @@ MapView</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>144</x>
-      <y>208</y>
+      <x>88</x>
+      <y>200</y>
       <w>104</w>
       <h>32</h>
     </coordinates>
@@ -276,8 +276,8 @@ mapView</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>440</x>
-      <y>208</y>
+      <x>384</x>
+      <y>200</y>
       <w>64</w>
       <h>40</h>
     </coordinates>
@@ -287,8 +287,8 @@ mapView</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>368</x>
-      <y>208</y>
+      <x>312</x>
+      <y>200</y>
       <w>88</w>
       <h>40</h>
     </coordinates>
@@ -300,8 +300,8 @@ game</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>312</x>
-      <y>208</y>
+      <x>256</x>
+      <y>200</y>
       <w>72</w>
       <h>40</h>
     </coordinates>
@@ -312,13 +312,25 @@ game</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>488</x>
-      <y>200</y>
+      <x>432</x>
+      <y>192</y>
       <w>64</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 </panel_attributes>
     <additional_attributes>60.0;20.0;10.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>40</x>
+      <y>240</y>
+      <w>176</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;import&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;200.0;180.0</additional_attributes>
   </element>
 </diagram>
