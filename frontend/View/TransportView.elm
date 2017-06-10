@@ -7,7 +7,7 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
 import AllDict exposing (..)
-import Data exposing (..)
+import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
@@ -15,26 +15,26 @@ import Maybe exposing (..)
 import Tuple as Tuple
 
 
-transportView : Network -> GameViewDisplayInfo -> GameView -> Html.Html Msg
-transportView _ displayInfo gameView =
+transportView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
+transportView _ displayInfo clientState =
     svg
         [ height (toString displayInfo.mapHeight)
         , width "400"
         , Html.style [ ( "border-size", "1" ) ]
         ]
-    -- elements of svg now
     <|
-        energyView gameView displayInfo {playerId = 1}
-            ++ historyView gameView displayInfo
+        energyView clientState.gameView displayInfo { playerId = 1 } clientState.selectedEnergy
+            ++ historyView clientState.gameView displayInfo
 
 
-energyView : GameView -> GameViewDisplayInfo -> Player -> List (Svg.Svg Msg)
-energyView gameView displayInfo player =
-    List.map energyRecord
-        << List.sortBy (\( priority, _, _ ) -> priority)
+energyView : GameView -> GameViewDisplayInfo -> Player -> Transport -> List (Svg.Svg Msg)
+energyView gameView displayInfo player selectedEnergy =
+    List.map (energyRecord selectedEnergy)
+        << List.sortBy (\( priority, _, _, _ ) -> priority)
         << List.map
             (\( transport, color ) ->
                 ( getPriority displayInfo transport
+                , transport
                 , color
                 , getEnergyForTransportAndPlayer player transport gameView
                 )
@@ -45,7 +45,7 @@ energyView gameView displayInfo player =
 
 
 historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
-historyView gameView displayInfo  =
+historyView gameView displayInfo =
     List.map2 historyRecord (range 0 100)
         << List.map (Maybe.withDefault "black")
         << List.map (\t -> AllDict.get t displayInfo.colorMap)
@@ -53,10 +53,21 @@ historyView gameView displayInfo  =
         (rogueHistory gameView).rogueTransportHistory
 
 
-energyRecord : ( Int, Color, Int ) -> Svg.Svg Msg
-energyRecord ( pos, color, count ) =
+energyRecord : Transport -> ( Int, Transport, Color, Int ) -> Svg.Svg Msg
+energyRecord selectedEnergy ( pos, transport, color, count ) =
     g []
-        [ rectForPosAndColor ( 50 * pos + 50, 1 ) color
+        [ rect
+            [ x << toString <| 50 * pos + 50
+            , y << toString <| 3
+            , width "49"
+            , height "49"
+            , Svg.Attributes.cursor "pointer"
+            , fill color
+            , stroke "#000000"
+            , strokeWidth << toString <| if selectedEnergy == transport then 3 else 1
+            , onClick (SelectEnergy transport)
+            ]
+            []
         , text_
             [ x << toString <| 50 * pos + 75
             , y << toString <| 30
@@ -72,14 +83,9 @@ energyRecord ( pos, color, count ) =
 
 historyRecord : Int -> Color -> Svg.Svg Msg
 historyRecord pos color =
-    rectForPosAndColor ( 50 + 50 * (pos % 5), 100 + 50 * (pos // 5) ) color
-
-
-rectForPosAndColor : ( Int, Int ) -> Color -> Svg.Svg Msg
-rectForPosAndColor ( xPos, yPos ) color =
     rect
-        [ x << toString <| xPos
-        , y << toString <| yPos
+        [ x << toString <| 50 + 50 * (pos % 5)
+        , y << toString <| 100 + 50 * (pos // 5)
         , width "49"
         , height "49"
         , Svg.Attributes.cursor "pointer"

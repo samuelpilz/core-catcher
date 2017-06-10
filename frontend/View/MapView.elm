@@ -8,15 +8,15 @@ import Svg.Attributes exposing (..)
 import List exposing (..)
 import Dict exposing (..)
 import AllDict exposing (..)
-import Data exposing (..)
+import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
 
 
 
-mapView : Network -> GameViewDisplayInfo -> GameView -> Html.Html Msg
-mapView network displayInfo gameView =
+mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
+mapView network displayInfo clientState =
     svg
         [ height << toString <| displayInfo.mapHeight
         , width << toString <| displayInfo.mapWidth
@@ -32,7 +32,7 @@ mapView network displayInfo gameView =
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap)
-                (playerPositions gameView).playerPositions_
+                (playerPositions clientState.gameView).playerPositions_
 
 
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)

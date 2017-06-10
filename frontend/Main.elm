@@ -13,7 +13,7 @@ import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
-import Data exposing (..)
+import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
 import AllDict exposing (..)
@@ -60,30 +60,30 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            state
-                ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode n ]
+            state ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode state n ]
 
         Received s ->
             case decodeString jsonDecRogueGameView s of
-                Ok newState ->
-                    RogueView newState ! []
+                Ok newView ->
+                    {state | gameView = RogueView newView } ! []
 
                 -- TODO: not only RogueView constructor
                 Err err ->
                     log2 "error" err state ! []
+        
+        SelectEnergy transport ->
+            { state | selectedEnergy = transport } ! []
 
 
 
 -- random dev helper functions and type defs
 
 
-type alias ClientState =
-    GameView
-
-
 initialState : ClientState
 initialState =
-    RogueView Example.rogueGameView
+    { gameView = RogueView Example.rogueGameView
+    , selectedEnergy = { transportName = "taxi" }
+    }
 
 
 network : Network
@@ -96,21 +96,13 @@ displayInfo =
     Example.displayInfo
 
 
-jsonActionOfNode : Node -> String
-jsonActionOfNode n =
+jsonActionOfNode : ClientState -> Node -> String
+jsonActionOfNode state n =
     encode 0
         << jsonEncAction
     <|
         { player = { playerId = 1 }
-        , transport =
-            { transportName =
-                if n.nodeId % 3 == 0 then
-                    "taxi"
-                else if n.nodeId  % 3 == 1 then
-                    "bus"
-                else
-                    "underground"
-            }
+        , transport = state.selectedEnergy
         , node = n
         }
 
