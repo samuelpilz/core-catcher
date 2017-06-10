@@ -30,7 +30,7 @@ exampleRogueGameView =
 examplePlayerPositions :: PlayerPositions
 examplePlayerPositions =
     PlayerPositions { playerPositions_ =
-        Map.fromDistinctAscList [ ( Player { playerId = 1 }, Node { nodeId = 1 } )
+        Map.fromList [ ( Player { playerId = 1 }, Node { nodeId = 1 } )
         , ( Player { playerId = 2 }, Node { nodeId = 4 } )
         , ( Player { playerId = 3 }, Node { nodeId = 2 } )
         ]
@@ -40,7 +40,7 @@ examplePlayerPositions =
 examplePlayerEnergies :: PlayerEnergies
 examplePlayerEnergies =
     PlayerEnergies {playerEnergies =
-        Map.fromDistinctAscList [ ( Player { playerId = 1 }, examplePlayer1Energies )
+        Map.fromList [ ( Player { playerId = 1 }, examplePlayer1Energies )
         ]
     }
 
@@ -48,7 +48,7 @@ examplePlayerEnergies =
 examplePlayer1Energies :: EnergyMap
 examplePlayer1Energies =
     EnergyMap { energyMap =
-        Map.fromDistinctAscList [ ( Transport { transportName = "taxi" }, 5 )
+        Map.fromList [ ( Transport { transportName = "taxi" }, 5 )
         , ( Transport { transportName = "bus" }, 3 )
         , ( Transport { transportName = "underground" }, 2 )
         ]

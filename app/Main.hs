@@ -53,7 +53,7 @@ printEnergyMap s = print
             em = getEnergyMap
 
 getEnergyMap :: Map Transport Int
-getEnergyMap = Map.fromDistinctAscList [ ( Transport { transportName = "taxi" }, 5 )
+getEnergyMap = Map.fromList [ ( Transport { transportName = "taxi" }, 5 )
         , ( Transport { transportName = "bus" }, 3 )
         , ( Transport { transportName = "underground" }, 2 )
         ]

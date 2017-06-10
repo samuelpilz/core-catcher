@@ -45,7 +45,7 @@ main = do
 
 energyMap :: Map Transport Int
 energyMap =
-    Map.fromDistinctAscList
+    Map.fromList
         [ ( "t", 0 )
         , ( "b", 0 )
         , ( "u", 0 )
