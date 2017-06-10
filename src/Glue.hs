@@ -96,14 +96,14 @@ updateState act game = do
              Protocol.rogueEnergies = eenergies,
              Protocol.rogueOwnHistory = transportHistory, -- TODO: implement history
              Protocol.rogueRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
-             Protocol.rogueViewError = Nothing -- TODO: what to do with this?
+             Protocol.rogueNextPlayer = Protocol.Player 0 -- TODO: what to do with this?
          },
          Protocol.CatcherView {
              Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
              Protocol.catcherEnergies = eenergies,
              Protocol.catcherRogueHistory = transportHistory, -- TODO: implement history
              Protocol.catcherRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
-             Protocol.catcherViewError = Nothing
+             Protocol.catcherNextPlayer = Protocol.Player 0
          }
         )
 
