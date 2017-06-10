@@ -20,8 +20,8 @@ import           GHC.Generics  ()
 import           System.IO     (getLine)
 
 -- |Transport is a text
-newtype Transport =
-    Transport { transportName :: String }
+newtype Transport = Transport String
+    --Transport { transportName :: String }
     deriving (Show, Read, Eq, Ord, Generic)
 
 main :: IO ()
@@ -29,24 +29,20 @@ main = do
     putStrLn "energyMap:"
     print energyMap
     putStrLn "using assocs"
-    mapM_ (\(k,v) -> putStrLn (tshow k ++ "->" ++ tshow v)) $ Map.assocs energyMap
+    mapM_ (\(k,v) -> putStrLn (tshow k ++ " -> " ++ tshow v)) $ Map.assocs energyMap
     putStrLn ""
 
     putStrLn "using lookup"
-    mapM_ (\k -> putStrLn (tshow k ++ "->" ++ tshow (Map.lookup k energyMap))) $ Map.keys energyMap
+    mapM_ (\k -> putStrLn (tshow k ++ " -> " ++ tshow (Map.lookup k energyMap))) $ Map.keys energyMap
     putStrLn ""
 
-    putStrLn "now own string:"
-    string <- getLine
-    printEnergyMap string
-
-printEnergyMap :: String -> IO ()
-printEnergyMap s = print
-    $ Map.lookup (Transport {transportName = s}) energyMap
+    mapM_ (\(t1, t2) -> print (t1, t2, compare t1 t2)) $ cartProd (Map.keys energyMap) (Map.keys energyMap)
 
 energyMap :: Map Transport Int
 energyMap =
-    Map.fromDistinctAscList [ ( Transport { transportName = "taxi" }, 5 )
-        , ( Transport { transportName = "bus" }, 3 )
-        , ( Transport { transportName = "underground" }, 2 )
+    Map.fromDistinctAscList [ ( Transport "taxi", 5 )
+        , ( Transport "bus", 3 )
+        , ( Transport "underground", 2 )
         ]
+
+cartProd xs ys = [(x,y) | x <- xs, y <- ys]
