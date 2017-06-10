@@ -18,14 +18,14 @@ type GameState = GL.GameState
 
 newtype GameConnection = GameConnection WS.Connection
 
-data ServerState  =
+data ServerState conn =
     ServerState
-        { connections :: ClientConnections GameConnection
+        { connections :: Seq (ClientConnection conn)
         , gameState   :: GameState
         }
 
-instance HasConnections ServerState where
-    type Conn ServerState = GameConnection
+instance IsConnection conn => HasConnections (ServerState conn) where
+    type Conn (ServerState conn) = conn
     getConnections = connections
     setConnections conn state = state { connections = conn }
 

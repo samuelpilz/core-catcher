@@ -21,7 +21,6 @@ module ConnectionMgnt (
     ) where
 
 import           ClassyPrelude
-import qualified Network.WebSockets as WS
 
 type ClientId = Int
 type ClientConnection conn = (ClientId, conn)

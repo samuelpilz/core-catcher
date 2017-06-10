@@ -14,9 +14,7 @@ module Main where
 import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
-import qualified Data.Aeson                     as Aeson
 import qualified Network.HTTP.Types             as Http
-import           Network.Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
@@ -49,7 +47,7 @@ wsApp pendingConn = do
         (wsListen (clientId, gameConn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
 
-wsListen :: IsConnection conn => ClientConnection conn -> TVar ServerState -> IO ()
+wsListen :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> IO ()
 wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of

@@ -8,11 +8,11 @@ import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Glue
 import qualified Network.Protocol   as Protocol
-import qualified Network.WebSockets as WS
 import           State
 import           WsAppUtils
+
 -- TODO: refactor this function as a whole
-handle :: TVar ServerState -> Protocol.Action -> IO ()
+handle :: IsConnection conn => TVar (ServerState conn) -> Protocol.Action -> IO ()
 handle stateVar action = do
     state <- readTVarIO stateVar-- TODO: do STM
     let updateResult = Glue.updateState action $ gameState state
@@ -23,7 +23,7 @@ handle stateVar action = do
             atomically . writeTVar stateVar $ state { gameState = newGame }
 
             -- send game views
-            let catchers = withoutClient 0 (connections state) :: ClientConnections GameConnection
+            let catchers = withoutClient 0 (connections state)
             let maybeRogue = findConnectionById 0 state
             broadcast catcherGameView catchers
             case maybeRogue of
