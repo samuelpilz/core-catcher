@@ -6,7 +6,7 @@ module Glue
     ) where
 
 import           ClassyPrelude
-import           Data.Map         as Map
+import qualified Data.Map         as Map (fromList, mapKeys)
 import qualified GameLogic
 import qualified Lib
 import qualified Network.Protocol as Protocol
@@ -37,24 +37,73 @@ encodeEnergy (GameLogic.Energy x) =
 encodeEnergy GameLogic.BlackEnergy =
     Protocol.Transport { Protocol.transportName = "black" }
 
+toTupleList :: Vector a -> [(Protocol.Player, a)]
+toTupleList v =
+    zip
+        (map (\id -> Protocol.Player { Protocol.playerId = id } ) [(0 :: Int)..])
+        $ toList v
+
+toPlayerMap :: Vector a -> Map Protocol.Player a
+toPlayerMap v =
+    Map.fromList $ toTupleList v
+
 encodeEnergies :: GameLogic.PlayersEnergies -> Protocol.PlayerEnergies
 encodeEnergies e =
     Protocol.PlayerEnergies {
         Protocol.playerEnergies =
-            Map.fromList (zip
-                (ClassyPrelude.map (\id -> Protocol.Player { Protocol.playerId = id } ) [(0 :: Int)..])
-                (ClassyPrelude.map ((\m -> Protocol.EnergyMap { Protocol.energyMap = m } ) . mapKeys encodeEnergy) $ ClassyPrelude.toList e)) }
+            map ((\m -> Protocol.EnergyMap { Protocol.energyMap = m } ) . Map.mapKeys encodeEnergy) $ toPlayerMap e
+    }
 
-{-
-updateState :: Protocol.Action -> GameState ->
-    Either Protocol.GameError (GameState, Protocol.RogueGameView, Protocol.CatcherGameView)
-updateState act game = do
-    let gs = addAction game $ decodeAction act
-    flatgs <- Lib.mapLeft (\e -> Protocol.GameError { myError = e }) $ playersState gs
-    let (pid, energies, poss, _) = flatgs
-    return (gs, )
+encodeNode :: GameLogic.VertexId -> Protocol.Node
+encodeNode n =
+    Protocol.Node {
+        Protocol.nodeId = n
+    }
 
--}
+encodePositions :: GameLogic.PlayersPos -> Protocol.PlayerPositions
+encodePositions pos =
+    Protocol.PlayerPositions {
+        Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos
+    }
+
+transportHistory :: Protocol.RogueTransportHistory --- TODO: change signature and implement
+transportHistory =
+    Protocol.RogueTransportHistory {
+        Protocol.rogueTransportHistory = []
+    }
+
+rogueLastSeen :: Maybe Protocol.Node
+rogueLastSeen = Just Protocol.Node { Protocol.nodeId = 0 }
+
+encodeError :: Text -> Protocol.GameError
+encodeError err =
+     Protocol.GameError {
+         Protocol.myError = err
+     }
+
 updateState :: Protocol.Action -> GameLogic.GameState ->
     Either Protocol.GameError (GameLogic.GameState, Protocol.RogueGameView, Protocol.CatcherGameView)
-updateState = undefined
+updateState act game = do
+    action <- Lib.maybeToEither (decodeAction act) (encodeError "invalid action")
+    let gs = GameLogic.addAction game action
+    flatgs <- Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState gs
+    let (pid, energies, poss, _) = flatgs
+    let eposs = encodePositions poss
+    let eenergies = encodeEnergies energies
+    return (gs,
+         Protocol.RogueView {
+             Protocol.roguePlayerPositions = eposs,
+             Protocol.rogueEnergies = eenergies,
+             Protocol.rogueOwnHistory = transportHistory, -- TODO: implement history
+             Protocol.rogueRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
+             Protocol.rogueViewError = Nothing -- TODO: what to do with this?
+         },
+         Protocol.CatcherView {
+             Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
+             Protocol.catcherEnergies = eenergies,
+             Protocol.catcherRogueHistory = transportHistory, -- TODO: implement history
+             Protocol.catcherRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
+             Protocol.catcherViewError = Nothing
+         }
+        )
+
