@@ -101,7 +101,7 @@ jsonActionOfNode state n =
     encode 0
         << jsonEncAction
     <|
-        { player = { playerId = 1 }
+        { player = { playerId = 0 }
         , transport = state.selectedEnergy
         , node = n
         }

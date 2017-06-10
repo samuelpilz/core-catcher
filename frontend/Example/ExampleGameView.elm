@@ -11,7 +11,7 @@ catcherGameView =
     , catcherEnergies = playerEnergies
     , catcherRogueHistory = {rogueTransportHistory = []}
     , catcherRogueLastSeen = Nothing
-    , catcherViewError = Nothing
+    , catcherNextPlayer = {playerId = 0}
     }
 
 rogueGameView : RogueGameView
@@ -20,16 +20,16 @@ rogueGameView =
     , rogueEnergies = playerEnergies
     , rogueOwnHistory = {rogueTransportHistory = []}
     , rogueRogueLastSeen = Nothing
-    , rogueViewError = Nothing
+    , rogueNextPlayer = {playerId = 0}
     }
 
 
 playerPositions : PlayerPositions
 playerPositions =
     { playerPositions_ =
-        [ ( { playerId = 1 }, { nodeId = 1 } )
-        , ( { playerId = 2 }, { nodeId = 4 } )
-        , ( { playerId = 3 }, { nodeId = 2 } )
+        [ ( { playerId = 0 }, { nodeId = 1 } )
+        , ( { playerId = 1 }, { nodeId = 4 } )
+        , ( { playerId = 2 }, { nodeId = 2 } )
         ]
     }
 
@@ -37,13 +37,13 @@ playerPositions =
 playerEnergies : PlayerEnergies
 playerEnergies =
     { playerEnergies =
-        [ ( { playerId = 1 }, player1Energies )
+        [ ( { playerId = 0 }, player0Energies )
         ]
     }
 
 
-player1Energies : EnergyMap
-player1Energies =
+player0Energies : EnergyMap
+player0Energies =
     { energyMap =
         [ ( { transportName = "taxi" }, 5 )
         , ( { transportName = "bus" }, 3 )

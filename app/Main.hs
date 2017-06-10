@@ -14,7 +14,6 @@ module Main where
 import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
-import qualified Data.Aeson                     as Aeson
 import qualified Network.ExampleGameView        as Example
 import qualified Network.HTTP.Types             as Http
 import           Network.Protocol
@@ -23,16 +22,9 @@ import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           State
-import           Util                           (defaultGame)
 import qualified WsApp
 import qualified WsAppUtils
 
-import qualified Data.Map                       as Map
-import qualified Data.Map.Lazy                  as MapL
-import           GlueMock
-import           Network.ExampleGameView
-
-import           System.IO                      (getLine)
 
 main :: IO ()
 main = do

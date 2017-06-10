@@ -100,15 +100,16 @@ playerCircle nodeXyMap ( { playerId }, node ) =
         , r "15"
         , fill "none"
         , stroke
-            (if playerId == 1 then
-                "yellow"
-             else if playerId == 2 then
+            (if playerId == 0 then
+                "#4444ff"
+             else if playerId == 1 then
                 "green"
              else
                 "white"
             )
         , Svg.Attributes.cursor "pointer"
         , onClick (Clicked node)
+        , strokeWidth "2"
         , Svg.Attributes.strokeDasharray "5,5"
         ]
         []

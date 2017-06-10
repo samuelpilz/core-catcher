@@ -54,6 +54,14 @@ rogueLastSeen gameView =
         CatcherView view ->
             view.catcherRogueLastSeen
 
+nextPlayer : GameView -> Player
+nextPlayer gameView =
+    case gameView of
+        RogueView view ->
+            view.rogueNextPlayer
+
+        CatcherView view ->
+            view.catcherNextPlayer
 
 getFromList : k -> List ( k, v ) -> Maybe v
 getFromList k list =
