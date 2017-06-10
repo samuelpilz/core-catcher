@@ -6,7 +6,7 @@ module WsApp (WsApp.handle) where
 
 import           ClassyPrelude
 import           ConnectionMgnt
-import qualified Glue
+import qualified GlueMock           as Glue
 import qualified Network.Protocol   as Protocol
 import           State
 import           WsAppUtils

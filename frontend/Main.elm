@@ -4,15 +4,18 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
-import MapView exposing (mapView)
+import View.MapView exposing (mapView)
+import View.TransportView exposing (transportView)
 import Debug exposing (log)
 import Example.ExampleNetwork as Example
 import Example.ExampleGameView as Example
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
+import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
-import Data exposing (..)
+import ClientState exposing (..)
 import Json.Encode exposing (encode)
+import Json.Decode exposing (decodeString)
 import AllDict exposing (..)
 
 
@@ -38,7 +41,8 @@ view : ClientState -> Html Msg
 view state =
     div []
         [ h1 [] [ text "Core catcher" ]
-        , MapView.mapView network displayInfo state
+        , mapView network displayInfo state
+        , transportView network displayInfo state
         ]
 
 
@@ -56,41 +60,49 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            (movePlayerInGameView state { playerId = 1 } n)
-                ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode n ]
+            state ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode state n ]
 
         Received s ->
-            state ! []
+            case decodeString jsonDecRogueGameView s of
+                Ok newView ->
+                    {state | gameView = RogueView newView } ! []
+
+                -- TODO: not only RogueView constructor
+                Err err ->
+                    log2 "error" err state ! []
+        
+        SelectEnergy transport ->
+            { state | selectedEnergy = transport } ! []
 
 
 
 -- random dev helper functions and type defs
 
 
-type alias ClientState =
-    CatcherGameView
-
-
 initialState : ClientState
 initialState =
-    Example.catcherGameView
+    { gameView = RogueView Example.rogueGameView
+    , selectedEnergy = { transportName = "taxi" }
+    }
+
 
 network : Network
 network =
     Example.network
+
 
 displayInfo : GameViewDisplayInfo
 displayInfo =
     Example.displayInfo
 
 
-jsonActionOfNode : Node -> String
-jsonActionOfNode n =
+jsonActionOfNode : ClientState -> Node -> String
+jsonActionOfNode state n =
     encode 0
         << jsonEncAction
     <|
-        { player = { playerId = 1 }
-        , transport = { transportName = "" }
+        { player = { playerId = 0 }
+        , transport = state.selectedEnergy
         , node = n
         }
 
@@ -103,25 +115,3 @@ cons a b =
 log2 : String -> a -> b -> b
 log2 s a b =
     cons b (log s a)
-
-
-movePlayerInGameView : CatcherGameView -> Player -> Node -> CatcherGameView
-movePlayerInGameView game player newNode =
-    { game
-        | catcherPlayerPositions =
-            movePlayerInPlayerPositions game.catcherPlayerPositions player newNode
-    }
-
-
-movePlayerInPlayerPositions : PlayerPositions -> Player -> Node -> PlayerPositions
-movePlayerInPlayerPositions { playerPositions_ } { playerId } newNode =
-    { playerPositions_ =
-        List.map
-            (\( p, n ) ->
-                if p.playerId == playerId then
-                    ( p, newNode )
-                else
-                    ( p, n )
-            )
-            playerPositions_
-    }

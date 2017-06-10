@@ -86,6 +86,10 @@ type alias GameViewDisplayInfo =
     , nodeXyMap : NodeXyMap
     , transportPriorityList : List Transport
     , playerColorMap : PlayerColorMap
+    , mapWidth : Int
+    , mapHeight : Int
+    , gridWidth : Int
+    , gridHeight : Int
     }
 
 

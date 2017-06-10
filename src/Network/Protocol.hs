@@ -82,7 +82,7 @@ newtype PlayerPositions =
     deriving (Show, Read, Eq, Generic)
 
 {- |The history of transports used by the rouge core.
--}
+-} -- TODO: Seq instead of list?
 newtype RogueTransportHistory =
     RogueTransportHistory
         { rogueTransportHistory :: [Transport]  -- ^display infos
@@ -109,7 +109,7 @@ class (FromJSON view, ToJSON view) => GameView view where
     energies :: view -> PlayerEnergies
     rogueHistory :: view -> RogueTransportHistory
     rogueLastSeen :: view -> Maybe Node
-    viewError :: view -> Maybe GameError
+    nextPlayer :: view -> Player
 
 {- |A game view as seen by the rouge-core.
 -}
@@ -119,7 +119,7 @@ data RogueGameView =
         , rogueEnergies        :: PlayerEnergies
         , rogueOwnHistory      :: RogueTransportHistory
         , rogueRogueLastSeen   :: Maybe Node
-        , rogueViewError       :: Maybe GameError
+        , rogueNextPlayer      :: Player
         }
         deriving (Show, Read,  Eq, Generic)
 
@@ -131,7 +131,7 @@ data CatcherGameView =
         , catcherEnergies        :: PlayerEnergies
         , catcherRogueHistory    :: RogueTransportHistory
         , catcherRogueLastSeen   :: Maybe Node
-        , catcherViewError       :: Maybe GameError
+        , catcherNextPlayer      :: Player
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -140,34 +140,14 @@ instance GameView RogueGameView where
     energies = rogueEnergies
     rogueHistory = rogueOwnHistory
     rogueLastSeen = rogueRogueLastSeen
-    viewError = rogueViewError
+    nextPlayer = rogueNextPlayer
 
 instance GameView CatcherGameView where
     playerPositions = catcherPlayerPositions
     energies = catcherEnergies
     rogueHistory = catcherRogueHistory
     rogueLastSeen = catcherRogueLastSeen
-    viewError = catcherViewError
-
-newCatcherView :: CatcherGameView
-newCatcherView =
-    CatcherView
-        { catcherPlayerPositions = PlayerPositions (mapFromList [])
-        , catcherEnergies = PlayerEnergies (mapFromList [])
-        , catcherRogueHistory = RogueTransportHistory []
-        , catcherRogueLastSeen = Nothing
-        , catcherViewError = Nothing
-        }
-
-newRogueView :: RogueGameView
-newRogueView =
-    RogueView
-        { roguePlayerPositions = PlayerPositions (mapFromList [])
-        , rogueEnergies = PlayerEnergies (mapFromList [])
-        , rogueOwnHistory = RogueTransportHistory []
-        , rogueRogueLastSeen = Nothing
-        , rogueViewError = Nothing
-        }
+    nextPlayer = catcherNextPlayer
 
 {- |Network: Nodes and Map Transport to Overlay.
 

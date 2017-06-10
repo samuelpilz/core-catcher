@@ -19,6 +19,10 @@ displayInfo =
         , { transportName = "taxi" }
         ]
     , playerColorMap = playerColorMap
+    , mapWidth = 800
+    , mapHeight = 600
+    , gridWidth = 7
+    , gridHeight = 5
     }
 
 
@@ -56,7 +60,7 @@ nodeXyMap : NodeXyMap
 nodeXyMap =
     AllDict.fromList
         .nodeId
-        [ ( { nodeId = 1 }, ( 1, 0 ) )
+        [ ( { nodeId = 1 }, ( 0, 0 ) )
         , ( { nodeId = 2 }, ( 3, 0 ) )
         , ( { nodeId = 3 }, ( 2, 2 ) )
         , ( { nodeId = 4 }, ( 2, 5 ) )
@@ -64,6 +68,8 @@ nodeXyMap =
         , ( { nodeId = 6 }, ( 1, 3 ) )
         , ( { nodeId = 7 }, ( 3, 4 ) )
         , ( { nodeId = 8 }, ( 5, 0 ) )
+        , ( { nodeId = 9 }, ( 7, 0 ) )
+        , ( { nodeId = 10 }, ( 0, 5 ) )
         ]
 
 
@@ -71,7 +77,7 @@ playerColorMap : PlayerColorMap
 playerColorMap =
     AllDict.fromList
         .playerId
-        [ ( { playerId = 1 }, "green" )
-        , ( { playerId = 2 }, "yellow" )
-        , ( { playerId = 3 }, "blue" )
+        [ ( { playerId = 0 }, "green" )
+        , ( { playerId = 1 }, "yellow" )
+        , ( { playerId = 2 }, "blue" )
         ]

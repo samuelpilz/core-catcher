@@ -14,15 +14,16 @@ module Main where
 import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
+import qualified Network.ExampleGameView        as Example
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           State
-import           Util                           (defaultGame)
 import qualified WsApp
 import qualified WsAppUtils
+
 
 main :: IO ()
 main = do
@@ -37,8 +38,8 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 
 
 wsApp :: WS.ServerApp
-wsApp pendingConn = do
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = defaultGame}
+wsApp pendingConn = do -- TODO: fixme: new state for every connection...
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = Example.exampleRogueGameView} -- TODO: insert GL.GameState instead
     conn <- WS.acceptRequest pendingConn
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
@@ -54,9 +55,7 @@ wsListen client stateVar = forever $ do
         Just action -> do
             -- TODO: what about request forging?
             -- TODO: validation playerId==clientId
-            sendData (snd client) ("1" :: Text)
             WsApp.handle stateVar action
             return ()
         Nothing     -> do
-            sendData (snd client) ("2" :: Text)
             putStrLn "ERROR: The message could not be decoded"
