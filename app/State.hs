@@ -12,9 +12,11 @@ import           ClassyPrelude
 import           Connection
 import           ConnectionMgnt
 import qualified GameLogic          as GL
+import qualified Network.Protocol   as Protocol
 import qualified Network.WebSockets as WS
 
-type GameState = GL.GameState
+-- type GameState = GL.GameState
+type GameState = Protocol.RogueGameView --TODO: convert back to GL.GameState
 
 newtype GameConnection = GameConnection WS.Connection
 

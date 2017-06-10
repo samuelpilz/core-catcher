@@ -15,6 +15,7 @@ import           ClassyPrelude
 import           ConnectionMgnt
 import qualified Control.Exception              as Exception
 import qualified Data.Aeson                     as Aeson
+import qualified Network.ExampleGameView        as Example
 import qualified Network.HTTP.Types             as Http
 import           Network.Protocol
 import qualified Network.Wai                    as Wai
@@ -25,7 +26,6 @@ import           State
 import           Util                           (defaultGame)
 import qualified WsApp
 import qualified WsAppUtils
-
 main :: IO ()
 main = do
     putStrLn "Starting Core-Catcher server on port 3000"
@@ -40,7 +40,7 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 
 wsApp :: WS.ServerApp
 wsApp pendingConn = do
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = defaultGame}
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = Example.exampleRogueGameView} -- TODO: insert GL.GameState instead
     conn <- WS.acceptRequest pendingConn
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt

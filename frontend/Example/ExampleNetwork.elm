@@ -6,7 +6,7 @@ import List exposing (..)
 
 network : Network
 network =
-    { nodes = map (\n -> { nodeId = n }) (range 1 8)
+    { nodes = map (\n -> { nodeId = n }) (range 1 10)
     , overlays =
         [ ( {transportName = "underground"}, undergroundOverlay )
         , ( {transportName = "bus"}, busOverlay )
@@ -44,7 +44,7 @@ busOverlay =
 
 taxiOverlay : NetworkOverlay
 taxiOverlay =
-    { overlayNodes = map (\n -> { nodeId = n }) (range 1 7)
+    { overlayNodes = map (\n -> { nodeId = n }) (range 1 7 ++ range 9 10)
     , edges =
         [ { edge = ( { nodeId = 1 }, { nodeId = 2 } ) }
         , { edge = ( { nodeId = 6 }, { nodeId = 4 } ) }
@@ -55,5 +55,7 @@ taxiOverlay =
         , { edge = ( { nodeId = 4 }, { nodeId = 7 } ) }
         , { edge = ( { nodeId = 5 }, { nodeId = 7 } ) }
         , { edge = ( { nodeId = 3 }, { nodeId = 6 } ) }
+        , { edge = ( { nodeId = 5 }, { nodeId = 9 } ) }
+        , { edge = ( { nodeId = 6 }, { nodeId = 10 } ) }
         ]
     }

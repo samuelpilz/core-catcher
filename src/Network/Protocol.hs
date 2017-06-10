@@ -82,7 +82,7 @@ newtype PlayerPositions =
     deriving (Show, Read, Eq, Generic)
 
 {- |The history of transports used by the rouge core.
--}
+-} -- TODO: Seq instead of list?
 newtype RogueTransportHistory =
     RogueTransportHistory
         { rogueTransportHistory :: [Transport]  -- ^display infos

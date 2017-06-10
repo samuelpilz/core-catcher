@@ -4,12 +4,14 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
-import MapView exposing (mapView)
+import View.MapView exposing (mapView)
+import View.TransportView exposing (transportView)
 import Debug exposing (log)
 import Example.ExampleNetwork as Example
 import Example.ExampleGameView as Example
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
+import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
 import Data exposing (..)
 import Json.Encode exposing (encode)
@@ -39,7 +41,8 @@ view : ClientState -> Html Msg
 view state =
     div []
         [ h1 [] [ text "Core catcher" ]
-        , MapView.mapView network displayInfo state
+        , mapView network displayInfo state
+        , transportView network displayInfo state
         ]
 
 
@@ -63,10 +66,11 @@ update msg state =
         Received s ->
             case decodeString jsonDecRogueGameView s of
                 Ok newState ->
-                    newState ! []
+                    RogueView newState ! []
+
+                -- TODO: not only RogueView constructor
                 Err err ->
                     log2 "error" err state ! []
-            
 
 
 
@@ -74,16 +78,18 @@ update msg state =
 
 
 type alias ClientState =
-    RogueGameView
+    GameView
 
 
 initialState : ClientState
 initialState =
-    Example.rogueGameView
+    RogueView Example.rogueGameView
+
 
 network : Network
 network =
     Example.network
+
 
 displayInfo : GameViewDisplayInfo
 displayInfo =
@@ -96,7 +102,15 @@ jsonActionOfNode n =
         << jsonEncAction
     <|
         { player = { playerId = 1 }
-        , transport = { transportName = "" }
+        , transport =
+            { transportName =
+                if n.nodeId % 3 ==0 then
+                    "taxi"
+                else if n.nodeId  % 3 == 1 then
+                    "bus"
+                else
+                    "underground"
+            }
         , node = n
         }
 
@@ -109,33 +123,3 @@ cons a b =
 log2 : String -> a -> b -> b
 log2 s a b =
     cons b (log s a)
-
-
-movePlayerInCatcherView : CatcherGameView -> Player -> Node -> CatcherGameView
-movePlayerInCatcherView game player newNode =
-    { game
-        | catcherPlayerPositions =
-            movePlayerInPlayerPositions game.catcherPlayerPositions player newNode
-    }
-
-
-movePlayerInRogueView : RogueGameView -> Player -> Node -> RogueGameView
-movePlayerInRogueView game player newNode =
-    { game
-        | roguePlayerPositions =
-            movePlayerInPlayerPositions game.roguePlayerPositions player newNode
-    }
-
-
-movePlayerInPlayerPositions : PlayerPositions -> Player -> Node -> PlayerPositions
-movePlayerInPlayerPositions { playerPositions_ } { playerId } newNode =
-    { playerPositions_ =
-        List.map
-            (\( p, n ) ->
-                if p.playerId == playerId then
-                    ( p, newNode )
-                else
-                    ( p, n )
-            )
-            playerPositions_
-    }
