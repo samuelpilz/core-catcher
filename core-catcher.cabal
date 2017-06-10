@@ -71,6 +71,7 @@ test-suite core-catcher-test
   other-modules:       ProtocolTest
                      , SpecTest
                      , MainTest
+                     , Mock.Connection
   build-depends:       base
                      , core-catcher
                      , classy-prelude

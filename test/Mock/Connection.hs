@@ -8,5 +8,6 @@ import           ClassyPrelude
 
 data FakeConnection = FakeConnection
 
---instance IsConnection FakeConnection where
---    sendText = return . const ()
+instance IsConnection FakeConnection where
+    sendData x y = return ()
+    -- sendData = const (const (return ()))
