@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeFamilies      #-}
-module State
+module App.State
   ( ServerState(..)
   , HasConnections
   , GameState
@@ -9,8 +9,8 @@ module State
   ) where
 
 import           ClassyPrelude
-import           Connection
-import           ConnectionMgnt
+import           App.Connection
+import           App.ConnectionMgnt
 import qualified GameLogic          as GL
 import qualified Network.Protocol   as Protocol
 import qualified Network.WebSockets as WS

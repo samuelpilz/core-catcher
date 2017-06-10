@@ -2,19 +2,20 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WsApp (WsApp.handle) where
+module App.WsApp (App.WsApp.handle) where
 
 import           ClassyPrelude
-import           Connection
-import           ConnectionMgnt
+import           App.Connection
+import           App.ConnectionMgnt
 import qualified GlueMock         as Glue
 import           Network.Protocol
-import           State
-import           WsAppUtils
+import           App.State
+import           App.WsAppUtils
 
 handle :: IsConnection conn => TVar (ServerState conn) -> Action -> IO ()
 handle stateVar action = do
     updateResult <- atomically $ updateGame stateVar action
+    state <- readTVarIO stateVar
 
     case updateResult of
         Right (newGame, rogueGameView, catcherGameView) -> do
@@ -33,7 +34,7 @@ handle stateVar action = do
 
     return ()
 
-updateGame :: TVar ServerState -> Action
+updateGame ::  IsConnection conn =>  TVar (ServerState conn) -> Action
     -> STM (Either GameError (GameState, RogueGameView, CatcherGameView))
 updateGame stateVar action = do
     state <- readTVar stateVar

@@ -12,7 +12,7 @@ https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
 module Main where
 
 import           ClassyPrelude
-import           ConnectionMgnt
+import           App.ConnectionMgnt
 import qualified Control.Exception              as Exception
 import qualified Network.ExampleGameView        as Example
 import qualified Network.HTTP.Types             as Http
@@ -20,9 +20,9 @@ import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import           State
-import qualified WsApp
-import qualified WsAppUtils
+import           App.State
+import qualified App.WsApp as WsApp
+import qualified App.WsAppUtils as WsAppUtils
 
 
 main :: IO ()

@@ -2,11 +2,11 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WsAppUtils where
+module App.WsAppUtils where
 
 import           ClassyPrelude
-import           Connection
-import           ConnectionMgnt
+import           App.Connection
+import           App.ConnectionMgnt
 import qualified Data.Aeson       as Aeson
 import           Network.Protocol
 

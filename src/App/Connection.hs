@@ -5,7 +5,7 @@
 This module abstracts connections
 -}
 
-module Connection where
+module App.Connection where
 
 import           ClassyPrelude
 import qualified Network.WebSockets as WS

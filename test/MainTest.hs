@@ -4,10 +4,8 @@
 module MainTest where
 
 import           ClassyPrelude
-import qualified Data.Aeson                    as Aeson
-
-import           Network.Protocol
 import           Test.Framework
+import           Mock.Connection
 
-import qualified Network.WebSockets            as WS
-import           Network.WebSockets.Connection
+test_dummy :: IO ()
+test_dummy = func

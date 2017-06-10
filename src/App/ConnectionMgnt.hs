@@ -7,7 +7,7 @@
 This module implements helps managing Client Connections
 -}
 
-module ConnectionMgnt (
+module App.ConnectionMgnt (
     ClientId,
     ClientConnection,
     ClientConnections,

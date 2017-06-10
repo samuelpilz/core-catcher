@@ -23,6 +23,11 @@ library
                      , Glue
                      , GlueMock
                      , Network.ExampleGameView
+                     , App.WsApp
+                     , App.WsAppUtils
+                     , App.State
+                     , App.ConnectionMgnt
+                     , App.Connection
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
@@ -41,11 +46,7 @@ library
 executable core-catcher-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  other-modules:       WsApp
-                     , WsAppUtils
-                     , State
-                     , ConnectionMgnt
-                     , Connection
+  other-modules:
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher
