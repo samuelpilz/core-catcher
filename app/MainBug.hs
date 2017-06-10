@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-
@@ -12,37 +11,44 @@ https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
 
 module Main where
 
-import           ClassyPrelude
+import           Prelude
 
-import qualified Data.Map      as Map
-import           GHC.Generics  ()
+import           Data.Map     (Map)
+import qualified Data.Map     as Map
+import           GHC.Generics (Generic)
 
-import           System.IO     (getLine)
+import           System.IO    (getLine)
 
+
+type Transport = String
 -- |Transport is a text
-newtype Transport = Transport String
+--newtype Transport = Transport String
     --Transport { transportName :: String }
-    deriving (Show, Read, Eq, Ord, Generic)
+    --deriving (Show, Read, Eq, Ord, Generic)
 
 main :: IO ()
 main = do
     putStrLn "energyMap:"
     print energyMap
+    putStrLn ""
+
     putStrLn "using assocs"
-    mapM_ (\(k,v) -> putStrLn (tshow k ++ " -> " ++ tshow v)) $ Map.assocs energyMap
+    mapM_ (\(k,v) -> putStrLn (show k ++ " -> " ++ show v)) $ Map.assocs energyMap
     putStrLn ""
 
     putStrLn "using lookup"
-    mapM_ (\k -> putStrLn (tshow k ++ " -> " ++ tshow (Map.lookup k energyMap))) $ Map.keys energyMap
+    mapM_ (\k -> putStrLn (show k ++ " -> " ++ show (Map.lookup k energyMap))) $ Map.keys energyMap
     putStrLn ""
 
-    mapM_ (\(t1, t2) -> print (t1, t2, compare t1 t2)) $ cartProd (Map.keys energyMap) (Map.keys energyMap)
+    mapM_ (\(t1, t2) -> putStrLn $ t1 ++ (if t1 < t2 then "<" else if t1 > t2 then ">" else "=") ++ t2)
+        $ cartProd (Map.keys energyMap) (Map.keys energyMap)
 
 energyMap :: Map Transport Int
 energyMap =
-    Map.fromDistinctAscList [ ( Transport "taxi", 5 )
-        , ( Transport "bus", 3 )
-        , ( Transport "underground", 2 )
+    Map.fromDistinctAscList
+        [ ( "t", 0 )
+        , ( "b", 0 )
+        , ( "u", 0 )
         ]
 
 cartProd xs ys = [(x,y) | x <- xs, y <- ys]
