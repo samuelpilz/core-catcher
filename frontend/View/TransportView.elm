@@ -24,25 +24,33 @@ transportView _ displayInfo gameView =
         ]
     -- elements of svg now
     <|
-        (List.map energyRecord
-            << List.sortBy (\( priority, _, _ ) -> priority)
-            << List.map
-                (\( transport, color ) ->
-                    ( getPriority displayInfo transport
-                    , color
-                    , getEnergyForTransportAndPlayer { playerId = 1 } transport gameView
-                    )
+        energyView gameView displayInfo {playerId = 1}
+            ++ historyView gameView displayInfo
+
+
+energyView : GameView -> GameViewDisplayInfo -> Player -> List (Svg.Svg Msg)
+energyView gameView displayInfo player =
+    List.map energyRecord
+        << List.sortBy (\( priority, _, _ ) -> priority)
+        << List.map
+            (\( transport, color ) ->
+                ( getPriority displayInfo transport
+                , color
+                , getEnergyForTransportAndPlayer player transport gameView
                 )
-            << AllDict.toList
-         <|
-            displayInfo.colorMap
-        )
-            ++ (List.map2 historyRecord (range 0 100)
-                    << List.map (Maybe.withDefault "black")
-                    << List.map (\t -> AllDict.get t displayInfo.colorMap)
-                <|
-                    (rogueHistory gameView).rogueTransportHistory
-               )
+            )
+        << AllDict.toList
+    <|
+        displayInfo.colorMap
+
+
+historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
+historyView gameView displayInfo  =
+    List.map2 historyRecord (range 0 100)
+        << List.map (Maybe.withDefault "black")
+        << List.map (\t -> AllDict.get t displayInfo.colorMap)
+    <|
+        (rogueHistory gameView).rogueTransportHistory
 
 
 energyRecord : ( Int, Color, Int ) -> Svg.Svg Msg
