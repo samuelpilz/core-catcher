@@ -5,22 +5,19 @@
 module WsApp (WsApp.handle) where
 
 import           ClassyPrelude
+import           Connection
 import           ConnectionMgnt
-import qualified GlueMock           as Glue
-import qualified Network.Protocol   as Protocol
+import qualified GlueMock         as Glue
+import           Network.Protocol
 import           State
 import           WsAppUtils
 
--- TODO: refactor this function as a whole
-handle :: IsConnection conn => TVar (ServerState conn) -> Protocol.Action -> IO ()
+handle :: IsConnection conn => TVar (ServerState conn) -> Action -> IO ()
 handle stateVar action = do
-    state <- readTVarIO stateVar-- TODO: do STM
-    let updateResult = Glue.updateState action $ gameState state
+    updateResult <- atomically $ updateGame stateVar action
 
     case updateResult of
         Right (newGame, rogueGameView, catcherGameView) -> do
-            -- update game state
-            atomically . writeTVar stateVar $ state { gameState = newGame }
 
             -- send game views
             let catchers = withoutClient 0 (connections state)
@@ -31,7 +28,18 @@ handle stateVar action = do
                 Nothing    -> putStrLn "There is no rogue connected"
 
         Left gameError -> do
-            putStrLn $ "invalid action (" ++ tshow (Protocol.myError gameError) ++ ")"
+            putStrLn $ "invalid action (" ++ tshow (myError gameError) ++ ")"
              -- TODO: reply to sender
 
     return ()
+
+updateGame :: TVar ServerState -> Action
+    -> STM (Either GameError (GameState, RogueGameView, CatcherGameView))
+updateGame stateVar action = do
+    state <- readTVar stateVar
+    let updateResult = Glue.updateState action $ gameState state
+    case updateResult of
+        Right (newGame, _, _) -> do
+            writeTVar stateVar $ state { gameState = newGame }
+        Left _ -> return ()
+    return updateResult
