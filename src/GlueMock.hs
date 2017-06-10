@@ -8,7 +8,6 @@ module GlueMock
 import           ClassyPrelude
 import qualified Data.Map                as Map
 --import qualified GameLogic
-import           Debug.Trace             (trace)
 import           Network.ExampleGameView
 import           Network.Protocol
 
@@ -55,9 +54,6 @@ subtractEnergyFromPlayer action energies = energies
 
 subtractEnergy :: Action -> EnergyMap -> EnergyMap
 subtractEnergy action eMap = eMap
-    { energyMap = trace ("containsTaxi: " ++ show (Map.member (Transport {transportName="taxi"}) (energyMap eMap)) ++ ", see: " ++ show (energyMap eMap))
-        $ Map.update (\v ->
-                trace (show (transport action) ++ ": " ++ show v ++ "->" ++ show (v-1))
-                $ Just (v-1))
+    { energyMap = Map.update (\v -> Just (v-1))
             (transport action) $ energyMap eMap
     }

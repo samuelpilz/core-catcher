@@ -37,8 +37,7 @@ transportView _ displayInfo gameView =
          <|
             displayInfo.colorMap
         )
-            ++ (List.map2 rectForPosAndColor [ ( 50, 100 ), ( 100, 100 ), ( 150, 100 ) ]
-                    -- TODO: expand and wrap
+            ++ (List.map2 historyRecord (range 0 100)
                     << List.map (Maybe.withDefault "black")
                     << List.map (\t -> AllDict.get t displayInfo.colorMap)
                 <|
@@ -46,12 +45,8 @@ transportView _ displayInfo gameView =
                )
 
 
-
---| TODO: add number of available energies in boxes
-
-
 energyRecord : ( Int, Color, Int ) -> Svg.Svg Msg
-energyRecord (pos, color, count) =
+energyRecord ( pos, color, count ) =
     g []
         [ rectForPosAndColor ( 50 * pos + 50, 1 ) color
         , text_
@@ -65,6 +60,11 @@ energyRecord (pos, color, count) =
             ]
             [ text << toString <| count ]
         ]
+
+
+historyRecord : Int -> Color -> Svg.Svg Msg
+historyRecord pos color =
+    rectForPosAndColor ( 50 + 50 * (pos % 5), 100 + 50 * (pos // 5) ) color
 
 
 rectForPosAndColor : ( Int, Int ) -> Color -> Svg.Svg Msg
