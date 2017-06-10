@@ -209,7 +209,7 @@ playersState gs = do
   turn <- case turns gs of
         Right t -> maybeToEither (headMay t) (Fatal "Failed to derive turns")
         Left eh -> Left eh
-  return (turn, ts, ps, tm)
+  return ((turn+1) `mod` (length . start $ gs), ts, ps, tm)
 
 initialPositions :: PlayersEnergies -> Start -> Either Error PlayersPos
 initialPositions _ = Right
