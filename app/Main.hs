@@ -26,8 +26,48 @@ import           State
 import           Util                           (defaultGame)
 import qualified WsApp
 import qualified WsAppUtils
+
+import qualified Data.Map                       as Map
+import qualified Data.Map.Lazy                  as MapL
+import           GlueMock
+import           Network.ExampleGameView
+
+import           System.IO                      (getLine)
+
 main :: IO ()
 main = do
+    putStrLn "energyMap:"
+    print getEnergyMap
+    mapM_ print $ Map.assocs getEnergyMap
+    mapM_ print $ Map.keys getEnergyMap
+
+    putStrLn ""
+    string <- getLine
+    printEnergyMap string
+
+printEnergyMap :: String -> IO ()
+printEnergyMap s = print
+    $ Map.lookup t em
+        where
+            t = Transport {transportName = pack s}
+            em = getEnergyMap
+
+getEnergyMap :: Map Transport Int
+getEnergyMap = Map.fromDistinctAscList [ ( Transport { transportName = "taxi" }, 5 )
+        , ( Transport { transportName = "bus" }, 3 )
+        , ( Transport { transportName = "underground" }, 2 )
+        ]
+
+    {-fromMaybe Map.empty
+    . map (energyMap)
+    . Map.lookup (Player {playerId = 1})
+    . playerEnergies
+    . rogueEnergies
+    $ exampleRogueGameView
+-}
+
+main2 :: IO ()
+main2 = do
     putStrLn "Starting Core-Catcher server on port 3000"
     Warp.run 3000 $ WS.websocketsOr
         WS.defaultConnectionOptions
@@ -39,7 +79,7 @@ httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket
 
 
 wsApp :: WS.ServerApp
-wsApp pendingConn = do
+wsApp pendingConn = do -- TODO: fixme: new state for every connection...
     stateVar <- newTVarIO ServerState {connections = empty, gameState = Example.exampleRogueGameView} -- TODO: insert GL.GameState instead
     conn <- WS.acceptRequest pendingConn
     let gameConn = GameConnection conn

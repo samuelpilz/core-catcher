@@ -40,12 +40,27 @@ library
 
 executable core-catcher-exe
   hs-source-dirs:      app
-  main-is:             MainBug.hs
+  main-is:             Main.hs
+  other-modules:       WsApp
+                     , WsAppUtils
+                     , State
+                     , ConnectionMgnt
+                     , Connection
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , core-catcher
+                     , warp
+                     , wai
                      , text
+                     , websockets
+                     , wai-websockets
+                     , http-types
                      , classy-prelude
                      , containers
+                     , aeson
+                     , stm
+                     , transformers
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite core-catcher-test

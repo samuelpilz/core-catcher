@@ -30,7 +30,7 @@ transportView _ displayInfo gameView =
                 (\( transport, color ) ->
                     ( getPriority displayInfo transport
                     , color
-                    , getEnergyForTransportAndPlayer { playerId = 0 } transport gameView
+                    , getEnergyForTransportAndPlayer { playerId = 1 } transport gameView
                     )
                 )
             << AllDict.toList

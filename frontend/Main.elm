@@ -104,7 +104,7 @@ jsonActionOfNode n =
         { player = { playerId = 1 }
         , transport =
             { transportName =
-                if n.nodeId % 3 ==0 then
+                if n.nodeId % 3 == 0 then
                     "taxi"
                 else if n.nodeId  % 3 == 1 then
                     "bus"

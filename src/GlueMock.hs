@@ -8,6 +8,7 @@ module GlueMock
 import           ClassyPrelude
 import qualified Data.Map                as Map
 --import qualified GameLogic
+import           Debug.Trace             (trace)
 import           Network.ExampleGameView
 import           Network.Protocol
 
@@ -23,17 +24,6 @@ updateState action state = Right
     where
         newState = addAction action state
 
-{-
-movePlayerInCatcherView :: Action -> CatcherGameView -> CatcherGameView
-movePlayerInCatcherView action gameView =
-    gameView
-    { catcherPlayerPositions =
-        movePlayerInPlayerPositions action $ catcherPlayerPositions gameView
-    , catcherRogueHistory =
-        addToHistory (transport action) $ catcherRogueHistory gameView
-    }
--}
-
 addAction :: Action -> RogueGameView -> RogueGameView
 addAction action gameView =
     gameView
@@ -41,6 +31,7 @@ addAction action gameView =
         movePlayerInPlayerPositions action $ roguePlayerPositions gameView
     , rogueOwnHistory =
         addToHistory (transport action) $ rogueOwnHistory gameView
+    , rogueEnergies = subtractEnergyFromPlayer action $ rogueEnergies gameView
     }
 
 movePlayerInPlayerPositions :: Action -> PlayerPositions -> PlayerPositions
@@ -49,9 +40,24 @@ movePlayerInPlayerPositions action playerPositions =
         Map.insert (player action) (node action) (playerPositions_ playerPositions)
     }
 
-
 addToHistory :: Transport -> RogueTransportHistory -> RogueTransportHistory
 addToHistory transport history = history
     {rogueTransportHistory =
         rogueTransportHistory history ++ [transport]
+    }
+
+subtractEnergyFromPlayer :: Action -> PlayerEnergies -> PlayerEnergies
+subtractEnergyFromPlayer action energies = energies
+    {
+        playerEnergies = Map.update (Just . subtractEnergy action) (player action)
+            $ playerEnergies energies
+    }
+
+subtractEnergy :: Action -> EnergyMap -> EnergyMap
+subtractEnergy action eMap = eMap
+    { energyMap = trace ("containsTaxi: " ++ show (Map.member (Transport {transportName="taxi"}) (energyMap eMap)) ++ ", see: " ++ show (energyMap eMap))
+        $ Map.update (\v ->
+                trace (show (transport action) ++ ": " ++ show v ++ "->" ++ show (v-1))
+                $ Just (v-1))
+            (transport action) $ energyMap eMap
     }
