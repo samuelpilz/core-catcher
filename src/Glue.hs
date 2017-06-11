@@ -122,5 +122,5 @@ initialState :: GameLogic.GameState
 initialState =
     GameLogic.GameState
       (fromList [1..4])
-      GameLogic.someNet
+      GameLogic.samNet
       []

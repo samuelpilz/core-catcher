@@ -24,6 +24,7 @@ import           Safe                              (tailSafe)
 type PlayerId = Int
 roguePid :: PlayerId
 roguePid = 0
+data Party = Rogue | Catchers
 type VertexId = Graph.Node
 -- For each player: Position in the graph
 type PlayersPos = Vector VertexId
@@ -103,6 +104,27 @@ someNet =
         ,([(mkEdge [Energy Red, Energy Blue], 6)], 5, Vertex)
         ,([], 6, Vertex)
         ]
+
+samNet :: Network
+samNet =
+  Network $ buildGr
+    [([(mkEdge [Energy Red], 6), (mkEdge [Energy Orange], 11)], 1, Vertex)
+    ,([(mkEdge [Energy Orange], 5), (mkEdge [Energy Orange], 8)], 2, Vertex)
+    ,([(mkEdge [Energy Blue], 4), (mkEdge [Energy Orange], 5), (mkEdge [Energy Orange], 6), (mkEdge [Energy Orange], 7), (mkEdge [Energy Blue], 8)], 3, Vertex)
+    ,([(mkEdge [Energy Orange], 7), (mkEdge [Energy Orange], 10), (mkEdge [Energy Blue], 15)], 4, Vertex)
+    ,([(mkEdge [Energy Orange], 8), (mkEdge [Energy Orange], 12)], 5, Vertex)
+    ,([(mkEdge [Energy Orange], 10), (mkEdge [Energy Orange], 11), (mkEdge [Energy Red], 13)], 6, Vertex)
+    ,([(mkEdge [Energy Orange], 16)], 7, Vertex)
+    ,([(mkEdge [Energy Orange], 9), (mkEdge [Energy Blue], 12)], 8, Vertex)
+    ,([(mkEdge [Energy Red], 13)], 9, Vertex)
+    ,([], 10, Vertex)
+    ,([], 11, Vertex)
+    ,([(mkEdge [Energy Orange], 13), (mkEdge [Energy Blue], 15)], 12, Vertex)
+    ,([(mkEdge [Energy Red], 14)], 13, Vertex)
+    ,([(mkEdge [Energy Orange], 15)], 14, Vertex)
+    ,([(mkEdge [Energy Orange], 16)], 15, Vertex)
+    ,([], 16, Vertex)
+    ]
 
 exampleInvalidMove0 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
   [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
