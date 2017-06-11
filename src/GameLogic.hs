@@ -19,8 +19,11 @@ import           Data.Vector                       ((!?), (//))
 import qualified GHC.Generics                      ()
 import           Lib                               (mapLeft, maybeToEither,
                                                     scanrTailM, scanrTailM)
+import           Safe                              (tailSafe)
 
 type PlayerId = Int
+roguePid :: PlayerId
+roguePid = 0
 type VertexId = Graph.Node
 -- For each player: Position in the graph
 type PlayersPos = Vector VertexId
@@ -223,7 +226,7 @@ updatePositions' gs pid _ v (Move e vtx) = do
               unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
               unless notOccupied $ Left "Player collided with another one"
               Right $ v // [(pid, vtx)]
-                where notOccupied = vtx `notElem` v
+                where notOccupied = (vtx `notElem` v) || ((pid /= roguePid) && (vtx `notElem` (tailSafe . toList) v))
 updatePositions' gs pid t v Pass         =  do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
               energy <- maybeToEither (t !? pid) "Player not found or Player has no energy"
@@ -242,18 +245,15 @@ initialEnergies ls = Right $ fromList $ take (length ls) $ concat $ repeat [exam
 updateEnergies :: GameState -> PlayersEnergies -> (Action, PlayerId) -> Either Error PlayersEnergies
 updateEnergies gs v (a, pid) = applyAction (updateEnergies' gs pid) v a
 
-corruptedPid :: GameState -> PlayerId
-corruptedPid _ = 0
-
 updateEnergies' :: GameState -> PlayerId -> PlayersEnergies -> Move -> Either Error PlayersEnergies
-updateEnergies' gs pid v (Move t _) = do
+updateEnergies' _ pid v (Move t _) = do
   old <- maybeToEither (v !? pid) "Player not found or Player has no energy"
   let ts = findWithDefault 0 t old
   new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more energies"
-  ls <- if corruptedPid gs == pid then return [] else do
-    oldm <- maybeToEither (v !? corruptedPid gs) "Error updating corrupted core"
+  ls <- if roguePid == pid then return [] else do
+    oldm <- maybeToEither (v !? roguePid) "Error updating corrupted core"
     let oldv = 1 + findWithDefault 0 t oldm
-    return [(corruptedPid gs, Map.insert t oldv oldm)]
+    return [(roguePid, Map.insert t oldv oldm)]
   return $ v // ((pid, new):ls)
 updateEnergies' _ _ v Pass = Right v
 
@@ -261,9 +261,9 @@ initialTwoMove :: Start -> Either Error Int
 initialTwoMove _ = Right 2
 
 updateTwoMove :: GameState -> Int -> (Action, PlayerId) -> Either Error Int
-updateTwoMove gs m (TwoMoves a b, pid) = do
+updateTwoMove _ m (TwoMoves a b, pid) = do
   when (a == Pass || b == Pass) $ Left "Can not pass a move within a two-moves"
-  unless (pid == corruptedPid gs) $ Left "Player can not move with two-moves"
+  unless (pid == roguePid) $ Left "Player can not move with two-moves"
   unless (m > 0) $ Left "The corrupted core already used all its two-moves "
   return $ m - 1
 updateTwoMove _ m (OneMove _, _) = Right m
