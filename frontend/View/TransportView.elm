@@ -23,7 +23,7 @@ transportView _ displayInfo clientState =
         , Html.style [ ( "border-size", "1" ) ]
         ]
     <|
-        energyView clientState.gameView displayInfo { playerId = 1 } clientState.selectedEnergy
+        energyView clientState.gameView displayInfo { playerId = 0 } clientState.selectedEnergy
             ++ historyView clientState.gameView displayInfo
 
 

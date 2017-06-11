@@ -2,60 +2,78 @@ module Example.ExampleNetwork exposing (..)
 
 import Protocol exposing (..)
 import List exposing (..)
+import Set as Set
+import Maybe exposing (..)
 
 
 network : Network
 network =
-    { nodes = map (\n -> { nodeId = n }) (range 1 10)
+    { nodes = List.map (\n -> { nodeId = n }) (range 1 16)
     , overlays =
-        [ ( {transportName = "underground"}, undergroundOverlay )
-        , ( {transportName = "bus"}, busOverlay )
-        , ( {transportName = "taxi"}, taxiOverlay )
+        [ ( { transportName = "red" }, redOverlay )
+        , ( { transportName = "blue" }, blueOverlay )
+        , ( { transportName = "orange" }, orangeOverlay )
         ]
     }
 
 
-undergroundOverlay : NetworkOverlay
-undergroundOverlay =
-    { overlayNodes = [ { nodeId = 1 }, { nodeId = 5 }, { nodeId = 6 }, { nodeId = 3 } ]
-    , edges =
-        [ { edge = ( { nodeId = 1 }, { nodeId = 5 } ) }
-        , { edge = ( { nodeId = 5 }, { nodeId = 6 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 6 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 3 } ) }
+redOverlay : NetworkOverlay
+redOverlay =
+    mkOverlay
+        [ ( 1, 6 )
+        , ( 6, 13 )
+        , ( 13, 9 )
         ]
+
+
+blueOverlay : NetworkOverlay
+blueOverlay =
+    mkOverlayCompact
+        [ [ 3, 4, 15, 12, 8, 3 ]
+        ]
+
+
+orangeOverlay : NetworkOverlay
+orangeOverlay =
+    mkOverlayCompact
+        [ [ 6, 10, 4, 7, 16, 15, 14 ]
+        , [ 1, 11, 6, 3, 5 ]
+        , [ 2, 5, 8, 2 ]
+        , [ 5, 12, 13, 14 ]
+        , [ 8, 9 ]
+        , [ 3, 7 ]
+        ]
+
+
+mkOverlayCompact : List (List Int) -> NetworkOverlay
+mkOverlayCompact lists =
+    mkOverlay <|
+        List.concatMap
+            (\l ->
+                List.map2 (,)
+                    l
+                    (Maybe.withDefault [] <| tail l)
+            )
+            lists
+
+
+mkOverlay : List ( Int, Int ) -> NetworkOverlay
+mkOverlay list =
+    { overlayNodes =
+        List.map (\n -> { nodeId = n })
+            << Set.toList
+            << Set.fromList
+            << unzipConcat
+        <|
+            list
+    , edges = List.map (\( x, y ) -> { edge = ( { nodeId = x }, { nodeId = y } ) }) list
     }
 
 
-busOverlay : NetworkOverlay
-busOverlay =
-    { overlayNodes = [ { nodeId = 1 }, { nodeId = 3 }, { nodeId = 4 }, { nodeId = 5 }, { nodeId = 2 }, { nodeId = 8 } ]
-    , edges =
-        [ { edge = ( { nodeId = 1 }, { nodeId = 3 } ) }
-        , { edge = ( { nodeId = 3 }, { nodeId = 4 } ) }
-        , { edge = ( { nodeId = 3 }, { nodeId = 2 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 2 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 5 } ) }
-        , { edge = ( { nodeId = 2 }, { nodeId = 5 } ) }
-        , { edge = ( { nodeId = 2 }, { nodeId = 8 } ) }
-        ]
-    }
-
-
-taxiOverlay : NetworkOverlay
-taxiOverlay =
-    { overlayNodes = map (\n -> { nodeId = n }) (range 1 7 ++ range 9 10)
-    , edges =
-        [ { edge = ( { nodeId = 1 }, { nodeId = 2 } ) }
-        , { edge = ( { nodeId = 6 }, { nodeId = 4 } ) }
-        , { edge = ( { nodeId = 3 }, { nodeId = 5 } ) }
-        , { edge = ( { nodeId = 2 }, { nodeId = 5 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 6 } ) }
-        , { edge = ( { nodeId = 1 }, { nodeId = 3 } ) }
-        , { edge = ( { nodeId = 4 }, { nodeId = 7 } ) }
-        , { edge = ( { nodeId = 5 }, { nodeId = 7 } ) }
-        , { edge = ( { nodeId = 3 }, { nodeId = 6 } ) }
-        , { edge = ( { nodeId = 5 }, { nodeId = 9 } ) }
-        , { edge = ( { nodeId = 6 }, { nodeId = 10 } ) }
-        ]
-    }
+unzipConcat : List ( a, a ) -> List a
+unzipConcat list =
+    let
+        ( x, y ) =
+            List.unzip list
+    in
+        x ++ y

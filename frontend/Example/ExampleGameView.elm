@@ -45,8 +45,8 @@ playerEnergies =
 player0Energies : EnergyMap
 player0Energies =
     { energyMap =
-        [ ( { transportName = "taxi" }, 5 )
-        , ( { transportName = "bus" }, 3 )
-        , ( { transportName = "underground" }, 2 )
+        [ ( { transportName = "orange" }, 15 )
+        , ( { transportName = "blue" }, 8 )
+        , ( { transportName = "red" }, 3 )
         ]
     }
