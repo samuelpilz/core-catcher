@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Glue
-    (updateState
+    ( GameState
+    , updateState
+    , initialState
     ) where
 
 import           ClassyPrelude
@@ -10,6 +12,8 @@ import qualified Data.Map         as Map (fromList, mapKeys)
 import qualified GameLogic
 import qualified Lib
 import qualified Network.Protocol as Protocol
+
+type GameState = GameLogic.GameState -- export game state type
 
 match :: Eq b => b -> [(b, a)] -> Maybe a
 match b = ClassyPrelude.map snd . find ((==b) . fst)
@@ -113,3 +117,10 @@ updateState act game = do
          }
         )
 
+
+initialState :: GameLogic.GameState
+initialState =
+    GameLogic.GameState
+      (fromList [1..4])
+      GameLogic.someNet
+      []

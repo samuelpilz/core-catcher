@@ -11,12 +11,9 @@ module App.State
 import           App.Connection
 import           App.ConnectionMgnt
 import           ClassyPrelude
-import qualified GameLogic          as GL
+import           Glue               (GameState)
 import qualified Network.Protocol   as Protocol
 import qualified Network.WebSockets as WS
-
-type GameState = GL.GameState
--- type GameState = Protocol.RogueGameView --TODO: convert back to GL.GameState
 
 newtype GameConnection = GameConnection WS.Connection
 

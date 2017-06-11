@@ -19,7 +19,6 @@ library
                      , GameLogic
                      , Network.Protocol
                      , Network.ElmDerive
-                     , Util
                      , Glue
                      , GlueMock
                      , Network.ExampleGameView

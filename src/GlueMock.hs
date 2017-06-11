@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GlueMock
-    (updateState
+    ( GameState
+    , updateState
+    , initialState
     ) where
 
 import           ClassyPrelude
@@ -11,7 +13,10 @@ import qualified Data.Map                as Map
 import           Network.ExampleGameView
 import           Network.Protocol
 
-type GameState = RogueGameView -- TODO: change back to GameLogic.GameState as state
+type GameState = RogueGameView
+
+initialState :: GameState
+initialState = exampleRogueGameView
 
 updateState :: Action -> GameState ->
     Either GameError (GameState, RogueGameView, CatcherGameView)
