@@ -4,6 +4,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
+-- Text has no arbitrary instance, defined here
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Network.Protocol where
 
 import           ClassyPrelude
