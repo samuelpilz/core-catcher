@@ -8,6 +8,7 @@ import           Test.Framework
 import {-@ HTF_TESTS @-} ProtocolTest
 import {-@ HTF_TESTS @-} SpecTest
 import {-@ HTF_TESTS @-} MainTest
+import {-@ HTF_TESTS @-} StateTest
 
 main :: IO ()
 main = htfMain htf_importedTests

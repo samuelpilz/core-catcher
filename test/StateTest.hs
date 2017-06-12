@@ -1,13 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-module MainTest where
+module StateTest where
 
 import           ClassyPrelude
-import           Mock.Connection
 import           Test.Framework
 
-
-test_mainDummy :: IO ()
-test_mainDummy =
+test_stateDummy :: IO ()
+test_stateDummy =
     assertEqual 1 1

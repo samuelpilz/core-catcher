@@ -5,8 +5,20 @@ module Mock.Connection where
 
 import           App.Connection
 import           ClassyPrelude
+import           Network.WebSockets
 
-data FakeConnection = FakeConnection
+newtype FakeConnection =
+    FakeConnection
+        { msgs    :: LByteString
+        }
 
---instance IsConnection FakeConnection where
---    sendText = return . const ()
+data PendingConn = PendingConn
+
+instance IsConnection FakeConnection where
+    type Pending FakeConnection = PendingConn
+
+    sendData _ = return . const ()
+
+    receiveData fake = return . fromLazyByteString $ msgs fake
+
+    acceptRequest PendingConn = return $ FakeConnection ""
