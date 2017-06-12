@@ -262,7 +262,10 @@ updatePositions' gs pid t v Pass         =  do
 --energies gs = foldStateWithTurn (updateEnergies gs) initialEnergies gs
 
 initialEnergies :: Start -> Either Error PlayersEnergies
-initialEnergies ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
+initialEnergies ls = Right $ fromList $ take (length ls) $ repeat initialEnergyPerPlayer
+
+initialEnergyPerPlayer :: Map.Map Energy Int
+initialEnergyPerPlayer = Map.fromList [(Energy Orange, 15), (Energy Blue, 8), (Energy Red, 3)]
 
 updateEnergies :: GameState -> PlayersEnergies -> (Action, PlayerId) -> Either Error PlayersEnergies
 updateEnergies gs v (a, pid) = applyAction (updateEnergies' gs pid) v a
