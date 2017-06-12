@@ -73,6 +73,7 @@ test-suite core-catcher-test
                      , MainTest
                      , StateTest
                      , GameLogicTest
+                     , WsAppUtilsTest
                      , Mock.Connection
   build-depends:       base
                      , core-catcher

@@ -10,6 +10,7 @@ import {-@ HTF_TESTS @-} SpecTest
 import {-@ HTF_TESTS @-} MainTest
 import {-@ HTF_TESTS @-} StateTest
 import {-@ HTF_TESTS @-} GameLogicTest
+import {-@ HTF_TESTS @-} WsAppUtilsTest
 
 main :: IO ()
 main = htfMain htf_importedTests
