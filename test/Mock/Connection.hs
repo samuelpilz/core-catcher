@@ -12,16 +12,25 @@ import           Test.Framework
 
 newtype FakeConnection =
     FakeConnection
-        { msgs    :: LByteString
+        { msg    :: Msg
         }
 
+newtype Msg =
+    Msg LByteString
+
 data PendingConn = PendingConn
+
+emptyConnection :: FakeConnection
+emptyConnection = FakeConnection (Msg "")
 
 instance IsConnection FakeConnection where
     type Pending FakeConnection = PendingConn
 
     sendData _ = return . const ()
 
-    receiveData fake = return . fromLazyByteString $ msgs fake
+    receiveData (FakeConnection (Msg msg')) = return $ fromLazyByteString msg'
 
-    acceptRequest PendingConn = return $ FakeConnection ""
+    acceptRequest PendingConn = return $ FakeConnection (Msg "")
+
+instance Arbitrary FakeConnection where
+    arbitrary = return $ FakeConnection (Msg "")
