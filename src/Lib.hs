@@ -13,8 +13,8 @@ module Lib
     ) where
 
 import           ClassyPrelude
-import           Control.Monad
-import           Data.Foldable (foldrM)
+import           Control.Monad ()
+import           Data.Foldable () -- foldrM
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -41,9 +41,9 @@ scanrTailM fn z0 ls = do (_, xs) <- scanrM' fn z0 ls; return xs
 scanrInitM :: (MonoFoldable mono, Monad m) => (a -> Element mono -> m a) -> m a -> mono -> m [a]
 scanrInitM fn z0 =
   let
-    f b ma = do ls <- ma; a <- a ls; n <- fn a b; return (n:ls)
+    f b ma = do ls <- ma; a_ <- a ls; n <- fn a_ b; return (n:ls)
     a [] = z0
-    a (a:as) = return a
+    a (a':_) = return a'
     start = return []
   in
     foldr f start

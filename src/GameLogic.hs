@@ -19,8 +19,12 @@ import           Data.Vector                       ((!?), (//))
 import qualified GHC.Generics                      ()
 import           Lib                               (mapLeft, maybeToEither,
                                                     scanrTailM, scanrTailM)
+import           Safe                              (tailSafe)
 
 type PlayerId = Int
+roguePid :: PlayerId
+roguePid = 0
+data Party = Rogue | Catchers
 type VertexId = Graph.Node
 -- For each player: Position in the graph
 type PlayersPos = Vector VertexId
@@ -39,6 +43,9 @@ data Energy = BlackEnergy | Energy Color deriving (Show, Eq, Ord, Read, Generic)
 instance Aeson.ToJSONKey Energy where
 instance Aeson.ToJSON Energy where
 instance Aeson.FromJSON Energy where
+
+-- The Energies which the rogue core used in order together with the position if known
+type RogueHistory = [(Energy, Maybe VertexId)]
 
 data GameState =
     GameState
@@ -101,17 +108,26 @@ someNet =
         ,([], 6, Vertex)
         ]
 
-exampleInvalidMove0 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
-  [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 3]
-
-exampleInvalidMove1 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
-  [OneMove $ Move (Energy Orange) 1, OneMove $ Move BlackEnergy 3, OneMove $ Move (Energy Orange) 3]
-
-exampleInvalidMove2 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
-  [OneMove $ Move (Energy Orange) 1, OneMove $ Move (Energy Blue) 1, OneMove $ Move (Energy Orange) 2]
-
-exampleValidMove0 = playersState $ (\x -> GameState {start = fromList [1,2,3], network = someNet, actions = x} )
-  [OneMove $ Move (Energy Blue) 5, OneMove $ Move (Energy Orange) 6]
+samNet :: Network
+samNet =
+  Network $ buildGr
+    [([(mkEdge [Energy Red], 6), (mkEdge [Energy Orange], 11)], 1, Vertex)
+    ,([(mkEdge [Energy Orange], 5), (mkEdge [Energy Orange], 8)], 2, Vertex)
+    ,([(mkEdge [Energy Blue], 4), (mkEdge [Energy Orange], 5), (mkEdge [Energy Orange], 6), (mkEdge [Energy Orange], 7), (mkEdge [Energy Blue], 8)], 3, Vertex)
+    ,([(mkEdge [Energy Orange], 7), (mkEdge [Energy Orange], 10), (mkEdge [Energy Blue], 15)], 4, Vertex)
+    ,([(mkEdge [Energy Orange], 8), (mkEdge [Energy Orange], 12)], 5, Vertex)
+    ,([(mkEdge [Energy Orange], 10), (mkEdge [Energy Orange], 11), (mkEdge [Energy Red], 13)], 6, Vertex)
+    ,([(mkEdge [Energy Orange], 16)], 7, Vertex)
+    ,([(mkEdge [Energy Orange], 9), (mkEdge [Energy Blue], 12)], 8, Vertex)
+    ,([(mkEdge [Energy Red], 13)], 9, Vertex)
+    ,([], 10, Vertex)
+    ,([], 11, Vertex)
+    ,([(mkEdge [Energy Orange], 13), (mkEdge [Energy Blue], 15)], 12, Vertex)
+    ,([(mkEdge [Energy Red], 14)], 13, Vertex)
+    ,([(mkEdge [Energy Orange], 15)], 14, Vertex)
+    ,([(mkEdge [Energy Orange], 16)], 15, Vertex)
+    ,([], 16, Vertex)
+    ]
 
 -- Graph context for unidirected graphs
 type UniContext a b = (Graph.Adj b, Graph.Node, a)
@@ -202,14 +218,14 @@ printStatesWithTurns st = case foldStateWithTurn (\y x -> Right $ y >> print x) 
   Left err -> putStrLn (GameLogic.error err)
 
 
-playersState :: GameState -> Result (PlayerId, PlayersEnergies, PlayersPos, Int)
+playersState :: GameState -> Result (PlayerId, PlayersEnergies, PlayersPos, Int, RogueHistory)
 playersState gs = do
-  (ts, ps) <- foldStateWithTurn (updateEnergies gs =>> updatePositions gs) (initialEnergies >>| initialPositions) gs
+  ((ts, ps), ch) <- foldStateWithTurn (updateEnergies gs =>> updatePositions gs =>> updateRogueHistory gs) (initialEnergies >>| initialPositions >>| intitialRogueHistory) gs
   tm <- foldStateWithTurn (updateTwoMove gs) initialTwoMove gs
   turn <- case turns gs of
         Right t -> maybeToEither (headMay t) (Fatal "Failed to derive turns")
         Left eh -> Left eh
-  return (turn, ts, ps, tm)
+  return ((turn+1) `mod` (length . start $ gs), ts, ps, tm, ch)
 
 initialPositions :: PlayersEnergies -> Start -> Either Error PlayersPos
 initialPositions _ = Right
@@ -223,7 +239,7 @@ updatePositions' gs pid _ v (Move e vtx) = do
               unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
               unless notOccupied $ Left "Player collided with another one"
               Right $ v // [(pid, vtx)]
-                where notOccupied = vtx `notElem` v
+                where notOccupied = (vtx `notElem` v) || ((pid /= roguePid) && (vtx `notElem` (tailSafe . toList) v))
 updatePositions' gs pid t v Pass         =  do
               pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
               energy <- maybeToEither (t !? pid) "Player not found or Player has no energy"
@@ -232,28 +248,47 @@ updatePositions' gs pid t v Pass         =  do
               if valid then Right v else Left "Player did not move"
                 where allOccupied = all (\avail -> any (\other -> avail == other) v)
 
+intitialRogueHistory :: (PlayersEnergies, PlayersPos) -> Start -> Either Error RogueHistory
+intitialRogueHistory _ _ = return []
+
+updateRogueHistory :: GameState -> (PlayersEnergies, PlayersPos) -> RogueHistory -> (Action, PlayerId) -> Either Error RogueHistory
+updateRogueHistory gs (_, v) ch (a, pid) = applyAction (updateRogueHistory' gs pid v) ch a
+
+-- TODO: implement win detection
+updateRogueHistory' :: GameState -> PlayerId -> PlayersPos -> RogueHistory -> Move -> Either Error RogueHistory
+updateRogueHistory' _ pid _ ch Pass = if roguePid == pid then Left "Rogue core lost" else return ch
+updateRogueHistory' gs pid v ch (Move e _) = if roguePid == pid
+              then do
+                pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
+                let revealed = ((length ch) + 1) `elem` revealedPositions gs
+                return $ (e, if revealed then Just pos else Nothing):ch
+              else return ch
+
+revealedPositions :: GameState -> [Int]
+revealedPositions _ = [3, 8, 13, 18, 24]
+
 -- energies (GameState (fromList $ map (Vertex . V) [1,2,3]) [OneMove $ Move (Energy Blue) (Vertex $ V 2), OneMove $ Move (Energy Orange) (Vertex $ V 9)])
 --energies :: GameState -> Result PlayersEnergies
 --energies gs = foldStateWithTurn (updateEnergies gs) initialEnergies gs
 
 initialEnergies :: Start -> Either Error PlayersEnergies
-initialEnergies ls = Right $ fromList $ take (length ls) $ concat $ repeat [example, example2]
+initialEnergies ls = Right $ fromList $ take (length ls) $ repeat initialEnergyPerPlayer
+
+initialEnergyPerPlayer :: Map.Map Energy Int
+initialEnergyPerPlayer = Map.fromList [(Energy Orange, 15), (Energy Blue, 8), (Energy Red, 3)]
 
 updateEnergies :: GameState -> PlayersEnergies -> (Action, PlayerId) -> Either Error PlayersEnergies
 updateEnergies gs v (a, pid) = applyAction (updateEnergies' gs pid) v a
 
-corruptedPid :: GameState -> PlayerId
-corruptedPid _ = 0
-
 updateEnergies' :: GameState -> PlayerId -> PlayersEnergies -> Move -> Either Error PlayersEnergies
-updateEnergies' gs pid v (Move t _) = do
+updateEnergies' _ pid v (Move t _) = do
   old <- maybeToEither (v !? pid) "Player not found or Player has no energy"
   let ts = findWithDefault 0 t old
   new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more energies"
-  ls <- if corruptedPid gs == pid then return [] else do
-    oldm <- maybeToEither (v !? corruptedPid gs) "Error updating corrupted core"
+  ls <- if roguePid == pid then return [] else do
+    oldm <- maybeToEither (v !? roguePid) "Error updating rogue core"
     let oldv = 1 + findWithDefault 0 t oldm
-    return [(corruptedPid gs, Map.insert t oldv oldm)]
+    return [(roguePid, Map.insert t oldv oldm)]
   return $ v // ((pid, new):ls)
 updateEnergies' _ _ v Pass = Right v
 
@@ -261,10 +296,10 @@ initialTwoMove :: Start -> Either Error Int
 initialTwoMove _ = Right 2
 
 updateTwoMove :: GameState -> Int -> (Action, PlayerId) -> Either Error Int
-updateTwoMove gs m (TwoMoves a b, pid) = do
+updateTwoMove _ m (TwoMoves a b, pid) = do
   when (a == Pass || b == Pass) $ Left "Can not pass a move within a two-moves"
-  unless (pid == corruptedPid gs) $ Left "Player can not move with two-moves"
-  unless (m > 0) $ Left "The corrupted core already used all its two-moves "
+  unless (pid == roguePid) $ Left "Player can not move with two-moves"
+  unless (m > 0) $ Left "The rogue core already used all its two-moves "
   return $ m - 1
 updateTwoMove _ m (OneMove _, _) = Right m
 

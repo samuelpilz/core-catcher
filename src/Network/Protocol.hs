@@ -83,9 +83,9 @@ newtype PlayerPositions =
 
 {- |The history of transports used by the rouge core.
 -} -- TODO: Seq instead of list?
-newtype RogueTransportHistory =
-    RogueTransportHistory
-        { rogueTransportHistory :: [Transport]  -- ^display infos
+newtype RogueHistory =
+    RogueHistory
+        { rogueHistory_ :: [(Transport, Maybe Node)]
         }
       deriving (Show, Read, Eq, Generic)
 
@@ -94,7 +94,7 @@ data GameState =
     State
         { playerPositions__ :: PlayerPositions
         , energyMap_        :: EnergyMap
-        , rogueHistory_     :: RogueTransportHistory
+        , rogueHistory_     :: RogueHistory
         }
 --}
 
@@ -107,8 +107,7 @@ Views can contain different information based on the receiver.
 class (FromJSON view, ToJSON view) => GameView view where
     playerPositions :: view -> PlayerPositions
     energies :: view -> PlayerEnergies
-    rogueHistory :: view -> RogueTransportHistory
-    rogueLastSeen :: view -> Maybe Node
+    rogueHistory :: view -> RogueHistory
     nextPlayer :: view -> Player
 
 {- |A game view as seen by the rouge-core.
@@ -117,8 +116,7 @@ data RogueGameView =
     RogueView
         { roguePlayerPositions :: PlayerPositions
         , rogueEnergies        :: PlayerEnergies
-        , rogueOwnHistory      :: RogueTransportHistory
-        , rogueRogueLastSeen   :: Maybe Node
+        , rogueOwnHistory      :: RogueHistory
         , rogueNextPlayer      :: Player
         }
         deriving (Show, Read,  Eq, Generic)
@@ -129,8 +127,7 @@ data CatcherGameView =
     CatcherView
         { catcherPlayerPositions :: PlayerPositions
         , catcherEnergies        :: PlayerEnergies
-        , catcherRogueHistory    :: RogueTransportHistory
-        , catcherRogueLastSeen   :: Maybe Node
+        , catcherRogueHistory    :: RogueHistory
         , catcherNextPlayer      :: Player
         }
         deriving (Show, Read, Eq, Generic)
@@ -139,14 +136,12 @@ instance GameView RogueGameView where
     playerPositions = roguePlayerPositions
     energies = rogueEnergies
     rogueHistory = rogueOwnHistory
-    rogueLastSeen = rogueRogueLastSeen
     nextPlayer = rogueNextPlayer
 
 instance GameView CatcherGameView where
     playerPositions = catcherPlayerPositions
     energies = catcherEnergies
     rogueHistory = catcherRogueHistory
-    rogueLastSeen = catcherRogueLastSeen
     nextPlayer = catcherNextPlayer
 
 {- |Network: Nodes and Map Transport to Overlay.
@@ -220,9 +215,9 @@ instance Arbitrary EnergyMap where
     arbitrary =
         EnergyMap <$> arbitrary
 
-instance Arbitrary RogueTransportHistory where
+instance Arbitrary RogueHistory where
     arbitrary =
-        RogueTransportHistory <$> arbitrary
+        RogueHistory <$> arbitrary
 
 instance Arbitrary GameError where
     arbitrary =
@@ -230,11 +225,11 @@ instance Arbitrary GameError where
 
 instance Arbitrary CatcherGameView where
     arbitrary =
-        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary RogueGameView where
     arbitrary =
-        RogueView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        RogueView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
@@ -249,4 +244,4 @@ deriveBoth Elm.Derive.defaultOptions ''Player
 deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Transport
-deriveBoth Elm.Derive.defaultOptions ''RogueTransportHistory
+deriveBoth Elm.Derive.defaultOptions ''RogueHistory

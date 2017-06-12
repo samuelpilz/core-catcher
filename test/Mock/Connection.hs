@@ -1,11 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Mock.Connection where
 
 import           App.Connection
 import           ClassyPrelude
 import           Network.WebSockets
+
+import           Test.Framework
 
 newtype FakeConnection =
     FakeConnection

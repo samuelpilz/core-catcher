@@ -23,7 +23,7 @@ transportView _ displayInfo clientState =
         , Html.style [ ( "border-size", "1" ) ]
         ]
     <|
-        energyView clientState.gameView displayInfo { playerId = 1 } clientState.selectedEnergy
+        energyView clientState.gameView displayInfo { playerId = 0 } clientState.selectedEnergy
             ++ historyView clientState.gameView displayInfo
 
 
@@ -48,9 +48,9 @@ historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
 historyView gameView displayInfo =
     List.map2 historyRecord (range 0 100)
         << List.map (Maybe.withDefault "black")
-        << List.map (\t -> AllDict.get t displayInfo.colorMap)
+        << List.map (\(t, _) -> AllDict.get t displayInfo.colorMap)
     <|
-        (rogueHistory gameView).rogueTransportHistory
+        (rogueHistory gameView).rogueHistory_
 
 
 energyRecord : Transport -> ( Int, Transport, Color, Int ) -> Svg.Svg Msg

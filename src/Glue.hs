@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Glue
-    (updateState
+    ( GameState
+    , updateState
+    , initialState
     ) where
 
 import           ClassyPrelude
@@ -10,6 +12,8 @@ import qualified Data.Map         as Map (fromList, mapKeys)
 import qualified GameLogic
 import qualified Lib
 import qualified Network.Protocol as Protocol
+
+type GameState = GameLogic.GameState -- export game state type
 
 match :: Eq b => b -> [(b, a)] -> Maybe a
 match b = ClassyPrelude.map snd . find ((==b) . fst)
@@ -40,7 +44,7 @@ encodeEnergy GameLogic.BlackEnergy =
 toTupleList :: Vector a -> [(Protocol.Player, a)]
 toTupleList v =
     zip
-        (map (\id -> Protocol.Player { Protocol.playerId = id } ) [(0 :: Int)..])
+        (map (\id' -> Protocol.Player { Protocol.playerId = id' } ) [(0 :: Int)..])
         $ toList v
 
 toPlayerMap :: Vector a -> Map Protocol.Player a
@@ -66,14 +70,12 @@ encodePositions pos =
         Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos
     }
 
-transportHistory :: Protocol.RogueTransportHistory --- TODO: change signature and implement
-transportHistory =
-    Protocol.RogueTransportHistory {
-        Protocol.rogueTransportHistory = []
+rogueHistory :: GameLogic.RogueHistory -> Protocol.RogueHistory
+rogueHistory ch =
+    Protocol.RogueHistory {
+        Protocol.rogueHistory_ = map f ch
     }
-
-rogueLastSeen :: Maybe Protocol.Node
-rogueLastSeen = Just Protocol.Node { Protocol.nodeId = 0 }
+        where f (t, pos) = (encodeEnergy t, fmap encodeNode pos)
 
 encodeError :: Text -> Protocol.GameError
 encodeError err =
@@ -81,29 +83,41 @@ encodeError err =
          Protocol.myError = err
      }
 
+encodePlayer :: GameLogic.PlayerId -> Protocol.Player
+encodePlayer p =
+    Protocol.Player {
+        Protocol.playerId = p
+    }
+
 updateState :: Protocol.Action -> GameLogic.GameState ->
     Either Protocol.GameError (GameLogic.GameState, Protocol.RogueGameView, Protocol.CatcherGameView)
 updateState act game = do
     action <- Lib.maybeToEither (decodeAction act) (encodeError "invalid action")
     let gs = GameLogic.addAction game action
     flatgs <- Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState gs
-    let (pid, energies, poss, _) = flatgs
+    let (pid, energies, poss, _, ch) = flatgs
     let eposs = encodePositions poss
     let eenergies = encodeEnergies energies
+    let chh = rogueHistory ch
     return (gs,
          Protocol.RogueView {
              Protocol.roguePlayerPositions = eposs,
              Protocol.rogueEnergies = eenergies,
-             Protocol.rogueOwnHistory = transportHistory, -- TODO: implement history
-             Protocol.rogueRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
-             Protocol.rogueNextPlayer = Protocol.Player 0 -- TODO: what to do with this?
+             Protocol.rogueOwnHistory = chh,
+             Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
          },
          Protocol.CatcherView {
              Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
              Protocol.catcherEnergies = eenergies,
-             Protocol.catcherRogueHistory = transportHistory, -- TODO: implement history
-             Protocol.catcherRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
-             Protocol.catcherNextPlayer = Protocol.Player 0
+             Protocol.catcherRogueHistory = chh,
+             Protocol.catcherNextPlayer = encodePlayer pid
          }
         )
 
+
+initialState :: GameLogic.GameState
+initialState =
+    GameLogic.GameState
+      (fromList [1..4])
+      GameLogic.samNet
+      []

@@ -19,7 +19,6 @@ library
                      , GameLogic
                      , Network.Protocol
                      , Network.ElmDerive
-                     , Util
                      , Glue
                      , GlueMock
                      , Network.ExampleGameView
@@ -40,6 +39,7 @@ library
                      , aeson
                      , elm-bridge
                      , bytestring
+                     , safe
                      , QuickCheck
   default-language:    Haskell2010
 
@@ -72,6 +72,7 @@ test-suite core-catcher-test
                      , SpecTest
                      , MainTest
                      , StateTest
+                     , GameLogicTest
                      , Mock.Connection
   build-depends:       base
                      , core-catcher

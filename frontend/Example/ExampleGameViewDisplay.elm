@@ -14,9 +14,9 @@ displayInfo =
     , nodeSizeMap = nodeSizeMap
     , nodeXyMap = nodeXyMap
     , transportPriorityList =
-        [ { transportName = "underground" }
-        , { transportName = "bus" }
-        , { transportName = "taxi" }
+        [ { transportName = "red" }
+        , { transportName = "blue" }
+        , { transportName = "orange" }
         ]
     , playerColorMap = playerColorMap
     , mapWidth = 800
@@ -30,9 +30,9 @@ colorMap : ColorMap
 colorMap =
     AllDict.fromList
         .transportName
-        [ ( { transportName = "underground" }, "red" )
-        , ( { transportName = "bus" }, "blue" )
-        , ( { transportName = "taxi" }, "orange" )
+        [ ( { transportName = "red" }, "red" )
+        , ( { transportName = "blue" }, "blue" )
+        , ( { transportName = "orange" }, "orange" )
         ]
 
 
@@ -40,9 +40,9 @@ edgeWidthMap : EdgeWidthMap
 edgeWidthMap =
     AllDict.fromList
         .transportName
-        [ ( { transportName = "underground" }, 14 )
-        , ( { transportName = "bus" }, 8 )
-        , ( { transportName = "taxi" }, 2 )
+        [ ( { transportName = "red" }, 14 )
+        , ( { transportName = "blue" }, 8 )
+        , ( { transportName = "orange" }, 2 )
         ]
 
 
@@ -50,9 +50,9 @@ nodeSizeMap : EdgeWidthMap
 nodeSizeMap =
     AllDict.fromList
         .transportName
-        [ ( { transportName = "underground" }, 28 )
-        , ( { transportName = "bus" }, 25 )
-        , ( { transportName = "taxi" }, 22 )
+        [ ( { transportName = "red" }, 28 )
+        , ( { transportName = "blue" }, 25 )
+        , ( { transportName = "orange" }, 22 )
         ]
 
 
@@ -64,12 +64,18 @@ nodeXyMap =
         , ( { nodeId = 2 }, ( 3, 0 ) )
         , ( { nodeId = 3 }, ( 2, 2 ) )
         , ( { nodeId = 4 }, ( 2, 5 ) )
-        , ( { nodeId = 5 }, ( 4, 2 ) )
+        , ( { nodeId = 5 }, ( 4, 1 ) )
         , ( { nodeId = 6 }, ( 1, 3 ) )
         , ( { nodeId = 7 }, ( 3, 4 ) )
         , ( { nodeId = 8 }, ( 5, 0 ) )
         , ( { nodeId = 9 }, ( 7, 0 ) )
         , ( { nodeId = 10 }, ( 0, 5 ) )
+        , ( { nodeId = 11 }, ( 0, 2 ) )
+        , ( { nodeId = 12 }, ( 6, 2 ) )
+        , ( { nodeId = 13 }, ( 7, 3 ) )
+        , ( { nodeId = 14 }, ( 7, 5 ) )
+        , ( { nodeId = 15 }, ( 6, 5 ) )
+        , ( { nodeId = 16 }, ( 5, 4 ) )
         ]
 
 

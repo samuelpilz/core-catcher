@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GlueMock
-    (updateState
+    ( GameState
+    , updateState
+    , initialState
     ) where
 
 import           ClassyPrelude
@@ -11,7 +13,10 @@ import qualified Data.Map                as Map
 import           Network.ExampleGameView
 import           Network.Protocol
 
-type GameState = RogueGameView -- TODO: change back to GameLogic.GameState as state
+type GameState = RogueGameView
+
+initialState :: GameState
+initialState = exampleRogueGameView
 
 updateState :: Action -> GameState ->
     Either GameError (GameState, RogueGameView, CatcherGameView)
@@ -34,22 +39,22 @@ addAction action gameView =
     }
 
 movePlayerInPlayerPositions :: Action -> PlayerPositions -> PlayerPositions
-movePlayerInPlayerPositions action playerPositions =
-    playerPositions { playerPositions_ =
-        Map.insert (player action) (node action) (playerPositions_ playerPositions)
+movePlayerInPlayerPositions action playerPositions' =
+    playerPositions' { playerPositions_ =
+        Map.insert (player action) (node action) (playerPositions_ playerPositions')
     }
 
-addToHistory :: Transport -> RogueTransportHistory -> RogueTransportHistory
-addToHistory transport history = history
-    {rogueTransportHistory =
-        rogueTransportHistory history ++ [transport]
+addToHistory :: Transport -> RogueHistory -> RogueHistory
+addToHistory transport' history = history
+    {rogueHistory_ =
+        (transport', Nothing):(rogueHistory_ history)
     }
 
 subtractEnergyFromPlayer :: Action -> PlayerEnergies -> PlayerEnergies
-subtractEnergyFromPlayer action energies = energies
+subtractEnergyFromPlayer action energies' = energies'
     {
         playerEnergies = Map.update (Just . subtractEnergy action) (player action)
-            $ playerEnergies energies
+            $ playerEnergies energies'
     }
 
 subtractEnergy :: Action -> EnergyMap -> EnergyMap

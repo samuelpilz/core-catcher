@@ -4,13 +4,13 @@
 
 module App.WsApp (App.WsApp.handle) where
 
-import           ClassyPrelude
 import           App.Connection
 import           App.ConnectionMgnt
-import qualified GlueMock         as Glue
-import           Network.Protocol
 import           App.State
 import           App.WsAppUtils
+import           ClassyPrelude
+import qualified Glue               as Glue
+import           Network.Protocol
 
 handle :: IsConnection conn => TVar (ServerState conn) -> Action -> IO ()
 handle stateVar action = do
@@ -18,7 +18,7 @@ handle stateVar action = do
     state <- readTVarIO stateVar
 
     case updateResult of
-        Right (newGame, rogueGameView, catcherGameView) -> do
+        Right (_, rogueGameView, catcherGameView) -> do
 
             -- send game views
             let catchers = withoutClient 0 (connections state)

@@ -1,10 +1,11 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Network.ExampleGameView where
 
-import           ClassyPrelude
+import           ClassyPrelude ()
 import qualified Data.Map         as Map
 import           Network.Protocol
 
@@ -12,8 +13,7 @@ exampleCatcherGameView :: CatcherGameView
 exampleCatcherGameView =
     CatcherView { catcherPlayerPositions = examplePlayerPositions
     , catcherEnergies = examplePlayerEnergies
-    , catcherRogueHistory = RogueTransportHistory {rogueTransportHistory = []}
-    , catcherRogueLastSeen = Nothing
+    , catcherRogueHistory = RogueHistory {rogueHistory_ = []}
     , catcherNextPlayer = Player {playerId = 0}
     }
 
@@ -21,8 +21,7 @@ exampleRogueGameView :: RogueGameView
 exampleRogueGameView =
     RogueView { roguePlayerPositions = examplePlayerPositions
     , rogueEnergies = examplePlayerEnergies
-    , rogueOwnHistory = RogueTransportHistory {rogueTransportHistory = []}
-    , rogueRogueLastSeen = Nothing
+    , rogueOwnHistory = RogueHistory {rogueHistory_ = []}
     , rogueNextPlayer = Player {playerId = 0}
     }
 
@@ -53,3 +52,4 @@ examplePlayer0Energies =
         , ( Transport { transportName = "underground" }, 2 )
         ]
     }
+

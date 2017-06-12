@@ -82,7 +82,7 @@ update msg state =
 initialState : ClientState
 initialState =
     { gameView = RogueView Example.rogueGameView
-    , selectedEnergy = { transportName = "taxi" }
+    , selectedEnergy = { transportName = "orange" }
     }
 
 
