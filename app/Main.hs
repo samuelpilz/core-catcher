@@ -18,7 +18,7 @@ import qualified App.WsAppUtils                 as WsAppUtils
 import           ClassyPrelude
 import qualified Control.Exception              as Exception
 import qualified Glue
-import qualified Network.ExampleGameView        as Example
+--import qualified Network.ExampleGameView        as Example
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp

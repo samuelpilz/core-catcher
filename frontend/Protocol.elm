@@ -51,8 +51,7 @@ jsonEncPlayerPositions  val =
 type alias RogueGameView  =
    { roguePlayerPositions: PlayerPositions
    , rogueEnergies: PlayerEnergies
-   , rogueOwnHistory: RogueTransportHistory
-   , rogueRogueLastSeen: (Maybe Node)
+   , rogueOwnHistory: RogueHistory
    , rogueNextPlayer: Player
    }
 
@@ -60,18 +59,16 @@ jsonDecRogueGameView : Json.Decode.Decoder ( RogueGameView )
 jsonDecRogueGameView =
    ("roguePlayerPositions" := jsonDecPlayerPositions) >>= \proguePlayerPositions ->
    ("rogueEnergies" := jsonDecPlayerEnergies) >>= \progueEnergies ->
-   ("rogueOwnHistory" := jsonDecRogueTransportHistory) >>= \progueOwnHistory ->
-   (Json.Decode.maybe ("rogueRogueLastSeen" := jsonDecNode)) >>= \progueRogueLastSeen ->
+   ("rogueOwnHistory" := jsonDecRogueHistory) >>= \progueOwnHistory ->
    ("rogueNextPlayer" := jsonDecPlayer) >>= \progueNextPlayer ->
-   Json.Decode.succeed {roguePlayerPositions = proguePlayerPositions, rogueEnergies = progueEnergies, rogueOwnHistory = progueOwnHistory, rogueRogueLastSeen = progueRogueLastSeen, rogueNextPlayer = progueNextPlayer}
+   Json.Decode.succeed {roguePlayerPositions = proguePlayerPositions, rogueEnergies = progueEnergies, rogueOwnHistory = progueOwnHistory, rogueNextPlayer = progueNextPlayer}
 
 jsonEncRogueGameView : RogueGameView -> Value
 jsonEncRogueGameView  val =
    Json.Encode.object
    [ ("roguePlayerPositions", jsonEncPlayerPositions val.roguePlayerPositions)
    , ("rogueEnergies", jsonEncPlayerEnergies val.rogueEnergies)
-   , ("rogueOwnHistory", jsonEncRogueTransportHistory val.rogueOwnHistory)
-   , ("rogueRogueLastSeen", (maybeEncode (jsonEncNode)) val.rogueRogueLastSeen)
+   , ("rogueOwnHistory", jsonEncRogueHistory val.rogueOwnHistory)
    , ("rogueNextPlayer", jsonEncPlayer val.rogueNextPlayer)
    ]
 
@@ -80,8 +77,7 @@ jsonEncRogueGameView  val =
 type alias CatcherGameView  =
    { catcherPlayerPositions: PlayerPositions
    , catcherEnergies: PlayerEnergies
-   , catcherRogueHistory: RogueTransportHistory
-   , catcherRogueLastSeen: (Maybe Node)
+   , catcherRogueHistory: RogueHistory
    , catcherNextPlayer: Player
    }
 
@@ -89,18 +85,16 @@ jsonDecCatcherGameView : Json.Decode.Decoder ( CatcherGameView )
 jsonDecCatcherGameView =
    ("catcherPlayerPositions" := jsonDecPlayerPositions) >>= \pcatcherPlayerPositions ->
    ("catcherEnergies" := jsonDecPlayerEnergies) >>= \pcatcherEnergies ->
-   ("catcherRogueHistory" := jsonDecRogueTransportHistory) >>= \pcatcherRogueHistory ->
-   (Json.Decode.maybe ("catcherRogueLastSeen" := jsonDecNode)) >>= \pcatcherRogueLastSeen ->
+   ("catcherRogueHistory" := jsonDecRogueHistory) >>= \pcatcherRogueHistory ->
    ("catcherNextPlayer" := jsonDecPlayer) >>= \pcatcherNextPlayer ->
-   Json.Decode.succeed {catcherPlayerPositions = pcatcherPlayerPositions, catcherEnergies = pcatcherEnergies, catcherRogueHistory = pcatcherRogueHistory, catcherRogueLastSeen = pcatcherRogueLastSeen, catcherNextPlayer = pcatcherNextPlayer}
+   Json.Decode.succeed {catcherPlayerPositions = pcatcherPlayerPositions, catcherEnergies = pcatcherEnergies, catcherRogueHistory = pcatcherRogueHistory, catcherNextPlayer = pcatcherNextPlayer}
 
 jsonEncCatcherGameView : CatcherGameView -> Value
 jsonEncCatcherGameView  val =
    Json.Encode.object
    [ ("catcherPlayerPositions", jsonEncPlayerPositions val.catcherPlayerPositions)
    , ("catcherEnergies", jsonEncPlayerEnergies val.catcherEnergies)
-   , ("catcherRogueHistory", jsonEncRogueTransportHistory val.catcherRogueHistory)
-   , ("catcherRogueLastSeen", (maybeEncode (jsonEncNode)) val.catcherRogueLastSeen)
+   , ("catcherRogueHistory", jsonEncRogueHistory val.catcherRogueHistory)
    , ("catcherNextPlayer", jsonEncPlayer val.catcherNextPlayer)
    ]
 
@@ -248,19 +242,19 @@ jsonEncTransport  val =
 
 
 
-type alias RogueTransportHistory  =
-   { rogueTransportHistory: (List Transport)
+type alias RogueHistory  =
+   { rogueHistory_: (List (Transport, (Maybe Node)))
    }
 
-jsonDecRogueTransportHistory : Json.Decode.Decoder ( RogueTransportHistory )
-jsonDecRogueTransportHistory =
-   ("rogueTransportHistory" := Json.Decode.list (jsonDecTransport)) >>= \progueTransportHistory ->
-   Json.Decode.succeed {rogueTransportHistory = progueTransportHistory}
+jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
+jsonDecRogueHistory =
+   ("rogueHistory_" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory_ ->
+   Json.Decode.succeed {rogueHistory_ = progueHistory_}
 
-jsonEncRogueTransportHistory : RogueTransportHistory -> Value
-jsonEncRogueTransportHistory  val =
+jsonEncRogueHistory : RogueHistory -> Value
+jsonEncRogueHistory  val =
    Json.Encode.object
-   [ ("rogueTransportHistory", (Json.Encode.list << List.map jsonEncTransport) val.rogueTransportHistory)
+   [ ("rogueHistory_", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory_)
    ]
 
 

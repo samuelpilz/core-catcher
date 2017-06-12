@@ -9,8 +9,7 @@ catcherGameView : CatcherGameView
 catcherGameView =
     { catcherPlayerPositions = playerPositions
     , catcherEnergies = playerEnergies
-    , catcherRogueHistory = {rogueTransportHistory = []}
-    , catcherRogueLastSeen = Nothing
+    , catcherRogueHistory = {rogueHistory_ = []}
     , catcherNextPlayer = {playerId = 0}
     }
 
@@ -18,8 +17,7 @@ rogueGameView : RogueGameView
 rogueGameView =
     { roguePlayerPositions = playerPositions
     , rogueEnergies = playerEnergies
-    , rogueOwnHistory = {rogueTransportHistory = []}
-    , rogueRogueLastSeen = Nothing
+    , rogueOwnHistory = {rogueHistory_ = []}
     , rogueNextPlayer = {playerId = 0}
     }
 

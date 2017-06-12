@@ -18,7 +18,7 @@ handle stateVar action = do
     state <- readTVarIO stateVar
 
     case updateResult of
-        Right (newGame, rogueGameView, catcherGameView) -> do
+        Right (_, rogueGameView, catcherGameView) -> do
 
             -- send game views
             let catchers = withoutClient 0 (connections state)

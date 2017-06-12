@@ -44,7 +44,7 @@ encodeEnergy GameLogic.BlackEnergy =
 toTupleList :: Vector a -> [(Protocol.Player, a)]
 toTupleList v =
     zip
-        (map (\id -> Protocol.Player { Protocol.playerId = id } ) [(0 :: Int)..])
+        (map (\id' -> Protocol.Player { Protocol.playerId = id' } ) [(0 :: Int)..])
         $ toList v
 
 toPlayerMap :: Vector a -> Map Protocol.Player a
@@ -70,14 +70,12 @@ encodePositions pos =
         Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos
     }
 
-transportHistory :: Protocol.RogueTransportHistory --- TODO: change signature and implement
-transportHistory =
-    Protocol.RogueTransportHistory {
-        Protocol.rogueTransportHistory = []
+rogueHistory :: GameLogic.RogueHistory -> Protocol.RogueHistory
+rogueHistory ch =
+    Protocol.RogueHistory {
+        Protocol.rogueHistory_ = map f ch
     }
-
-rogueLastSeen :: Maybe Protocol.Node
-rogueLastSeen = Just Protocol.Node { Protocol.nodeId = 0 }
+        where f (t, pos) = (encodeEnergy t, fmap encodeNode pos)
 
 encodeError :: Text -> Protocol.GameError
 encodeError err =
@@ -97,22 +95,21 @@ updateState act game = do
     action <- Lib.maybeToEither (decodeAction act) (encodeError "invalid action")
     let gs = GameLogic.addAction game action
     flatgs <- Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState gs
-    let (pid, energies, poss, _) = flatgs
+    let (pid, energies, poss, _, ch) = flatgs
     let eposs = encodePositions poss
     let eenergies = encodeEnergies energies
+    let chh = rogueHistory ch
     return (gs,
          Protocol.RogueView {
              Protocol.roguePlayerPositions = eposs,
              Protocol.rogueEnergies = eenergies,
-             Protocol.rogueOwnHistory = transportHistory, -- TODO: implement history
-             Protocol.rogueRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
+             Protocol.rogueOwnHistory = chh,
              Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
          },
          Protocol.CatcherView {
              Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
              Protocol.catcherEnergies = eenergies,
-             Protocol.catcherRogueHistory = transportHistory, -- TODO: implement history
-             Protocol.catcherRogueLastSeen = rogueLastSeen, -- TODO: implement last seen
+             Protocol.catcherRogueHistory = chh,
              Protocol.catcherNextPlayer = encodePlayer pid
          }
         )

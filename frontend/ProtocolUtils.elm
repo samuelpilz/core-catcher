@@ -35,7 +35,7 @@ energies gameView =
             view.catcherEnergies
 
 
-rogueHistory : GameView -> RogueTransportHistory
+rogueHistory : GameView -> RogueHistory
 rogueHistory gameView =
     case gameView of
         RogueView view ->
@@ -43,16 +43,6 @@ rogueHistory gameView =
 
         CatcherView view ->
             view.catcherRogueHistory
-
-
-rogueLastSeen : GameView -> Maybe Node
-rogueLastSeen gameView =
-    case gameView of
-        RogueView view ->
-            view.rogueRogueLastSeen
-
-        CatcherView view ->
-            view.catcherRogueLastSeen
 
 nextPlayer : GameView -> Player
 nextPlayer gameView =

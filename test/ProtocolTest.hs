@@ -9,8 +9,7 @@ import           Network.Protocol
 import           Test.Framework
 
 test_protocolDummy :: IO ()
-test_protocolDummy =
-    assertEqual 1 1
+test_protocolDummy = return ()
 
 prop_decodeEncodeAction :: Action -> Bool
 prop_decodeEncodeAction a = Just a == decodeEncode a

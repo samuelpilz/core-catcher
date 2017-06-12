@@ -39,22 +39,22 @@ addAction action gameView =
     }
 
 movePlayerInPlayerPositions :: Action -> PlayerPositions -> PlayerPositions
-movePlayerInPlayerPositions action playerPositions =
-    playerPositions { playerPositions_ =
-        Map.insert (player action) (node action) (playerPositions_ playerPositions)
+movePlayerInPlayerPositions action playerPositions' =
+    playerPositions' { playerPositions_ =
+        Map.insert (player action) (node action) (playerPositions_ playerPositions')
     }
 
-addToHistory :: Transport -> RogueTransportHistory -> RogueTransportHistory
-addToHistory transport history = history
-    {rogueTransportHistory =
-        rogueTransportHistory history ++ [transport]
+addToHistory :: Transport -> RogueHistory -> RogueHistory
+addToHistory transport' history = history
+    {rogueHistory_ =
+        (transport', Nothing):(rogueHistory_ history)
     }
 
 subtractEnergyFromPlayer :: Action -> PlayerEnergies -> PlayerEnergies
-subtractEnergyFromPlayer action energies = energies
+subtractEnergyFromPlayer action energies' = energies'
     {
         playerEnergies = Map.update (Just . subtractEnergy action) (player action)
-            $ playerEnergies energies
+            $ playerEnergies energies'
     }
 
 subtractEnergy :: Action -> EnergyMap -> EnergyMap

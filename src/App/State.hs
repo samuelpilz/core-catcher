@@ -12,7 +12,7 @@ import           App.Connection
 import           App.ConnectionMgnt
 import           ClassyPrelude
 import           Glue               (GameState)
-import qualified Network.Protocol   as Protocol
+import qualified Network.Protocol   () -- as Protocol
 import qualified Network.WebSockets as WS
 
 newtype GameConnection = GameConnection WS.Connection

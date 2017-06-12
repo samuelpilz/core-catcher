@@ -3,6 +3,6 @@
 
 module MainTest where
 
-import           ClassyPrelude
-import           Mock.Connection
+import           ClassyPrelude ()
+import           Mock.Connection()
 import           Test.Framework
