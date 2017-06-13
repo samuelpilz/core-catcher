@@ -61,18 +61,18 @@ prop_sendArbitraryRogueGameView :: Protocol.RogueGameView -> Property
 prop_sendArbitraryRogueGameView rgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
-    sendView cli rgv
+    sendRogueView cli rgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
-    Just rgv' <- Aeson.decode `fmap` receiveData conn
+    Just (Protocol.RogueView rgv') <- Aeson.decode `map` receiveData conn
     assertEqual rgv rgv'
 
 prop_sendArbitraryCatcherGameView :: Protocol.CatcherGameView -> Property
 prop_sendArbitraryCatcherGameView cgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
-    sendView cli cgv
+    sendCatcherView cli cgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
-    Just cgv' <- Aeson.decode `fmap` receiveData conn
+    Just (Protocol.CatcherView cgv') <- Aeson.decode `map` receiveData conn
     assertEqual cgv cgv'
 
 
@@ -87,28 +87,11 @@ prop_broadcastCatcherGameView =
           assertionAsProperty
               $ do
                   nonEmptyServer <- nonEmptyServerIO
-                  broadcast (Mgnt.getConnections nonEmptyServer) cgv
+                  broadcastCatcherView (Mgnt.getConnections nonEmptyServer) cgv
                   -- small hack, sendView saves the sent message which can be read out with receiveData
                   res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
                   let answers = map Aeson.decode res
-                  assertBool (all (\(Just v) -> v == cgv) answers)
-
-prop_broadcastRogueGameView :: WithQCArgs (Protocol.RogueGameView -> Property)
-prop_broadcastRogueGameView =
-    withQCArgs
-        (\args -> args { maxSuccess = 10 })
-        prop_broadcastArbitraryRogueGameView
-    where
-        prop_broadcastArbitraryRogueGameView :: Protocol.RogueGameView -> Property
-        prop_broadcastArbitraryRogueGameView cgv =
-            assertionAsProperty
-                $ do
-                    nonEmptyServer <- nonEmptyServerIO
-                    broadcast (Mgnt.getConnections nonEmptyServer) cgv
-                    -- small hack, sendView saves the sent message which can be read out with receiveData
-                    res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
-                    let answers = map Aeson.decode res
-                    assertBool (all (\(Just v) -> v == cgv) answers)
+                  assertBool (all (\(Just (Protocol.CatcherView v)) -> v == cgv) answers)
 
 
 test_receiveValidMessage :: IO ()

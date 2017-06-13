@@ -21,6 +21,7 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy PlayerPositions)
             , DefineElm (Proxy :: Proxy RogueGameView)
             , DefineElm (Proxy :: Proxy CatcherGameView)
+            , DefineElm (Proxy :: Proxy GameView)
             , DefineElm (Proxy :: Proxy PlayerEnergies)
             , DefineElm (Proxy :: Proxy EnergyMap)
             , DefineElm (Proxy :: Proxy Network)
