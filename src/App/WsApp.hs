@@ -12,17 +12,16 @@ import           ClassyPrelude
 import qualified Glue               as Glue
 import           Network.Protocol
 
-handle :: IsConnection conn => TVar (ServerState conn) -> Action -> IO ()
-handle stateVar action = do
-    updateResult <- atomically $ updateGame stateVar action
-    state <- readTVarIO stateVar
+handle :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> Action -> IO ()
+handle client stateVar action = do
+    (newState, updateResult) <- atomically $ updateGame stateVar action
 
     case updateResult of
         Right (_, rogueGameView, catcherGameView) -> do
 
             -- send game views
-            let catchers = withoutClient 0 (connections state)
-            let maybeRogue = findConnectionById 0 state
+            let catchers = withoutClient 0 (connections newState)
+            let maybeRogue = findConnectionById 0 newState
             broadcast catcherGameView catchers
             case maybeRogue of
                 Just rogue -> sendView rogueGameView rogue
@@ -30,17 +29,23 @@ handle stateVar action = do
 
         Left gameError -> do
             putStrLn $ "invalid action (" ++ tshow (myError gameError) ++ ")"
+
              -- TODO: reply to sender
 
     return ()
 
 updateGame ::  IsConnection conn =>  TVar (ServerState conn) -> Action
-    -> STM (Either GameError (GameState, RogueGameView, CatcherGameView))
+    -> STM (ServerState conn, Either GameError (GameState, RogueGameView, CatcherGameView))
 updateGame stateVar action = do
     state <- readTVar stateVar
     let updateResult = Glue.updateState action $ gameState state
-    case updateResult of
+
+    newState <- case updateResult of
         Right (newGame, _, _) -> do
-            writeTVar stateVar $ state { gameState = newGame }
-        Left _ -> return ()
-    return updateResult
+            let newState = state { gameState = newGame }
+            writeTVar stateVar newState
+            return newState
+        Left _ -> do
+            return state
+
+    return (newState, updateResult)
