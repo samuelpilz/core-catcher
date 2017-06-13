@@ -10,11 +10,6 @@ import Tuple as Tuple
 import Maybe exposing (..)
 
 
-type GameView
-    = RogueView RogueGameView
-    | CatcherView CatcherGameView
-
-
 playerPositions : GameView -> PlayerPositions
 playerPositions gameView =
     case gameView of
@@ -44,6 +39,7 @@ rogueHistory gameView =
         CatcherView view ->
             view.catcherRogueHistory
 
+
 nextPlayer : GameView -> Player
 nextPlayer gameView =
     case gameView of
@@ -52,6 +48,7 @@ nextPlayer gameView =
 
         CatcherView view ->
             view.catcherNextPlayer
+
 
 getFromList : k -> List ( k, v ) -> Maybe v
 getFromList k list =

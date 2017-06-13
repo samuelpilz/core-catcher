@@ -100,13 +100,13 @@ updateState act game = do
     let eenergies = encodeEnergies energies
     let chh = rogueHistory ch
     return (gs,
-         Protocol.RogueView {
+         Protocol.RogueGameView {
              Protocol.roguePlayerPositions = eposs,
              Protocol.rogueEnergies = eenergies,
              Protocol.rogueOwnHistory = chh,
              Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
          },
-         Protocol.CatcherView {
+         Protocol.CatcherGameView {
              Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
              Protocol.catcherEnergies = eenergies,
              Protocol.catcherRogueHistory = chh,
