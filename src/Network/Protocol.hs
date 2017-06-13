@@ -234,6 +234,14 @@ instance Arbitrary RogueGameView where
     arbitrary =
         RogueView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary Network where
+    arbitrary =
+        Network <$> arbitrary <*> arbitrary
+
+instance Arbitrary NetworkOverlay where
+    arbitrary =
+        NetworkOverlay <$> arbitrary <*> arbitrary
+
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
 deriveBoth Elm.Derive.defaultOptions ''RogueGameView
