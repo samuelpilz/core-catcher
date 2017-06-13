@@ -5,6 +5,7 @@ module Glue
     ( GameState
     , updateState
     , initialState
+    , getViews
     ) where
 
 import           ClassyPrelude
@@ -114,6 +115,27 @@ updateState act game = do
          }
         )
 
+getViews :: GameLogic.GameState -> Either Protocol.GameError (Protocol.RogueGameView, Protocol.CatcherGameView)
+getViews state = do
+    flatgs <- Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState state
+    let (pid, energies, poss, _, ch) = flatgs
+    let eposs = encodePositions poss
+    let eenergies = encodeEnergies energies
+    let chh = rogueHistory ch
+    return
+         ( Protocol.RogueGameView
+            { Protocol.roguePlayerPositions = eposs
+            , Protocol.rogueEnergies = eenergies
+            , Protocol.rogueOwnHistory = chh
+            , Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
+         }
+         , Protocol.CatcherGameView
+            { Protocol.catcherPlayerPositions = eposs -- TODO: hide rogue
+            , Protocol.catcherEnergies = eenergies
+            , Protocol.catcherRogueHistory = chh
+            , Protocol.catcherNextPlayer = encodePlayer pid
+         }
+        )
 
 initialState :: GameLogic.GameState
 initialState =

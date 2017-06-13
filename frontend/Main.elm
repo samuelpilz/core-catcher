@@ -40,7 +40,7 @@ init =
 view : ClientState -> Html Msg
 view state =
     div []
-        [ h1 [] [ text "Core catcher" ]
+        [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
         , mapView network displayInfo state
         , transportView network displayInfo state
         ]
@@ -53,7 +53,21 @@ wsUrl =
 
 subscriptions : ClientState -> Sub Msg
 subscriptions _ =
-    WebSocket.listen wsUrl Received
+    WebSocket.listen wsUrl receivedStringToMsg
+
+
+
+--|
+
+
+receivedStringToMsg : String -> Msg
+receivedStringToMsg s =
+    case decodeString jsonDecMessageForClient s of
+        Ok msg ->
+            MsgFromServer msg
+
+        Err err ->
+            None
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
@@ -62,17 +76,19 @@ update msg state =
         Clicked n ->
             state ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode state n ]
 
-        Received s ->
-            case decodeString jsonDecRogueGameView s of
-                Ok newView ->
-                    {state | gameView = RogueView newView } ! []
+        MsgFromServer msg ->
+            case msg of
+                GameView_ gameView ->
+                    { state | gameView = gameView } ! []
 
-                -- TODO: not only RogueView constructor
-                Err err ->
-                    log2 "error" err state ! []
-        
+                InitialInfoForClient_ initInfo ->
+                    { state | gameView = initInfo.initialGameView, player = initInfo.player_ } ! []
+
         SelectEnergy transport ->
             { state | selectedEnergy = transport } ! []
+
+        None ->
+            state ! []
 
 
 
@@ -82,6 +98,7 @@ update msg state =
 initialState : ClientState
 initialState =
     { gameView = RogueView Example.rogueGameView
+    , player = { playerId = 0 }
     , selectedEnergy = { transportName = "orange" }
     }
 

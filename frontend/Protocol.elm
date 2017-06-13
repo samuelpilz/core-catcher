@@ -295,3 +295,58 @@ jsonEncGameError  val =
    [ ("myError", Json.Encode.string val.myError)
    ]
 
+
+
+type alias InitialInfoForClient  =
+   { player_: Player
+   , initialGameView: GameView
+   }
+
+jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
+jsonDecInitialInfoForClient =
+   ("player_" := jsonDecPlayer) >>= \pplayer_ ->
+   ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
+   Json.Decode.succeed {player_ = pplayer_, initialGameView = pinitialGameView}
+
+jsonEncInitialInfoForClient : InitialInfoForClient -> Value
+jsonEncInitialInfoForClient  val =
+   Json.Encode.object
+   [ ("player_", jsonEncPlayer val.player_)
+   , ("initialGameView", jsonEncGameView val.initialGameView)
+   ]
+
+
+
+type MessageForServer  =
+    Action_ Action
+
+jsonDecMessageForServer : Json.Decode.Decoder ( MessageForServer )
+jsonDecMessageForServer =
+    Json.Decode.map Action_ (jsonDecAction)
+
+
+jsonEncMessageForServer : MessageForServer -> Value
+jsonEncMessageForServer (Action_ v1) =
+    jsonEncAction v1
+
+
+
+type MessageForClient  =
+    GameView_ GameView
+    | InitialInfoForClient_ InitialInfoForClient
+
+jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
+jsonDecMessageForClient =
+    let jsonDecDictMessageForClient = Dict.fromList
+            [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
+            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
+            ]
+    in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
+
+jsonEncMessageForClient : MessageForClient -> Value
+jsonEncMessageForClient  val =
+    let keyval v = case v of
+                    GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
+                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
+    in encodeSumObjectWithSingleField keyval val
+

@@ -10,9 +10,17 @@ import           ClassyPrelude
 import qualified Data.Aeson         as Aeson
 import           Network.Protocol
 
+sendToClient :: IsConnection conn => ClientConnection conn -> MessageForClient -> IO ()
+sendToClient ci msg =
+    sendData (snd ci) (Aeson.encode msg)
+
+sendInitialInfo :: IsConnection conn => ClientConnection conn -> InitialInfoForClient -> IO ()
+sendInitialInfo ci info =
+    sendToClient ci $ InitialInfoForClient_ info
+
 sendView :: IsConnection conn => ClientConnection conn -> GameView -> IO ()
 sendView ci view =
-    sendData (snd ci) (Aeson.encode view)
+    sendToClient ci $ GameView_ view
 
 sendRogueView :: IsConnection conn => ClientConnection conn -> RogueGameView -> IO ()
 sendRogueView ci view =

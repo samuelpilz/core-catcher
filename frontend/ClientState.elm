@@ -6,10 +6,12 @@ import ProtocolUtils exposing (..)
 type Msg
     = Clicked Node
     | SelectEnergy Transport
-    | Received String
+    | MsgFromServer MessageForClient
+    | None
 
 type alias ClientState =
     { gameView : GameView
+    , player : Player
     , selectedEnergy : Transport
     }
 

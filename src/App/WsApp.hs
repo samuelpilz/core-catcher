@@ -2,13 +2,13 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module App.WsApp (App.WsApp.handle) where
+module App.WsApp (handle, initialInfoForClient) where
 
 import           App.Connection
 import           App.ConnectionMgnt
 import           App.State
 import           App.WsAppUtils
-import           ClassyPrelude
+import           ClassyPrelude      hiding (handle)
 import qualified Glue               as Glue
 import           Network.Protocol
 
@@ -48,3 +48,16 @@ updateGame stateVar action = do
             return state
 
     return (newState, updateResult)
+
+
+initialInfoForClient :: ClientId -> Glue.GameState -> InitialInfoForClient
+initialInfoForClient clientId initialGameState = InitialInfoForClient
+    { player_ = Player clientId
+    , initialGameView = initialView
+    }
+    where
+        initialView :: GameView
+        initialView =
+            (if clientId == 0 then RogueView . fst else CatcherView . snd)
+                $ either (\err -> error $ unpack $ "initial state wrong: " ++ tshow err)
+                id (Glue.getViews initialGameState)

@@ -83,7 +83,8 @@ playerColorMap : PlayerColorMap
 playerColorMap =
     AllDict.fromList
         .playerId
-        [ ( { playerId = 0 }, "green" )
-        , ( { playerId = 1 }, "yellow" )
-        , ( { playerId = 2 }, "blue" )
+        [ ( { playerId = 0 }, "#4444ff" )
+        , ( { playerId = 1 }, "red" )
+        , ( { playerId = 2 }, "green" )
+        , ( { playerId = 3 }, "yellow" )
         ]
