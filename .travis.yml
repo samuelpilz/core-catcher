@@ -58,8 +58,7 @@ script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
   # test elm frontend
-  - cd frontend/
-  - elm-make Main.elm --output=Index.html
+  - elm-make frontend/Main.elm --output=frontend/Index.html
 
 after_script:
   # publish coverage results coveralls.io
