@@ -13,9 +13,9 @@ module Main where
 
 import           App.ConnectionMgnt
 import           App.State
-import qualified App.WsApp                      as WsApp
+import           App.WsApp
 import qualified App.WsAppUtils                 as WsAppUtils
-import           ClassyPrelude
+import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
 import qualified Glue
 --import qualified Network.ExampleGameView        as Example
@@ -45,6 +45,7 @@ wsApp stateVar pendingConn = do
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
+    WsAppUtils.sendInitialInfo (clientId, gameConn) $ initialInfoForClient clientId Glue.initialState
     Exception.finally
         (wsListen (clientId, gameConn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
@@ -56,7 +57,8 @@ wsListen client stateVar = forever $ do
         Just action -> do
             -- TODO: what about request forging?
             -- TODO: validation playerId==clientId
-            WsApp.handle client stateVar action
+            handle client stateVar action
             return ()
         Nothing     -> do
             putStrLn "ERROR: The message could not be decoded"
+

@@ -178,12 +178,22 @@ data NetworkOverlay =
 {- | InitialDataForClient the initial info the client gets
 
 -}
-data InitialInfoForClient view =
-    InitialInfoToClient
+data InitialInfoForClient =
+    InitialInfoForClient
         { player_         :: Player
-        , initialGameView :: view
+        , initialGameView :: GameView
+        -- TODO: network?
         }
+        deriving (Show, Read, Eq, Generic)
 
+data MessageForServer =
+    Action_ Action
+    deriving (Show, Read, Eq, Generic)
+
+data MessageForClient =
+    GameView_ GameView |
+    InitialInfoForClient_ InitialInfoForClient
+    deriving (Show, Read, Eq, Generic)
 
 instance FromJSONKey Player where
 
@@ -277,3 +287,6 @@ deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Transport
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
+deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
+deriveBoth Elm.Derive.defaultOptions ''MessageForServer
+deriveBoth Elm.Derive.defaultOptions ''MessageForClient

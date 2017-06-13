@@ -223,7 +223,8 @@ playersState gs = do
   ((ts, ps), ch) <- foldStateWithTurn (updateEnergies gs =>> updatePositions gs =>> updateRogueHistory gs) (initialEnergies >>| initialPositions >>| intitialRogueHistory) gs
   tm <- foldStateWithTurn (updateTwoMove gs) initialTwoMove gs
   turn <- case turns gs of
-        Right t -> maybeToEither (headMay t) (Fatal "Failed to derive turns")
+        Right _ -> return 0 -- TODO: review. This was a fix to let player 0 start if no turn taken
+        --Right t -> maybeToEither (headMay t) (Fatal "Failed to derive turns")
         Left eh -> Left eh
   return ((turn+1) `mod` (length . start $ gs), ts, ps, tm, ch)
 

@@ -32,4 +32,7 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy Transport)
             , DefineElm (Proxy :: Proxy RogueHistory)
             , DefineElm (Proxy :: Proxy GameError)
+            , DefineElm (Proxy :: Proxy InitialInfoForClient)
+            , DefineElm (Proxy :: Proxy MessageForServer)
+            , DefineElm (Proxy :: Proxy MessageForClient)
             ]
