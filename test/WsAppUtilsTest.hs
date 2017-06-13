@@ -23,39 +23,27 @@ anAction =
         (Protocol.Node 1)
 
 
-nonEmptyServer :: ServerState Fake.FakeConnection
-nonEmptyServer =
-    ServerState
+nonEmptyServerIO :: IO (ServerState Fake.FakeConnection)
+nonEmptyServerIO = do
+    conns <- sequenceA . fromList $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..100]
+    let sndMvar = (Fake.contentMsg . snd $ conns `indexEx` 1)
+    _ <- takeMVar sndMvar
+    putMVar sndMvar (Fake.Msg $ Aeson.encode anAction)
+    return ServerState
         { gameState = exampleGameState
-        , connections = fromList $
-            [ (1, Fake.connectionWith "We are Legion")
-            , (2, Fake.connectionWith
-                ( Aeson.encode anAction
-                )
-            )
-            ]
-            ++
-            [ (i, Fake.emptyConnection)
-            | i <- [3..100]
-            ]
+        , connections = conns
         }
-
-test_receiveValidMessage :: IO ()
-test_receiveValidMessage = do
-    let (Just conn) = Mgnt.findConnectionById 2 nonEmptyServer
-    maybeAction <- recvAction conn
-    assertEqual True (isJust maybeAction)
-    let Just realConn = maybeAction
-    assertEqual anAction realConn
 
 test_receiveInvalidMessage :: IO ()
 test_receiveInvalidMessage = do
+    nonEmptyServer <- nonEmptyServerIO
     let (Just conn) = Mgnt.findConnectionById 1 nonEmptyServer
     maybeAction <- recvAction conn
     assertEqual True (isNothing maybeAction)
 
 prop_arbitraryActionIsParsable :: Protocol.Action -> Property
 prop_arbitraryActionIsParsable action = assertionAsProperty $ do
+    nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(1, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
     _ <- swapMVar (Fake.contentMsg conn) (Fake.Msg $ Aeson.encode action)
     maybeAction <- recvAction cli
@@ -65,11 +53,13 @@ prop_arbitraryActionIsParsable action = assertionAsProperty $ do
 
 prop_withoutClient :: Mgnt.ClientId -> Property
 prop_withoutClient cid = assertionAsProperty $ do
+    nonEmptyServer <- nonEmptyServerIO
     let conns = Mgnt.getConnections nonEmptyServer
     assertEqual True (cid `notElem` map fst (withoutClient cid conns))
 
 prop_sendArbitraryRogueGameView :: Protocol.RogueGameView -> Property
 prop_sendArbitraryRogueGameView rgv = assertionAsProperty $ do
+    nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
     sendView rgv cli
     -- small hack, sendView saves the sent message which can be read out with receiveData
@@ -78,6 +68,7 @@ prop_sendArbitraryRogueGameView rgv = assertionAsProperty $ do
 
 prop_sendArbitraryCatcherGameView :: Protocol.CatcherGameView -> Property
 prop_sendArbitraryCatcherGameView cgv = assertionAsProperty $ do
+    nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
     sendView cgv cli
     -- small hack, sendView saves the sent message which can be read out with receiveData
@@ -95,6 +86,7 @@ prop_broadcastCatcherGameView =
       prop_broadcastArbitraryCatcherGameView cgv =
           assertionAsProperty
               $ do
+                  nonEmptyServer <- nonEmptyServerIO
                   broadcast cgv (Mgnt.getConnections nonEmptyServer)
                   -- small hack, sendView saves the sent message which can be read out with receiveData
                   res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
@@ -111,8 +103,19 @@ prop_broadcastRogueGameView =
         prop_broadcastArbitraryRogueGameView cgv =
             assertionAsProperty
                 $ do
+                    nonEmptyServer <- nonEmptyServerIO
                     broadcast cgv (Mgnt.getConnections nonEmptyServer)
                     -- small hack, sendView saves the sent message which can be read out with receiveData
                     res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
                     let answers = map Aeson.decode res
                     assertBool (all (\(Just v) -> v == cgv) answers)
+
+
+test_receiveValidMessage :: IO ()
+test_receiveValidMessage = do
+    nonEmptyServer <- nonEmptyServerIO
+    let (Just conn) = Mgnt.findConnectionById 2 nonEmptyServer
+    maybeAction <- recvAction conn
+    assertEqual True (isJust maybeAction)
+    let Just realConn = maybeAction
+    assertEqual anAction realConn

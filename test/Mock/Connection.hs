@@ -8,7 +8,6 @@ import           App.Connection
 import           ClassyPrelude
 import           Network.WebSockets
 
-import           System.IO.Unsafe
 import           Test.Framework
 
 newtype FakeConnection =
@@ -21,11 +20,15 @@ newtype Msg =
 
 data PendingConn = PendingConn
 
-emptyConnection :: FakeConnection
-emptyConnection = FakeConnection (unsafePerformIO $ newMVar (Msg ""))
+emptyConnection :: IO FakeConnection
+emptyConnection = do
+    mvar <- newMVar (Msg "")
+    return (FakeConnection mvar)
 
-connectionWith :: LByteString -> FakeConnection
-connectionWith msg = FakeConnection (unsafePerformIO $ newMVar (Msg msg))
+connectionWith :: LByteString -> IO FakeConnection
+connectionWith msg = do
+    mvar <- newMVar (Msg msg)
+    return (FakeConnection mvar)
 
 instance IsConnection FakeConnection where
     type Pending FakeConnection = PendingConn
@@ -40,4 +43,4 @@ instance IsConnection FakeConnection where
         return $ fromLazyByteString msg'
 
     acceptRequest PendingConn =
-        return emptyConnection
+        emptyConnection
