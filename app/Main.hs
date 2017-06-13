@@ -28,19 +28,19 @@ import qualified Network.WebSockets             as WS
 
 main :: IO ()
 main = do
+    stateVar <- newTVarIO $ ServerState {connections = empty, gameState = Glue.initialState }
     putStrLn "Starting Core-Catcher server on port 3000"
     Warp.run 3000 $ WS.websocketsOr
         WS.defaultConnectionOptions
-        wsApp
+        (wsApp stateVar)
         httpApp
 
 httpApp :: Wai.Application
 httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket request"
 
 
-wsApp :: WS.ServerApp
-wsApp pendingConn = do -- TODO: fixme: new state for every connection...
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState } -- TODO: insert GL.GameState instead
+wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp
+wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
