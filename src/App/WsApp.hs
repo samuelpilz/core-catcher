@@ -22,15 +22,14 @@ handle client stateVar action = do
             -- send game views
             let catchers = withoutClient 0 (connections newState)
             let maybeRogue = findConnectionById 0 newState
-            broadcast catcherGameView catchers
+            broadcast catchers catcherGameView
             case maybeRogue of
-                Just rogue -> sendView rogueGameView rogue
+                Just rogue -> sendView rogue rogueGameView
                 Nothing    -> putStrLn "There is no rogue connected"
 
         Left gameError -> do
-            putStrLn $ "invalid action (" ++ tshow (myError gameError) ++ ")"
-
-             -- TODO: reply to sender
+            sendError client gameError
+            putStrLn $ "invalid action " ++ tshow (myError gameError)
 
     return ()
 

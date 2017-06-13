@@ -61,7 +61,7 @@ prop_sendArbitraryRogueGameView :: Protocol.RogueGameView -> Property
 prop_sendArbitraryRogueGameView rgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
-    sendView rgv cli
+    sendView cli rgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
     Just rgv' <- Aeson.decode `fmap` receiveData conn
     assertEqual rgv rgv'
@@ -70,7 +70,7 @@ prop_sendArbitraryCatcherGameView :: Protocol.CatcherGameView -> Property
 prop_sendArbitraryCatcherGameView cgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 nonEmptyServer
-    sendView cgv cli
+    sendView cli cgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
     Just cgv' <- Aeson.decode `fmap` receiveData conn
     assertEqual cgv cgv'
@@ -87,7 +87,7 @@ prop_broadcastCatcherGameView =
           assertionAsProperty
               $ do
                   nonEmptyServer <- nonEmptyServerIO
-                  broadcast cgv (Mgnt.getConnections nonEmptyServer)
+                  broadcast (Mgnt.getConnections nonEmptyServer) cgv
                   -- small hack, sendView saves the sent message which can be read out with receiveData
                   res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
                   let answers = map Aeson.decode res
@@ -104,7 +104,7 @@ prop_broadcastRogueGameView =
             assertionAsProperty
                 $ do
                     nonEmptyServer <- nonEmptyServerIO
-                    broadcast cgv (Mgnt.getConnections nonEmptyServer)
+                    broadcast (Mgnt.getConnections nonEmptyServer) cgv
                     -- small hack, sendView saves the sent message which can be read out with receiveData
                     res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
                     let answers = map Aeson.decode res
