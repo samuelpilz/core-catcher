@@ -42,7 +42,7 @@ before_install:
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
-  - cd frontent/
+  - cd frontend/
   - npm install elm
   - elm-package install -y
   - cd ..
