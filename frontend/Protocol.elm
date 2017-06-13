@@ -100,6 +100,27 @@ jsonEncCatcherGameView  val =
 
 
 
+type GameView  =
+    RogueView RogueGameView
+    | CatcherView CatcherGameView
+
+jsonDecGameView : Json.Decode.Decoder ( GameView )
+jsonDecGameView =
+    let jsonDecDictGameView = Dict.fromList
+            [ ("RogueView", Json.Decode.map RogueView (jsonDecRogueGameView))
+            , ("CatcherView", Json.Decode.map CatcherView (jsonDecCatcherGameView))
+            ]
+    in  decodeSumObjectWithSingleField  "GameView" jsonDecDictGameView
+
+jsonEncGameView : GameView -> Value
+jsonEncGameView  val =
+    let keyval v = case v of
+                    RogueView v1 -> ("RogueView", encodeValue (jsonEncRogueGameView v1))
+                    CatcherView v1 -> ("CatcherView", encodeValue (jsonEncCatcherGameView v1))
+    in encodeSumObjectWithSingleField keyval val
+
+
+
 type alias PlayerEnergies  =
    { playerEnergies: (List (Player, EnergyMap))
    }
