@@ -42,6 +42,10 @@ before_install:
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
+  - cd frontent/
+  - npm install elm
+  - elm-package install -y
+  - cd ..
 
 
 
@@ -49,9 +53,12 @@ install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
 
+
 script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
+  # test elm frontend
+  - elm-make frontend/Main.elm --output=frontend/Index.html
 
 after_script:
   # publish coverage results coveralls.io
@@ -63,3 +70,4 @@ after_script:
   - ldd ~/.local/bin/shc
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
   - cat json.file
+  - cat frontend/Index.html
