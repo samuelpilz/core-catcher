@@ -13,4 +13,7 @@ import {-@ HTF_TESTS @-} GameLogicTest
 import {-@ HTF_TESTS @-} WsAppUtilsTest
 
 main :: IO ()
-main = htfMain htf_importedTests
+main = do
+    args <- getCurrentArgs
+    setDefaultArgs (args { maxSuccess = 20 } ) 
+    htfMain htf_importedTests
