@@ -65,11 +65,5 @@ script:
 after_script:
   # publish coverage results coveralls.io
   # after_script might clean some things
-  - ls .stack-work/install/x86_64-linux/lts-8.13/8.0.2/hpc
-  - ls -al ~/.local/bin/shc
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
-  - file ~/.local/bin/shc
-  - ldd ~/.local/bin/shc
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
-  - cat json.file
-  - cat frontend/index.html
