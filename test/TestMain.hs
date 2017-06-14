@@ -15,5 +15,5 @@ import {-@ HTF_TESTS @-} WsAppUtilsTest
 main :: IO ()
 main = do
     args <- getCurrentArgs
-    setDefaultArgs (args { maxSuccess = 20 } ) 
+    setDefaultArgs (args { maxSuccess = 15 } ) 
     htfMain htf_importedTests

@@ -79,7 +79,7 @@ prop_sendArbitraryCatcherGameView cgv = assertionAsProperty $ do
 prop_broadcastCatcherGameView :: WithQCArgs (Protocol.CatcherGameView -> Property)
 prop_broadcastCatcherGameView =
     withQCArgs
-        (\args -> args { maxSuccess = 10 })
+        (\args -> args { maxSuccess = 5 })
         prop_broadcastArbitraryCatcherGameView
     where
       prop_broadcastArbitraryCatcherGameView :: Protocol.CatcherGameView -> Property
