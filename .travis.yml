@@ -19,6 +19,7 @@ cache:
   directories:
   - $HOME/.stack
   - /home/travis/build/Haskell-Praxis/core-catcher/frontend/elm-stuff/build-artifacts
+  - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
 
 # Ensure necessary system libraries are present
 addons:
