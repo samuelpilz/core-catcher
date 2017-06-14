@@ -57,7 +57,7 @@ script:
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
   # test elm frontend
   - cd frontend/
-  - elm-make Main.elm --output=Index.html
+  - elm-make Main.elm --output=index.html
   - cd ..
 
 after_script:
@@ -70,4 +70,4 @@ after_script:
   - ldd ~/.local/bin/shc
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
   - cat json.file
-  - cat frontend/Index.html
+  - cat frontend/index.html
