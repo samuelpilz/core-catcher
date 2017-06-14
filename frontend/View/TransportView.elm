@@ -73,8 +73,7 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , y << toString <| 30
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
-
-            --, onClick
+            , onClick (SelectEnergy transport)
             , textAnchor "middle"
             ]
             [ text << toString <| count ]
