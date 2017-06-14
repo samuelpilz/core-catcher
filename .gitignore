@@ -17,3 +17,13 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+
+node_modules/
+elm-stuff/
+*~
+
+index.html
+.HTF/
+
+.vscode
+

@@ -1,0 +1,69 @@
+# This is the simple Travis configuration, which is intended for use
+# on applications which do not require cross-platform and
+# multiple-GHC-version support. For more information and other
+# options, see:
+#
+# https://docs.haskellstack.org/en/stable/travis_ci/
+#
+# Copy these contents into the root directory of your Github project in a file
+# named .travis.yml
+
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Do not choose a language; we provide our own build tools.
+language: generic
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
+  - /home/travis/build/Haskell-Praxis/core-catcher/frontend/elm-stuff/build-artifacts
+  - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
+
+# Ensure necessary system libraries are present
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
+before_install:
+  # Download and unpack the stack executable
+  - mkdir -p ~/.local/bin
+  - export PATH=$HOME/.local/bin:$PATH
+  - export TRAVIS=travis-ci
+  - export TRAVIS_JOB_ID=1234 # random number
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - cd ..
+  - git clone https://github.com/fendor/stack-hpc-coveralls.git
+  - cd stack-hpc-coveralls
+  - stack --no-terminal --install-ghc test --only-dependencies
+  - stack build
+  - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
+  - cd ../core-catcher
+  - ls ../ # debug reasons
+  - cd frontend/
+  - npm install elm
+  - elm-package install -y
+  - cd ..
+
+
+
+install:
+  # Build dependencies
+  - stack --no-terminal --install-ghc test --only-dependencies
+
+
+script:
+  # Build the package, its tests, and its docs and run the tests
+  - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
+  # test elm frontend
+  - cd frontend/
+  - elm-make Main.elm --output=index.html
+  - cd ..
+
+after_script:
+  # publish coverage results coveralls.io
+  # after_script might clean some things
+  - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
+  - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
