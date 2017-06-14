@@ -37,8 +37,6 @@ before_install:
   - cd stack-hpc-coveralls
   - stack --no-terminal --install-ghc test --only-dependencies
   - stack build
-  - echo `stack path --local-install-root`/bin/shc
-  - echo `stack path --local-install-root`
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
@@ -59,7 +57,7 @@ script:
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
   # test elm frontend
   - cd frontend/
-  - elm-make frontend/Main.elm --output=frontend/Index.html
+  - elm-make Main.elm --output=Index.html
   - cd ..
 
 after_script:
