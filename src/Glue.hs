@@ -13,6 +13,7 @@ import qualified Data.Map         as Map (fromList, mapKeys)
 import qualified GameLogic
 import qualified Lib
 import qualified Network.Protocol as Protocol
+import qualified Data.Vector as Vector
 
 type GameState = GameLogic.GameState -- export game state type
 
@@ -100,15 +101,16 @@ updateState act game = do
     let eposs = encodePositions poss
     let eenergies = encodeEnergies energies
     let chh = rogueHistory ch
+    let norogue = encodePositions $ Vector.tail poss
     return (gs,
          Protocol.RogueGameView {
              Protocol.roguePlayerPositions = eposs,
              Protocol.rogueEnergies = eenergies,
              Protocol.rogueOwnHistory = chh,
-             Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
+             Protocol.rogueNextPlayer = encodePlayer pid
          },
          Protocol.CatcherGameView {
-             Protocol.catcherPlayerPositions = eposs, -- TODO: hide rogue
+             Protocol.catcherPlayerPositions = norogue,
              Protocol.catcherEnergies = eenergies,
              Protocol.catcherRogueHistory = chh,
              Protocol.catcherNextPlayer = encodePlayer pid
