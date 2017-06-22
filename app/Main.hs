@@ -29,8 +29,8 @@ import qualified Network.WebSockets             as WS
 main :: IO ()
 main = do
     stateVar <- newTVarIO $ ServerState {connections = empty, gameState = Glue.initialState }
-    putStrLn "Starting Core-Catcher server on port 3000"
-    Warp.run 3000 $ WS.websocketsOr
+    putStrLn "Starting Core-Catcher server on port 7999"
+    Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp

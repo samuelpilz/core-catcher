@@ -48,7 +48,7 @@ view state =
 
 wsUrl : String
 wsUrl =
-    "ws://localhost:3000"
+    "ws://localhost:7999"
 
 
 subscriptions : ClientState -> Sub Msg
