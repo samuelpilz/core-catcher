@@ -47,7 +47,6 @@ before_install:
   - ls ../ # debug reasons
   - npm install elm
   - elm-package install -y
-  - cd ..
 
 
 
