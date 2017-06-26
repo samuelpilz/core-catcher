@@ -21,7 +21,7 @@ notifications:
 cache:
   directories:
   - $HOME/.stack
-  - /home/travis/build/Haskell-Praxis/core-catcher/frontend/elm-stuff/build-artifacts
+  - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
 
 # Ensure necessary system libraries are present
@@ -45,7 +45,6 @@ before_install:
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
   - ls ../ # debug reasons
-  - cd frontend/
   - npm install elm
   - elm-package install -y
   - cd ..
@@ -61,8 +60,7 @@ script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
   # test elm frontend
-  - cd frontend/
-  - elm-make Main.elm --output=index.html
+  - elm-make frontend/Main.elm --output=web/main.elm
   - cd ..
 
 after_script:
