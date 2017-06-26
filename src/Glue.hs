@@ -10,10 +10,10 @@ module Glue
 
 import           ClassyPrelude
 import qualified Data.Map         as Map (fromList, mapKeys)
+import qualified Data.Vector      as Vector
 import qualified GameLogic
 import qualified Lib
 import qualified Network.Protocol as Protocol
-import qualified Data.Vector as Vector
 
 type GameState = GameLogic.GameState -- export game state type
 
@@ -101,7 +101,7 @@ updateState act game = do
     let eposs = encodePositions poss
     let eenergies = encodeEnergies energies
     let chh = rogueHistory ch
-    let norogue = encodePositions $ Vector.tail poss
+    let norogue = eposs
     return (gs,
          Protocol.RogueGameView {
              Protocol.roguePlayerPositions = eposs,

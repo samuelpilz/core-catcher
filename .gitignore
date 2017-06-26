@@ -21,9 +21,12 @@ cabal.project.local
 node_modules/
 elm-stuff/
 *~
+web/elm.js
 
-index.html
 .HTF/
 
 .vscode
+
+.idea/
+core-catcher.iml
 
