@@ -14,6 +14,7 @@ import           Network.Protocol
 
 handle :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> Action -> IO ()
 handle client stateVar action = do
+    putStrLn $ tshow action
     (newState, updateResult) <- atomically $ updateGame stateVar action
 
     case updateResult of
