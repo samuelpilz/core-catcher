@@ -2,18 +2,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Glue
-  ( GameState
-  , updateState
-  , initialState
-  , getViews
-  ) where
+    ( GameState
+    , updateState
+    , initialState
+    , getViews
+    ) where
 
-import           ClassyPrelude
-import qualified Data.Map         as Map (fromList, mapKeys)
+import ClassyPrelude
+import qualified Data.Map as Map (fromList, mapKeys)
 
 --import qualified Data.Vector      as Vector
+import Data.Easy (maybeToEither)
+import Data.Either.Combinators (mapLeft)
 import qualified GameLogic
-import qualified Lib
 import qualified Network.Protocol as Protocol
 
 type GameState = GameLogic.GameState -- export game state type
@@ -23,55 +24,56 @@ match b = ClassyPrelude.map snd . find ((== b) . fst)
 
 decodeAction :: Protocol.Action -> Maybe GameLogic.Action
 decodeAction act = do
-  let tn = Protocol.transportName $ Protocol.transport act
-  energy <-
-    match
-      tn
-      [ ("red", GameLogic.Energy GameLogic.Red)
-      , ("orange", GameLogic.Energy GameLogic.Orange)
-      , ("blue", GameLogic.Energy GameLogic.Blue)
-      , ("black", GameLogic.BlackEnergy)
-      ]
-  let vid = Protocol.nodeId $ Protocol.node act
-  return $ GameLogic.OneMove $ GameLogic.Move energy vid
+    let tn = Protocol.transportName $ Protocol.transport act
+    energy <-
+        match
+            tn
+            [ ("red", GameLogic.Energy GameLogic.Red)
+            , ("orange", GameLogic.Energy GameLogic.Orange)
+            , ("blue", GameLogic.Energy GameLogic.Blue)
+            , ("black", GameLogic.BlackEnergy)
+            ]
+    let vid = Protocol.nodeId $ Protocol.node act
+    return $ GameLogic.OneMove $ GameLogic.Move energy vid
 
 encodeEnergy :: GameLogic.Energy -> Protocol.Transport
 encodeEnergy (GameLogic.Energy x) =
-  Protocol.Transport
-  { Protocol.transportName =
-      case x of
-        GameLogic.Red    -> "red"
-        GameLogic.Orange -> "orange"
-        GameLogic.Blue   -> "blue"
-  }
+    Protocol.Transport
+        { Protocol.transportName =
+            case x of
+              GameLogic.Red -> "red"
+              GameLogic.Orange -> "orange"
+              GameLogic.Blue -> "blue"
+        }
 encodeEnergy GameLogic.BlackEnergy =
-  Protocol.Transport {Protocol.transportName = "black"}
+    Protocol.Transport {Protocol.transportName = "black"}
 
 toTupleList :: Vector a -> [(Protocol.Player, a)]
 toTupleList v =
-  zip (map (\id' -> Protocol.Player {Protocol.playerId = id'}) [(0 :: Int) ..]) $
-  toList v
+    zip
+        (map (\id' -> Protocol.Player {Protocol.playerId = id'}) [(0 :: Int) ..]) $
+    toList v
 
 toPlayerMap :: Vector a -> Map Protocol.Player a
 toPlayerMap v = Map.fromList $ toTupleList v
 
 encodeEnergies :: GameLogic.PlayersEnergies -> Protocol.PlayerEnergies
 encodeEnergies e =
-  Protocol.PlayerEnergies
-  { Protocol.playerEnergies =
-      map
-        ((\m -> Protocol.EnergyMap {Protocol.energyMap = m}) .
-         Map.mapKeys encodeEnergy) $
-      toPlayerMap e
-  }
+    Protocol.PlayerEnergies
+        { Protocol.playerEnergies =
+            map
+              ((\m -> Protocol.EnergyMap {Protocol.energyMap = m}) .
+               Map.mapKeys encodeEnergy) $
+            toPlayerMap e
+        }
 
 encodeNode :: GameLogic.VertexId -> Protocol.Node
 encodeNode n = Protocol.Node {Protocol.nodeId = n}
 
 encodePositions :: GameLogic.PlayersPos -> Protocol.PlayerPositions
 encodePositions pos =
-  Protocol.PlayerPositions
-  {Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos}
+    Protocol.PlayerPositions
+        { Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos }
 
 rogueHistory :: GameLogic.RogueHistory -> Protocol.RogueHistory
 rogueHistory ch = Protocol.RogueHistory {Protocol.rogueHistory_ = map f ch}
@@ -85,60 +87,60 @@ encodePlayer :: GameLogic.PlayerId -> Protocol.Player
 encodePlayer p = Protocol.Player {Protocol.playerId = p}
 
 updateState ::
-     Protocol.Action
-  -> GameLogic.GameState
-  -> Either Protocol.GameError ( GameLogic.GameState
-                               , Protocol.RogueGameView
-                               , Protocol.CatcherGameView)
+       Protocol.Action
+    -> GameLogic.GameState
+    -> Either Protocol.GameError ( GameLogic.GameState
+                                 , Protocol.RogueGameView
+                                 , Protocol.CatcherGameView)
 updateState act game = do
-  action <- Lib.maybeToEither (decodeAction act) (encodeError "invalid action")
-  let gs = GameLogic.addAction game action
-  flatgs <-
-    Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState gs
-  let (pid, energies, poss, _, ch) = flatgs
-  let eposs = encodePositions poss
-  let eenergies = encodeEnergies energies
-  let chh = rogueHistory ch
-  let norogue = eposs -- encodePositions $ Vector.tail poss
-  return
-    ( gs
-    , Protocol.RogueGameView
-      { Protocol.roguePlayerPositions = eposs
-      , Protocol.rogueEnergies = eenergies
-      , Protocol.rogueOwnHistory = chh
-      , Protocol.rogueNextPlayer = encodePlayer pid
-      }
-    , Protocol.CatcherGameView
-      { Protocol.catcherPlayerPositions = norogue
-      , Protocol.catcherEnergies = eenergies
-      , Protocol.catcherRogueHistory = chh
-      , Protocol.catcherNextPlayer = encodePlayer pid
-      })
+    action <- maybeToEither (encodeError "invalid action") (decodeAction act)
+    let gs = GameLogic.addAction game action
+    flatgs <-
+        mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState gs
+    let (pid, energies, poss, _, ch) = flatgs
+    let eposs = encodePositions poss
+    let eenergies = encodeEnergies energies
+    let chh = rogueHistory ch
+    let norogue = eposs -- encodePositions $ Vector.tail poss
+    return
+        ( gs
+        , Protocol.RogueGameView
+          { Protocol.roguePlayerPositions = eposs
+          , Protocol.rogueEnergies = eenergies
+          , Protocol.rogueOwnHistory = chh
+          , Protocol.rogueNextPlayer = encodePlayer pid
+          }
+        , Protocol.CatcherGameView
+          { Protocol.catcherPlayerPositions = norogue
+          , Protocol.catcherEnergies = eenergies
+          , Protocol.catcherRogueHistory = chh
+          , Protocol.catcherNextPlayer = encodePlayer pid
+          })
 
 getViews ::
-     GameLogic.GameState
-  -> Either Protocol.GameError ( Protocol.RogueGameView
-                               , Protocol.CatcherGameView)
+       GameLogic.GameState
+    -> Either Protocol.GameError ( Protocol.RogueGameView
+                                 , Protocol.CatcherGameView)
 getViews state = do
-  flatgs <-
-    Lib.mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState state
-  let (pid, energies, poss, _, ch) = flatgs
-  let eposs = encodePositions poss
-  let eenergies = encodeEnergies energies
-  let chh = rogueHistory ch
-  return
-    ( Protocol.RogueGameView
-      { Protocol.roguePlayerPositions = eposs
-      , Protocol.rogueEnergies = eenergies
-      , Protocol.rogueOwnHistory = chh
-      , Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
-      }
-    , Protocol.CatcherGameView
-      { Protocol.catcherPlayerPositions = eposs -- TODO: hide rogue
-      , Protocol.catcherEnergies = eenergies
-      , Protocol.catcherRogueHistory = chh
-      , Protocol.catcherNextPlayer = encodePlayer pid
-      })
+    flatgs <-
+        mapLeft (encodeError . GameLogic.error) $ GameLogic.playersState state
+    let (pid, energies, poss, _, ch) = flatgs
+    let eposs = encodePositions poss
+    let eenergies = encodeEnergies energies
+    let chh = rogueHistory ch
+    return
+        ( Protocol.RogueGameView
+          { Protocol.roguePlayerPositions = eposs
+          , Protocol.rogueEnergies = eenergies
+          , Protocol.rogueOwnHistory = chh
+          , Protocol.rogueNextPlayer = encodePlayer pid -- TODO: what to do with this?
+          }
+        , Protocol.CatcherGameView
+          { Protocol.catcherPlayerPositions = eposs -- TODO: hide rogue
+          , Protocol.catcherEnergies = eenergies
+          , Protocol.catcherRogueHistory = chh
+          , Protocol.catcherNextPlayer = encodePlayer pid
+          })
 
 initialState :: GameLogic.GameState
 initialState = GameLogic.GameState (fromList [1 .. 4]) GameLogic.samNet []

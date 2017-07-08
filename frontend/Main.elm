@@ -64,7 +64,7 @@ receivedStringToMsg s =
             MsgFromServer msg
 
         Err err ->
-            None
+            None -- TODO: handle json error?
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
@@ -89,7 +89,7 @@ update msg state =
 
 
 
--- random dev helper functions and type defs
+-- random dev helper functions
 
 
 initialState : Flags -> ClientState

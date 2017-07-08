@@ -13,7 +13,7 @@ import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
 
-
+-- TODO: css style with css-library?
 
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
 mapView network displayInfo clientState =

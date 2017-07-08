@@ -28,7 +28,7 @@ import qualified Network.WebSockets             as WS
 
 main :: IO ()
 main = do
-    stateVar <- newTVarIO $ ServerState {connections = empty, gameState = Glue.initialState }
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState }
     putStrLn "Starting Core-Catcher server on port 7999"
     Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
@@ -55,10 +55,11 @@ wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
-            -- TODO: what about request forging?
+            -- TODO: what about request forging? (send game-token to client using player-mgnt)
             -- TODO: validation playerId==clientId
             handle client stateVar action
             return ()
         Nothing     -> do
             putStrLn "ERROR: The message could not be decoded"
+            -- TODO: send info back to client
 
