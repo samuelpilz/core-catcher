@@ -9,6 +9,8 @@ module GameLogic where
 import           ClassyPrelude
 import           Control.Monad                     as Monad
 import qualified Data.Aeson                        as Aeson
+import           Data.Easy                         (maybeToEither)
+import           Data.Either.Combinators           (mapLeft)
 import           Data.Foldable                     (foldrM)
 import qualified Data.Graph.Inductive.Graph        as Graph
 import qualified Data.Graph.Inductive.PatriciaTree as PTree
@@ -17,8 +19,7 @@ import qualified Data.Map                          as Map
 import qualified Data.Set                          as Set
 import           Data.Vector                       ((!?), (//))
 import qualified GHC.Generics                      ()
-import           Lib                               (mapLeft, maybeToEither,
-                                                    scanrTailM, scanrTailM)
+import           Lib                               (scanrTailM, scanrTailM)
 import           Safe                              (tailSafe)
 
 type PlayerId = Int
@@ -236,14 +237,14 @@ updatePositions gs t v (a, pid) = applyAction (updatePositions' gs pid t) v a
 
 updatePositions' :: GameState -> PlayerId -> PlayersEnergies -> PlayersPos -> Move -> Either Error PlayersPos
 updatePositions' gs pid _ v (Move e vtx) = do
-              pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
+              pos <- maybeToEither "Player not found or Player has no position" (v !? pid)
               unless (vtx `List.elem` adjacentWithEnergy (network gs) pos [e]) $ Left "Player moved incorrectly"
               unless notOccupied $ Left "Player collided with another one"
               Right $ v // [(pid, vtx)]
                 where notOccupied = (vtx `notElem` v) || ((pid /= roguePid) && (vtx `notElem` (tailSafe . toList) v))
 updatePositions' gs pid t v Pass         =  do
-              pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
-              energy <- maybeToEither (t !? pid) "Player not found or Player has no energy"
+              pos <- maybeToEither "Player not found or Player has no position" (v !? pid)
+              energy <- maybeToEither "Player not found or Player has no energy"(t !? pid)
               let colors = map fst $ Map.toList $ Map.filter (>0) energy
               let valid = allOccupied $ adjacentWithEnergy (network gs) pos colors
               if valid then Right v else Left "Player did not move"
@@ -260,7 +261,7 @@ updateRogueHistory' :: GameState -> PlayerId -> PlayersPos -> RogueHistory -> Mo
 updateRogueHistory' _ pid _ ch Pass = if roguePid == pid then Left "Rogue core lost" else return ch
 updateRogueHistory' gs pid v ch (Move e _) = if roguePid == pid
               then do
-                pos <- maybeToEither (v !? pid) "Player not found or Player has no position"
+                pos <- maybeToEither "Player not found or Player has no position" (v !? pid)
                 let revealed = ((length ch) + 1) `elem` revealedPositions gs
                 return $ (e, if revealed then Just pos else Nothing):ch
               else return ch
@@ -283,11 +284,11 @@ updateEnergies gs v (a, pid) = applyAction (updateEnergies' gs pid) v a
 
 updateEnergies' :: GameState -> PlayerId -> PlayersEnergies -> Move -> Either Error PlayersEnergies
 updateEnergies' _ pid v (Move t _) = do
-  old <- maybeToEither (v !? pid) "Player not found or Player has no energy"
+  old <- maybeToEither "Player not found or Player has no energy"(v !? pid)
   let ts = findWithDefault 0 t old
   new <- if ts - 1 >= 0 then return $ Map.insert t (ts - 1) old else Left "No more energies"
   ls <- if roguePid == pid then return [] else do
-    oldm <- maybeToEither (v !? roguePid) "Error updating rogue core"
+    oldm <- maybeToEither "Error updating rogue core" (v !? roguePid)
     let oldv = 1 + findWithDefault 0 t oldm
     return [(roguePid, Map.insert t oldv oldm)]
   return $ v // ((pid, new):ls)

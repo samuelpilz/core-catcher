@@ -41,6 +41,8 @@ library
                      , bytestring
                      , safe
                      , QuickCheck
+                     , data-easy
+                     , either
   default-language:    Haskell2010
 
 executable core-catcher-exe
