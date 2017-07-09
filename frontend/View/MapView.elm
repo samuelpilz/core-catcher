@@ -102,8 +102,8 @@ playerCircle nodeXyMap playerColorMap ( player, node ) =
         , stroke << Maybe.withDefault "white" << AllDict.get player <| playerColorMap
         , Svg.Attributes.cursor "pointer"
         , onClick (Clicked node)
-        , strokeWidth "2"
-        , Svg.Attributes.strokeDasharray "5,5"
+        , strokeWidth "4"
+        , Svg.Attributes.strokeDasharray "5,3.5"
         ]
         []
 
