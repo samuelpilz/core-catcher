@@ -21,7 +21,7 @@ notifications:
 cache:
   directories:
   - $HOME/.stack
-  - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff
+  - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
 
 # Ensure necessary system libraries are present
