@@ -24,11 +24,18 @@ To view the frontend, the following command can be used:
 
 ```bash
 cd path/to/installation/
-cd frontend
-elm-live Main.elm
+elm-live frontend/Main.elm --output web/elm.js --dir=web
 ```
 
 Afterwards, the website can be viewed in the browser on port `8000`.
+
+Alternatively, the elm-code can be compiled using
+
+```bash
+elm-make frontend/Main.elm --output web/elm.js
+```
+
+and then the directory web/ statically served by any webbrowser (`python3 -m http.server`, `darkhttpd`, ...)
 
 ## Setup Backend
 
@@ -40,3 +47,9 @@ To build and execute the server:
 stack build 
 stack exec core-catcher-exe
 ```
+or
+
+```bash
+stack run
+```
+with `stack-run` installed.
