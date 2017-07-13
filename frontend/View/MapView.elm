@@ -32,7 +32,7 @@ mapView network displayInfo clientState =
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
-                (playerPositions clientState.gameView).playerPositions_
+                (playerPositions clientState.gameView).playerPositions
 
 
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
@@ -46,8 +46,8 @@ mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
 
 
 mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, edges } =
-    List.map (edgeLine nodeXyMap color edgeWidth) edges
+mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, overlayEdges } =
+    List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
 
 

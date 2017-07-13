@@ -50,7 +50,7 @@ historyView gameView displayInfo =
         << List.map (Maybe.withDefault "black")
         << List.map (\(t, _) -> AllDict.get t displayInfo.colorMap)
     <|
-        (rogueHistory gameView).rogueHistory_
+        (rogueHistory gameView).rogueHistory
 
 
 energyRecord : Transport -> ( Int, Transport, Color, Int ) -> Svg.Svg Msg

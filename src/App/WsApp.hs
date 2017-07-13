@@ -53,7 +53,7 @@ updateGame stateVar action = do
 
 initialInfoForClient :: ClientId -> Glue.GameState -> InitialInfoForClient
 initialInfoForClient clientId initialGameState = InitialInfoForClient
-    { player_ = Player clientId
+    { initialPlayer = Player clientId
     , initialGameView = initialView
     }
     where

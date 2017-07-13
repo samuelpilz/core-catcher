@@ -11,6 +11,7 @@ import {-@ HTF_TESTS @-} MainTest
 import {-@ HTF_TESTS @-} StateTest
 import {-@ HTF_TESTS @-} GameLogicTest
 import {-@ HTF_TESTS @-} WsAppUtilsTest
+import {-@ HTF_TESTS @-} GameNgTest
 
 main :: IO ()
 main = do

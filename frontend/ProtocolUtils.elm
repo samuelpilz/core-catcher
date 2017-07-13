@@ -67,3 +67,17 @@ getEnergyForTransportAndPlayer player transport gameView =
         << getFromList player
     <|
         (energies gameView).playerEnergies
+
+
+emptyNetwork : Network
+emptyNetwork =
+    { nodes = [], overlays = [] }
+
+
+emptyRogueView : RogueGameView
+emptyRogueView =
+    { roguePlayerPositions = { playerPositions = [] }
+    , rogueEnergies = { playerEnergies = [] }
+    , rogueOwnHistory = { rogueHistory = [] }
+    , rogueNextPlayer = { playerId = 0 }
+    }

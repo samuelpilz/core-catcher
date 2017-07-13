@@ -24,7 +24,7 @@ match b = ClassyPrelude.map snd . find ((== b) . fst)
 
 decodeAction :: Protocol.Action -> Maybe GameLogic.Action
 decodeAction act = do
-    let tn = Protocol.transportName $ Protocol.transport act
+    let tn = Protocol.transportName $ Protocol.actionTransport act
     energy <-
         match
             tn
@@ -33,7 +33,7 @@ decodeAction act = do
             , ("blue", GameLogic.Energy GameLogic.Blue)
             , ("black", GameLogic.BlackEnergy)
             ]
-    let vid = Protocol.nodeId $ Protocol.node act
+    let vid = Protocol.nodeId $ Protocol.actionNode act
     return $ GameLogic.OneMove $ GameLogic.Move energy vid
 
 encodeEnergy :: GameLogic.Energy -> Protocol.Transport
@@ -73,10 +73,10 @@ encodeNode n = Protocol.Node {Protocol.nodeId = n}
 encodePositions :: GameLogic.PlayersPos -> Protocol.PlayerPositions
 encodePositions pos =
     Protocol.PlayerPositions
-        { Protocol.playerPositions_ = toPlayerMap $ map encodeNode pos }
+        { Protocol.playerPositions = toPlayerMap $ map encodeNode pos }
 
 rogueHistory :: GameLogic.RogueHistory -> Protocol.RogueHistory
-rogueHistory ch = Protocol.RogueHistory {Protocol.rogueHistory_ = map f ch}
+rogueHistory ch = Protocol.RogueHistory {Protocol.rogueHistory = map f ch}
   where
     f (t, pos) = (encodeEnergy t, fmap encodeNode pos)
 

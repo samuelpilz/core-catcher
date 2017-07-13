@@ -9,41 +9,41 @@ import Set
 
 
 type alias Action  =
-   { player: Player
-   , transport: Transport
-   , node: Node
+   { actionPlayer: Player
+   , actionTransport: Transport
+   , actionNode: Node
    }
 
 jsonDecAction : Json.Decode.Decoder ( Action )
 jsonDecAction =
-   ("player" := jsonDecPlayer) >>= \pplayer ->
-   ("transport" := jsonDecTransport) >>= \ptransport ->
-   ("node" := jsonDecNode) >>= \pnode ->
-   Json.Decode.succeed {player = pplayer, transport = ptransport, node = pnode}
+   ("actionPlayer" := jsonDecPlayer) >>= \pactionPlayer ->
+   ("actionTransport" := jsonDecTransport) >>= \pactionTransport ->
+   ("actionNode" := jsonDecNode) >>= \pactionNode ->
+   Json.Decode.succeed {actionPlayer = pactionPlayer, actionTransport = pactionTransport, actionNode = pactionNode}
 
 jsonEncAction : Action -> Value
 jsonEncAction  val =
    Json.Encode.object
-   [ ("player", jsonEncPlayer val.player)
-   , ("transport", jsonEncTransport val.transport)
-   , ("node", jsonEncNode val.node)
+   [ ("actionPlayer", jsonEncPlayer val.actionPlayer)
+   , ("actionTransport", jsonEncTransport val.actionTransport)
+   , ("actionNode", jsonEncNode val.actionNode)
    ]
 
 
 
 type alias PlayerPositions  =
-   { playerPositions_: (List (Player, Node))
+   { playerPositions: (List (Player, Node))
    }
 
 jsonDecPlayerPositions : Json.Decode.Decoder ( PlayerPositions )
 jsonDecPlayerPositions =
-   ("playerPositions_" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecNode)))) >>= \pplayerPositions_ ->
-   Json.Decode.succeed {playerPositions_ = pplayerPositions_}
+   ("playerPositions" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecNode)))) >>= \pplayerPositions ->
+   Json.Decode.succeed {playerPositions = pplayerPositions}
 
 jsonEncPlayerPositions : PlayerPositions -> Value
 jsonEncPlayerPositions  val =
    Json.Encode.object
-   [ ("playerPositions_", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncNode) v2])) val.playerPositions_)
+   [ ("playerPositions", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncNode) v2])) val.playerPositions)
    ]
 
 
@@ -177,20 +177,20 @@ jsonEncNetwork  val =
 
 type alias NetworkOverlay  =
    { overlayNodes: (List Node)
-   , edges: (List Edge)
+   , overlayEdges: (List Edge)
    }
 
 jsonDecNetworkOverlay : Json.Decode.Decoder ( NetworkOverlay )
 jsonDecNetworkOverlay =
    ("overlayNodes" := Json.Decode.list (jsonDecNode)) >>= \poverlayNodes ->
-   ("edges" := Json.Decode.list (jsonDecEdge)) >>= \pedges ->
-   Json.Decode.succeed {overlayNodes = poverlayNodes, edges = pedges}
+   ("overlayEdges" := Json.Decode.list (jsonDecEdge)) >>= \poverlayEdges ->
+   Json.Decode.succeed {overlayNodes = poverlayNodes, overlayEdges = poverlayEdges}
 
 jsonEncNetworkOverlay : NetworkOverlay -> Value
 jsonEncNetworkOverlay  val =
    Json.Encode.object
    [ ("overlayNodes", (Json.Encode.list << List.map jsonEncNode) val.overlayNodes)
-   , ("edges", (Json.Encode.list << List.map jsonEncEdge) val.edges)
+   , ("overlayEdges", (Json.Encode.list << List.map jsonEncEdge) val.overlayEdges)
    ]
 
 
@@ -264,18 +264,18 @@ jsonEncTransport  val =
 
 
 type alias RogueHistory  =
-   { rogueHistory_: (List (Transport, (Maybe Node)))
+   { rogueHistory: (List (Transport, (Maybe Node)))
    }
 
 jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
 jsonDecRogueHistory =
-   ("rogueHistory_" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory_ ->
-   Json.Decode.succeed {rogueHistory_ = progueHistory_}
+   ("rogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory ->
+   Json.Decode.succeed {rogueHistory = progueHistory}
 
 jsonEncRogueHistory : RogueHistory -> Value
 jsonEncRogueHistory  val =
    Json.Encode.object
-   [ ("rogueHistory_", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory_)
+   [ ("rogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory)
    ]
 
 
@@ -298,20 +298,20 @@ jsonEncGameError  val =
 
 
 type alias InitialInfoForClient  =
-   { player_: Player
+   { initialPlayer: Player
    , initialGameView: GameView
    }
 
 jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
 jsonDecInitialInfoForClient =
-   ("player_" := jsonDecPlayer) >>= \pplayer_ ->
+   ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
-   Json.Decode.succeed {player_ = pplayer_, initialGameView = pinitialGameView}
+   Json.Decode.succeed {initialPlayer = pinitialPlayer, initialGameView = pinitialGameView}
 
 jsonEncInitialInfoForClient : InitialInfoForClient -> Value
 jsonEncInitialInfoForClient  val =
    Json.Encode.object
-   [ ("player_", jsonEncPlayer val.player_)
+   [ ("initialPlayer", jsonEncPlayer val.initialPlayer)
    , ("initialGameView", jsonEncGameView val.initialGameView)
    ]
 
