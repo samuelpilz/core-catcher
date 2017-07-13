@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 -- Text has no arbitrary instance, defined here
@@ -35,6 +36,7 @@ newtype Edge =
     Edge { edge :: (Node, Node) }
     deriving (Show, Read, Eq, Ord, Generic)
 
+-- TODO: rename transport to energy??
 -- |Transport is a text
 newtype Transport =
     Transport { transportName :: Text }
@@ -67,9 +69,9 @@ Currently this is only a move, but this may be expanded in the future.
 -}
 data Action =
     Move
-      { player    :: Player
-      , transport :: Transport
-      , node      :: Node
+      { actionPlayer    :: Player
+      , actionTransport :: Transport
+      , actionNode      :: Node
       }
     deriving (Show, Read, Eq, Generic)
 
@@ -80,7 +82,7 @@ This should be the case if the missing player should not be seen.
 -}
 newtype PlayerPositions =
     PlayerPositions
-        { playerPositions_ :: Map Player Node -- ^player 0 is the rogue core
+        { playerPositions :: Map Player Node -- ^player 0 is the rogue core
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -88,18 +90,9 @@ newtype PlayerPositions =
 -} -- TODO: Seq instead of list?
 newtype RogueHistory =
     RogueHistory
-        { rogueHistory_ :: [(Transport, Maybe Node)]
+        { rogueHistory :: [(Transport, Maybe Node)]
         }
       deriving (Show, Read, Eq, Generic)
-
-{-- |GameState is implemented in GameLogic Module which is only exposes GameView's
-data GameState =
-    State
-        { playerPositions__ :: PlayerPositions
-        , energyMap_        :: EnergyMap
-        , rogueHistory_     :: RogueHistory
-        }
---}
 
 {- |A game view as seen by the rouge-core.
 -}
@@ -133,21 +126,21 @@ data GameView =
     RogueView RogueGameView | CatcherView CatcherGameView
     deriving (Show, Read,  Eq, Generic)
 
-playerPositions :: GameView -> PlayerPositions
-playerPositions (CatcherView view) = catcherPlayerPositions view
-playerPositions (RogueView view)   = roguePlayerPositions view
+viewPlayerPositions :: GameView -> PlayerPositions
+viewPlayerPositions (CatcherView view) = catcherPlayerPositions view
+viewPlayerPositions (RogueView view)   = roguePlayerPositions view
 
-energies :: GameView -> PlayerEnergies
-energies (CatcherView view) = catcherEnergies view
-energies (RogueView view)   = rogueEnergies view
+viewEnergies :: GameView -> PlayerEnergies
+viewEnergies (CatcherView view) = catcherEnergies view
+viewEnergies (RogueView view)   = rogueEnergies view
 
-rogueHistory :: GameView -> RogueHistory
-rogueHistory (CatcherView view) = catcherRogueHistory view
-rogueHistory (RogueView view)   = rogueOwnHistory view
+viewRogueHistory :: GameView -> RogueHistory
+viewRogueHistory (CatcherView view) = catcherRogueHistory view
+viewRogueHistory (RogueView view)   = rogueOwnHistory view
 
-nextPlayer :: GameView -> Player
-nextPlayer (CatcherView view) = catcherNextPlayer view
-nextPlayer (RogueView view)   = rogueNextPlayer view
+viewNextPlayer :: GameView -> Player
+viewNextPlayer (CatcherView view) = catcherNextPlayer view
+viewNextPlayer (RogueView view)   = rogueNextPlayer view
 
 {- |Network: Nodes and Map Transport to Overlay.
 
@@ -171,7 +164,7 @@ data Network =
 data NetworkOverlay =
     NetworkOverlay
         { overlayNodes :: [Node] -- ^the contained nodes in the Overlay.
-        , edges        :: [Edge] -- ^The edges must only connect the nodes contained in the first list.
+        , overlayEdges :: [Edge] -- ^The edges must only connect the nodes contained in the first list.
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -180,7 +173,7 @@ data NetworkOverlay =
 -}
 data InitialInfoForClient =
     InitialInfoForClient
-        { player_         :: Player
+        { initialPlayer   :: Player
         , initialGameView :: GameView
         }
         deriving (Show, Read, Eq, Generic)

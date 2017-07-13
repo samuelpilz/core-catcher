@@ -7,8 +7,6 @@ import WebSocket
 import View.MapView exposing (mapView)
 import View.TransportView exposing (transportView)
 import Debug exposing (log)
-import Example.ExampleNetwork as Example
-import Example.ExampleGameView as Example
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
@@ -79,7 +77,7 @@ update msg state =
                     { state | gameView = gameView } ! []
 
                 InitialInfoForClient_ initInfo ->
-                    { state | gameView = initInfo.initialGameView, player = initInfo.player_ } ! []
+                    { state | gameView = initInfo.initialGameView, player = initInfo.initialPlayer } ! []
 
         SelectEnergy transport ->
             { state | selectedEnergy = transport } ! []
@@ -94,7 +92,7 @@ update msg state =
 
 initialState : Flags -> ClientState
 initialState flags =
-    { gameView = RogueView Example.rogueGameView
+    { gameView = RogueView emptyRogueView
     , player = { playerId = 0 }
     , selectedEnergy = { transportName = "orange" }
     , server = flags.server
@@ -103,7 +101,7 @@ initialState flags =
 
 network : Network
 network =
-    Example.network
+    emptyNetwork
 
 
 displayInfo : GameViewDisplayInfo
@@ -116,9 +114,9 @@ jsonActionOfNode state n =
     encode 0
         << jsonEncAction
     <|
-        { player = { playerId = 0 }
-        , transport = state.selectedEnergy
-        , node = n
+        { actionPlayer = { playerId = 0 }
+        , actionTransport = state.selectedEnergy
+        , actionNode = n
         }
 
 
