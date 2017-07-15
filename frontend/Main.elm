@@ -36,8 +36,8 @@ view : ClientState -> Html Msg
 view state =
     div []
         [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
-        , mapView network displayInfo state
-        , transportView network displayInfo state
+        , mapView state.network displayInfo state
+        , transportView state.network displayInfo state
         ]
 
 
@@ -62,7 +62,11 @@ receivedStringToMsg s =
             MsgFromServer msg
 
         Err err ->
-            None -- TODO: handle json error?
+            None
+
+
+
+-- TODO: handle json error?
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
@@ -77,7 +81,12 @@ update msg state =
                     { state | gameView = gameView } ! []
 
                 InitialInfoForClient_ initInfo ->
-                    { state | gameView = initInfo.initialGameView, player = initInfo.initialPlayer } ! []
+                    { state
+                        | gameView = initInfo.initialGameView
+                        , player = initInfo.initialPlayer
+                        , network = initInfo.networkForGame
+                    }
+                        ! []
 
         SelectEnergy transport ->
             { state | selectedEnergy = transport } ! []
@@ -93,16 +102,11 @@ update msg state =
 initialState : Flags -> ClientState
 initialState flags =
     { gameView = RogueView emptyRogueView
+    , network = emptyNetwork
     , player = { playerId = 0 }
     , selectedEnergy = { transportName = "orange" }
     , server = flags.server
     }
-
-
-network : Network
-network =
-    emptyNetwork
-
 
 displayInfo : GameViewDisplayInfo
 displayInfo =

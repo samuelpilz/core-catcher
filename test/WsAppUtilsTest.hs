@@ -14,6 +14,7 @@ import qualified Glue               ()
 import qualified Mock.Connection    as Fake
 import qualified Network.Protocol   as Protocol
 import           Test.Framework
+import qualified GameNg
 
 anAction :: Protocol.Action
 anAction =
@@ -26,11 +27,11 @@ anAction =
 nonEmptyServerIO :: IO (ServerState Fake.FakeConnection)
 nonEmptyServerIO = do
     conns <- sequenceA . fromList $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..10]
-    let sndMvar = (Fake.contentMsg . snd $ conns `indexEx` 1)
+    let sndMvar = Fake.contentMsg . snd $ conns `indexEx` 1
     _ <- takeMVar sndMvar
     putMVar sndMvar (Fake.Msg $ Aeson.encode anAction)
     return ServerState
-        { gameState = exampleGameState
+        { gameState = GameNg.initialState
         , connections = conns
         }
 

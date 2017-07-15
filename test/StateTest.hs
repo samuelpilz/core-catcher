@@ -10,12 +10,13 @@ import           GameLogicTest
 import           Glue               ()
 import           Mock.Connection
 import           Test.Framework
+import qualified GameNg
 
 emptyServerIO :: IO (ServerState FakeConnection)
 emptyServerIO =
     return
         ServerState
-            { gameState = exampleGameState
+            { gameState = GameNg.initialState
             , connections = empty
             }
 
@@ -24,7 +25,7 @@ nonEmptyServerIO = do
     conns <- sequenceA . fromList $ map (\num -> emptyConnection >>= \conn -> return (num, conn)) [1, 2]
     return
         ServerState
-            { gameState = exampleGameState
+            { gameState = GameNg.initialState
             , connections = conns
             }
 

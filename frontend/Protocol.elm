@@ -299,19 +299,22 @@ jsonEncGameError  val =
 
 type alias InitialInfoForClient  =
    { initialPlayer: Player
+   , networkForGame: Network
    , initialGameView: GameView
    }
 
 jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
 jsonDecInitialInfoForClient =
    ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
+   ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
-   Json.Decode.succeed {initialPlayer = pinitialPlayer, initialGameView = pinitialGameView}
+   Json.Decode.succeed {initialPlayer = pinitialPlayer, networkForGame = pnetworkForGame, initialGameView = pinitialGameView}
 
 jsonEncInitialInfoForClient : InitialInfoForClient -> Value
 jsonEncInitialInfoForClient  val =
    Json.Encode.object
    [ ("initialPlayer", jsonEncPlayer val.initialPlayer)
+   , ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
    ]
 

@@ -9,8 +9,8 @@ import           App.ConnectionMgnt
 import           App.State
 import           App.WsAppUtils
 import           ClassyPrelude      hiding (handle)
-import qualified Glue               as Glue
 import           Network.Protocol
+import qualified GameNg
 
 handle :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> Action -> IO ()
 handle client stateVar action = do
@@ -38,7 +38,7 @@ updateGame ::  IsConnection conn =>  TVar (ServerState conn) -> Action
     -> STM (ServerState conn, Either GameError (GameState, RogueGameView, CatcherGameView))
 updateGame stateVar action = do
     state <- readTVar stateVar
-    let updateResult = Glue.updateState action $ gameState state
+    let updateResult = GameNg.updateState action $ gameState state
 
     newState <- case updateResult of
         Right (newGame, _, _) -> do
@@ -51,14 +51,13 @@ updateGame stateVar action = do
     return (newState, updateResult)
 
 
-initialInfoForClient :: ClientId -> Glue.GameState -> InitialInfoForClient
-initialInfoForClient clientId initialGameState = InitialInfoForClient
-    { initialPlayer = Player clientId
-    , initialGameView = initialView
-    }
+initialInfoForClient :: ClientId -> InitialInfoForClient
+initialInfoForClient clientId =
+    InitialInfoForClient
+        { initialPlayer = Player clientId
+        , networkForGame = GameNg.stateNetwork GameNg.initialState
+        , initialGameView = initialView
+        }
     where
-        initialView :: GameView
-        initialView =
-            (if clientId == 0 then RogueView . fst else CatcherView . snd)
-                $ either (\err -> error $ unpack $ "initial state wrong: " ++ tshow err)
-                id (Glue.getViews initialGameState)
+        initialView = (if clientId == 0 then RogueView . fst else CatcherView . snd)
+            GameNg.initialViews

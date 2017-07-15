@@ -3,13 +3,9 @@
 
 module GameNg
     ( initialState
+    , initialViews
     , updateState
     , GameState(..)
-    , stateNetwork
-    , statePlayerPositions
-    , statePlayerEnergies
-    , stateRogueHistory
-    , stateNextPlayer
     ) where
 
 import           ClassyPrelude
@@ -38,6 +34,10 @@ initialState =
         initialRogueHistory
         startPlayer
 
+-- TODO: enhance setup process
+initialViews :: (RogueGameView, CatcherGameView)
+initialViews = getViews initialState
+
 -- |The game's update function.
 updateState ::
        Action
@@ -47,8 +47,8 @@ updateState action state = do
     let player = actionPlayer action
     let energy = actionTransport action
     let targetNode = actionNode action
-    unless (player == stateNextPlayer state) . Left $
-        GameError "not player's turn"
+    unless (player == stateNextPlayer state) . Left .
+        GameError $ "not player " ++ tshow (playerId player) ++ "'s turn"
     previousNode <-
         maybeToEither (GameError "player not found") .
         lookup player . playerPositions . statePlayerPositions $
@@ -75,7 +75,8 @@ updateState action state = do
             , stateRogueHistory = newRogueHistory
             , stateNextPlayer = newNextPlayer
             }
-    return (newState, error "view not implemented", error "not implemented")
+    let (rogueView, catcherView) = getViews newState
+    return (newState, rogueView, catcherView)
 
 canMoveBetween :: Network -> Node -> Transport -> Node -> Bool
 canMoveBetween net from energy to =
@@ -108,3 +109,20 @@ nextPlayerEnergies pEnergies player energy = do
             (EnergyMap . insert energy (energyCount - 1) $ energyMap eMap) .
         playerEnergies $
         pEnergies
+
+getViews :: GameState -> (RogueGameView, CatcherGameView)
+getViews state =
+    ( RogueGameView
+        { roguePlayerPositions = statePlayerPositions state
+        , rogueEnergies = statePlayerEnergies state
+        , rogueOwnHistory = stateRogueHistory state
+        , rogueNextPlayer = stateNextPlayer state
+        }
+    , CatcherGameView
+        { catcherPlayerPositions = statePlayerPositions state
+        , catcherEnergies = statePlayerEnergies state
+        , catcherRogueHistory = stateRogueHistory state
+        , catcherNextPlayer = stateNextPlayer state
+        }
+
+    )

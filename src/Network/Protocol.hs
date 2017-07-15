@@ -66,7 +66,7 @@ newtype PlayerEnergies =
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
--}
+-} -- TODO: write into design document that an action is more than a move. Maybe change?
 data Action =
     Move
       { actionPlayer    :: Player
@@ -174,6 +174,7 @@ data NetworkOverlay =
 data InitialInfoForClient =
     InitialInfoForClient
         { initialPlayer   :: Player
+        , networkForGame  :: Network
         , initialGameView :: GameView
         }
         deriving (Show, Read, Eq, Generic)

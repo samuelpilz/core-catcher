@@ -35,9 +35,9 @@ initialPlayerEnergies =
 initialPlayer0Energies :: EnergyMap
 initialPlayer0Energies =
     EnergyMap { energyMap =
-        Map.fromList [ ( Transport { transportName = "taxi" }, 5 )
-        , ( Transport { transportName = "bus" }, 3 )
-        , ( Transport { transportName = "underground" }, 2 )
+        Map.fromList [ ( Transport { transportName = "yellow" }, 5 )
+        , ( Transport { transportName = "blue" }, 3 )
+        , ( Transport { transportName = "red" }, 2 )
         ]
     }
 
