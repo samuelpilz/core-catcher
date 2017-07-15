@@ -63,7 +63,7 @@ updateState action state = do
         Left $
         GameError "Player is unable to reach this node"
 
-    let newNextPlayer = Player $ playerId player + 1 `mod` 4 -- TODO: model all players
+    let newNextPlayer = Player $ (playerId player + 1) `mod` 4 -- TODO: model all players
 
     let newRogueHistory =
             if playerId player == 0

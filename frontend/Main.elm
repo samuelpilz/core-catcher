@@ -43,7 +43,7 @@ view state =
 
 wsUrl : String -> String
 wsUrl server =
-    "ws://" ++ log "server" server ++ ":7999"
+    "ws://" ++ server ++ ":7999"
 
 
 subscriptions : ClientState -> Sub Msg
@@ -118,7 +118,7 @@ jsonActionOfNode state n =
     encode 0
         << jsonEncAction
     <|
-        { actionPlayer = { playerId = 0 }
+        { actionPlayer = state.player
         , actionTransport = state.selectedEnergy
         , actionNode = n
         }
