@@ -4,23 +4,26 @@
 
 module GameNgTest where
 
-import           ClassyPrelude
-import           GameNg
-import           Network.Protocol
-import           Test.Framework
-import           Test.HUnit.Base
+import ClassyPrelude
+import Data.Map.Strict (insert)
+import GameNg
+import Network.Protocol
+import Test.Framework
+import Test.HUnit.Base
 
+-- (@?=) = assertEqual
 test_initialStateHasStartingPlayer0 :: IO ()
-test_initialStateHasStartingPlayer0 =
-    Player 0 @?= stateNextPlayer initialState
+test_initialStateHasStartingPlayer0 = Player 0 @?= stateNextPlayer initialState
 
 test_initialStateHasEmptyHistory :: IO ()
 test_initialStateHasEmptyHistory =
     RogueHistory [] @?= stateRogueHistory initialState
 
-prop_networkStaysSameAfterActions :: Action -> Bool
-prop_networkStaysSameAfterActions a =
-    case updateState a initialState of
-        Left (GameError _) -> True
+test_player0ValidMove :: IO ()
+test_player0ValidMove =
+    case updateState (Move (Player 0) (Transport "red") (Node 6)) initialState of
+        Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
         Right (newState, _, _) ->
-            stateNetwork newState == stateNetwork initialState
+            (insert (Player 0) (Node 6) . playerPositions . statePlayerPositions $
+             initialState) @?=
+            (playerPositions . statePlayerPositions $ newState)

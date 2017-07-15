@@ -87,9 +87,11 @@ test-suite core-catcher-test
                      , GameLogicTest
                      , WsAppUtilsTest
                      , Mock.Connection
+                     , GameNgTest
   build-depends:       base
                      , core-catcher
                      , classy-prelude
+                     , containers
                      , QuickCheck
                      , HTF
                      , HUnit

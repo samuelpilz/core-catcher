@@ -23,10 +23,11 @@ import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
+import qualified GameNg
 
 main :: IO ()
 main = do
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState }
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = GameNg.initialState }
     putStrLn "Starting Core-Catcher server on port 7999"
     Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
@@ -43,7 +44,7 @@ wsApp stateVar pendingConn = do
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
-    WsAppUtils.sendInitialInfo (clientId, gameConn) $ initialInfoForClient clientId Glue.initialState
+    WsAppUtils.sendInitialInfo (clientId, gameConn) $ initialInfoForClient clientId
     Exception.finally
         (wsListen (clientId, gameConn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt

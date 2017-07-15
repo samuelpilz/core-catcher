@@ -13,6 +13,7 @@ type Msg
 
 type alias ClientState =
     { gameView : GameView
+    , network : Network
     , player : Player
     , selectedEnergy : Transport
     , server : String
