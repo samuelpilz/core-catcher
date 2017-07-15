@@ -47,35 +47,45 @@ updateState action state = do
     let player = actionPlayer action
     let energy = actionTransport action
     let targetNode = actionNode action
+
     unless (player == stateNextPlayer state) . Left .
         GameError $ "not player " ++ tshow (playerId player) ++ "'s turn"
+
     previousNode <-
         maybeToEither (GameError "player not found") .
         lookup player . playerPositions . statePlayerPositions $
         state
+
+    newPlayerEnergies <-
+        nextPlayerEnergies (statePlayerEnergies state) player energy
+
     unless (canMoveBetween (stateNetwork state) previousNode energy targetNode) .
         Left $
         GameError "Player is unable to reach this node"
-    newPlayerEnergies <-
-        nextPlayerEnergies (statePlayerEnergies state) player energy
+
     let newNextPlayer = Player $ playerId player + 1 `mod` 4 -- TODO: model all players
+
     let newRogueHistory =
             if playerId player == 0
                 then RogueHistory $
                      (energy, Just targetNode) :
                      rogueHistory (stateRogueHistory state)
                 else stateRogueHistory state
+
     let newPlayerPositions =
             PlayerPositions $
             insert player targetNode . playerPositions . statePlayerPositions $
             state
+
     let newState = state
             { statePlayerPositions = newPlayerPositions
             , statePlayerEnergies = newPlayerEnergies
             , stateRogueHistory = newRogueHistory
             , stateNextPlayer = newNextPlayer
             }
+
     let (rogueView, catcherView) = getViews newState
+
     return (newState, rogueView, catcherView)
 
 canMoveBetween :: Network -> Node -> Transport -> Node -> Bool
