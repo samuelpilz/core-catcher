@@ -74,3 +74,5 @@ test_noEnergyLeft =
                     PlayerEnergies $
                         singletonMap (Player 0) (EnergyMap $ singletonMap (Transport "yellow") 0)
                 }
+
+-- TODO: test energy consumption, test more rounds
