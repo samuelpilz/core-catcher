@@ -38,7 +38,7 @@ resolver: lts-8.16
 packages:
 - '.'
 - location:
-    git: git@github.com:fendor/elm-bridge.git
+    git: https://github.com/fendor/elm-bridge.git
     commit: 78f3c81b01551e6845256843f2571538db1718b7
   extra-dep: true
 
