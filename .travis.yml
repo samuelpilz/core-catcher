@@ -14,11 +14,14 @@ sudo: false
 # Do not choose a language; we provide our own build tools.
 language: generic
 
+notifications:
+  slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
+
 # Caching so the next build will be fast too.
 cache:
   directories:
   - $HOME/.stack
-  - /home/travis/build/Haskell-Praxis/core-catcher/frontend/elm-stuff/build-artifacts
+  - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
 
 # Ensure necessary system libraries are present
@@ -41,26 +44,21 @@ before_install:
   - stack build
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
-  - ls ../ # debug reasons
-  - cd frontend/
   - npm install elm
   - elm-package install -y
-  - cd ..
 
 
 
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
+  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
-  # test elm frontend
-  - cd frontend/
-  - elm-make Main.elm --output=index.html
-  - cd ..
+  # test elm frontend TODO
 
 after_script:
   # publish coverage results coveralls.io
