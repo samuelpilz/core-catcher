@@ -28,10 +28,14 @@ test_player0ValidMove =
              initialState) @?=
                 (playerPositions . statePlayerPositions $ newState)
             -- test that energy has been used
-            let energyLeft = do -- TODO: if they are less indented, then does not compile...
-                                eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ newState
-                                lookup (Transport "red") . energyMap $ eMap
+            let energyLeft = calculateRemainingEnergy newState
+
             Just 1 @?= energyLeft
+    where
+        calculateRemainingEnergy state = do
+            eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ state
+            lookup (Transport "red") . energyMap $ eMap
+
 
 asdf :: GameState -> Maybe Int
 asdf newState = do
