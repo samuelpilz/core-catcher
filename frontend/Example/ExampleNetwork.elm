@@ -4,16 +4,18 @@ import Protocol exposing (..)
 import List exposing (..)
 import Set as Set
 import Maybe exposing (..)
+import EveryDict
 
 
 network : Network
 network =
     { nodes = List.map (\n -> { nodeId = n }) (range 1 16)
     , overlays =
-        [ ( { transportName = "red" }, redOverlay )
-        , ( { transportName = "blue" }, blueOverlay )
-        , ( { transportName = "orange" }, orangeOverlay )
-        ]
+        EveryDict.fromList
+            [ ( { transportName = "red" }, redOverlay )
+            , ( { transportName = "blue" }, blueOverlay )
+            , ( { transportName = "orange" }, orangeOverlay )
+            ]
     }
 
 

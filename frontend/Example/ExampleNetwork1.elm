@@ -2,16 +2,18 @@ module Example.ExampleNetwork exposing (..)
 
 import Protocol exposing (..)
 import List exposing (..)
+import EveryDict
 
 
 network : Network
 network =
     { nodes = map (\n -> { nodeId = n }) (range 1 10)
     , overlays =
-        [ ( {transportName = "underground"}, undergroundOverlay )
-        , ( {transportName = "bus"}, busOverlay )
-        , ( {transportName = "taxi"}, taxiOverlay )
-        ]
+        EveryDict.fromList
+            [ ( { transportName = "underground" }, undergroundOverlay )
+            , ( { transportName = "bus" }, busOverlay )
+            , ( { transportName = "taxi" }, taxiOverlay )
+            ]
     }
 
 

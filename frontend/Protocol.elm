@@ -5,6 +5,7 @@ import Json.Encode exposing (Value)
 -- The following module comes from bartavelle/json-helpers
 import Json.Helpers exposing (..)
 import EveryDict exposing (EveryDict)
+import Dict
 import Set
 
 
@@ -129,7 +130,7 @@ type GameView  =
 
 jsonDecGameView : Json.Decode.Decoder ( GameView )
 jsonDecGameView =
-    let jsonDecDictGameView = EveryDict.fromList
+    let jsonDecDictGameView = Dict.fromList
             [ ("RogueView", Json.Decode.map RogueView (jsonDecRogueGameView))
             , ("CatcherView", Json.Decode.map CatcherView (jsonDecCatcherGameView))
             ]
@@ -360,7 +361,7 @@ type MessageForClient  =
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
-    let jsonDecDictMessageForClient = EveryDict.fromList
+    let jsonDecDictMessageForClient = Dict.fromList
             [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
             , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             ]
