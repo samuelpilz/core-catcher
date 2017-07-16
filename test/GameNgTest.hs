@@ -23,10 +23,20 @@ test_player0ValidMove :: IO ()
 test_player0ValidMove =
     case updateState (Move (Player 0) (Transport "red") (Node 6)) initialState of
         Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
-        Right (newState, _, _) ->
+        Right (newState, _, _) -> do
             (insert (Player 0) (Node 6) . playerPositions . statePlayerPositions $
              initialState) @?=
-            (playerPositions . statePlayerPositions $ newState)
+                (playerPositions . statePlayerPositions $ newState)
+            -- test that energy has been used
+            let energyLeft = do -- TODO: if they are less indented, then does not compile...
+                                eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ newState
+                                lookup (Transport "red") . energyMap $ eMap
+            Just 1 @?= energyLeft
+
+asdf :: GameState -> Maybe Int
+asdf newState = do
+    eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ newState
+    lookup (Transport "red") . energyMap $ eMap
 
 test_notPlayer1Turn :: IO ()
 test_notPlayer1Turn =
