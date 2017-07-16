@@ -4,6 +4,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
+-- Text has no arbitrary instance, defined here
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Network.Protocol where
 
 import           ClassyPrelude
@@ -98,22 +101,10 @@ data GameState =
         }
 --}
 
-{- |A game view is a subset of the game-State as seen by one of the players.
-A game view should be determined by the player it is constructed for and a game state.
-GameView is glue code for the game state. No actual game state is sent between
-the fronend and the backend but only the views.
-Views can contain different information based on the receiver.
--}
-class (FromJSON view, ToJSON view) => GameView view where
-    playerPositions :: view -> PlayerPositions
-    energies :: view -> PlayerEnergies
-    rogueHistory :: view -> RogueHistory
-    nextPlayer :: view -> Player
-
 {- |A game view as seen by the rouge-core.
 -}
 data RogueGameView =
-    RogueView
+    RogueGameView
         { roguePlayerPositions :: PlayerPositions
         , rogueEnergies        :: PlayerEnergies
         , rogueOwnHistory      :: RogueHistory
@@ -124,7 +115,7 @@ data RogueGameView =
 {- |A game view as seen by the catchers
 -}
 data CatcherGameView =
-    CatcherView
+    CatcherGameView
         { catcherPlayerPositions :: PlayerPositions
         , catcherEnergies        :: PlayerEnergies
         , catcherRogueHistory    :: RogueHistory
@@ -132,17 +123,31 @@ data CatcherGameView =
         }
         deriving (Show, Read, Eq, Generic)
 
-instance GameView RogueGameView where
-    playerPositions = roguePlayerPositions
-    energies = rogueEnergies
-    rogueHistory = rogueOwnHistory
-    nextPlayer = rogueNextPlayer
+{- |A game view is a subset of the game-State as seen by one of the players.
+A game view should be determined by the player it is constructed for and a game state.
+GameView is glue code for the game state. No actual game state is sent between
+the fronend and the backend but only the views.
+Views can contain different information based on the receiver.
+-}
+data GameView =
+    RogueView RogueGameView | CatcherView CatcherGameView
+    deriving (Show, Read,  Eq, Generic)
 
-instance GameView CatcherGameView where
-    playerPositions = catcherPlayerPositions
-    energies = catcherEnergies
-    rogueHistory = catcherRogueHistory
-    nextPlayer = catcherNextPlayer
+playerPositions :: GameView -> PlayerPositions
+playerPositions (CatcherView view) = catcherPlayerPositions view
+playerPositions (RogueView view)   = roguePlayerPositions view
+
+energies :: GameView -> PlayerEnergies
+energies (CatcherView view) = catcherEnergies view
+energies (RogueView view)   = rogueEnergies view
+
+rogueHistory :: GameView -> RogueHistory
+rogueHistory (CatcherView view) = catcherRogueHistory view
+rogueHistory (RogueView view)   = rogueOwnHistory view
+
+nextPlayer :: GameView -> Player
+nextPlayer (CatcherView view) = catcherNextPlayer view
+nextPlayer (RogueView view)   = rogueNextPlayer view
 
 {- |Network: Nodes and Map Transport to Overlay.
 
@@ -169,6 +174,26 @@ data NetworkOverlay =
         , edges        :: [Edge] -- ^The edges must only connect the nodes contained in the first list.
         }
         deriving (Show, Read, Eq, Generic)
+
+{- | InitialDataForClient the initial info the client gets
+
+-}
+data InitialInfoForClient =
+    InitialInfoForClient
+        { player_         :: Player
+        , initialGameView :: GameView
+        -- TODO: network?
+        }
+        deriving (Show, Read, Eq, Generic)
+
+data MessageForServer =
+    Action_ Action
+    deriving (Show, Read, Eq, Generic)
+
+data MessageForClient =
+    GameView_ GameView |
+    InitialInfoForClient_ InitialInfoForClient
+    deriving (Show, Read, Eq, Generic)
 
 instance FromJSONKey Player where
 
@@ -225,14 +250,31 @@ instance Arbitrary GameError where
 
 instance Arbitrary CatcherGameView where
     arbitrary =
-        CatcherView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        CatcherGameView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary RogueGameView where
     arbitrary =
-        RogueView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        RogueGameView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary Network where
+    arbitrary =
+        Network <$> arbitrary <*> arbitrary
+
+instance Arbitrary NetworkOverlay where
+    arbitrary =
+        NetworkOverlay <$> arbitrary <*> arbitrary
+
+instance Arbitrary GameView where
+    arbitrary = do
+        rogue <- arbitrary
+        if rogue then
+            RogueView <$> arbitrary
+        else
+            CatcherView <$> arbitrary
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
+deriveBoth Elm.Derive.defaultOptions ''GameView
 deriveBoth Elm.Derive.defaultOptions ''RogueGameView
 deriveBoth Elm.Derive.defaultOptions ''CatcherGameView
 deriveBoth Elm.Derive.defaultOptions ''GameError
@@ -245,3 +287,6 @@ deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Transport
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
+deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
+deriveBoth Elm.Derive.defaultOptions ''MessageForServer
+deriveBoth Elm.Derive.defaultOptions ''MessageForClient

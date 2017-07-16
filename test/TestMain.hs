@@ -10,6 +10,10 @@ import {-@ HTF_TESTS @-} SpecTest
 import {-@ HTF_TESTS @-} MainTest
 import {-@ HTF_TESTS @-} StateTest
 import {-@ HTF_TESTS @-} GameLogicTest
+import {-@ HTF_TESTS @-} WsAppUtilsTest
 
 main :: IO ()
-main = htfMain htf_importedTests
+main = do
+    args <- getCurrentArgs
+    setDefaultArgs (args { maxSuccess = 15 } ) 
+    htfMain htf_importedTests

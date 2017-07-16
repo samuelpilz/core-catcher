@@ -24,11 +24,11 @@ rogueGameView =
 
 playerPositions : PlayerPositions
 playerPositions =
-    { playerPositions_ =
-        [ ( { playerId = 0 }, { nodeId = 1 } )
-        , ( { playerId = 1 }, { nodeId = 4 } )
-        , ( { playerId = 2 }, { nodeId = 2 } )
-        ]
+    { playerPositions_ = []
+        --[ ( { playerId = 0 }, { nodeId = 1 } )
+        --, ( { playerId = 1 }, { nodeId = 4 } )
+        --, ( { playerId = 2 }, { nodeId = 2 } )
+        --]
     }
 
 

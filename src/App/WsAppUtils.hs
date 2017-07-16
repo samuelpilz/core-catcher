@@ -4,24 +4,44 @@
 
 module App.WsAppUtils where
 
-import           ClassyPrelude
 import           App.Connection
 import           App.ConnectionMgnt
-import qualified Data.Aeson       as Aeson
+import           ClassyPrelude
+import qualified Data.Aeson         as Aeson
 import           Network.Protocol
 
-sendView :: (IsConnection conn, GameView view) => view -> ClientConnection conn -> IO ()
-sendView view ci =
-    sendData (snd ci) (Aeson.encode view)
+sendToClient :: IsConnection conn => ClientConnection conn -> MessageForClient -> IO ()
+sendToClient ci msg =
+    sendData (snd ci) (Aeson.encode msg)
+
+sendInitialInfo :: IsConnection conn => ClientConnection conn -> InitialInfoForClient -> IO ()
+sendInitialInfo ci info =
+    sendToClient ci $ InitialInfoForClient_ info
+
+sendView :: IsConnection conn => ClientConnection conn -> GameView -> IO ()
+sendView ci view =
+    sendToClient ci $ GameView_ view
+
+sendRogueView :: IsConnection conn => ClientConnection conn -> RogueGameView -> IO ()
+sendRogueView ci view =
+    sendView ci $ RogueView view
+
+sendCatcherView :: IsConnection conn => ClientConnection conn -> CatcherGameView -> IO ()
+sendCatcherView ci view =
+    sendView ci $ CatcherView view
+
+sendError :: IsConnection conn => ClientConnection conn -> GameError -> IO ()
+sendError ci err =
+    sendData (snd ci) (Aeson.encode err)
 
 recvAction :: IsConnection conn => ClientConnection conn -> IO (Maybe Action)
 recvAction (_,ws) = do
     wsData <- receiveData ws
     return (Aeson.decode wsData)
 
-broadcast :: (IsConnection conn, GameView view) => view -> ClientConnections conn -> IO ()
-broadcast view  =
-    mapM_ (sendView view)
+broadcastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGameView -> IO ()
+broadcastCatcherView conns view =
+    mapM_ (\conn -> sendCatcherView conn view) conns
 
 withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient cid =

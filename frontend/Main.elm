@@ -19,12 +19,9 @@ import Json.Decode exposing (decodeString)
 import AllDict exposing (..)
 
 
-main : Program Never ClientState Msg
+main : Program Flags ClientState Msg
 main =
-    log2 "start state"
-        initialState
-        -- TODO: remove
-        program
+    programWithFlags
         { init = init
         , update = update
         , view = view
@@ -32,57 +29,79 @@ main =
         }
 
 
-init : ( ClientState, Cmd Msg )
-init =
-    ( initialState, Cmd.none )
+init : Flags -> ( ClientState, Cmd Msg )
+init flags =
+    initialState flags ! []
 
 
 view : ClientState -> Html Msg
 view state =
     div []
-        [ h1 [] [ text "Core catcher" ]
+        [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
         , mapView network displayInfo state
         , transportView network displayInfo state
         ]
 
 
-wsUrl : String
-wsUrl =
-    "ws://localhost:3000"
+wsUrl : String -> String
+wsUrl server =
+    "ws://" ++ log "server" server ++ ":7999"
 
 
 subscriptions : ClientState -> Sub Msg
-subscriptions _ =
-    WebSocket.listen wsUrl Received
+subscriptions state =
+    WebSocket.listen (wsUrl state.server) receivedStringToMsg
+
+
+
+--|
+
+
+receivedStringToMsg : String -> Msg
+receivedStringToMsg s =
+    case decodeString jsonDecMessageForClient s of
+        Ok msg ->
+            MsgFromServer msg
+
+        Err err ->
+            None
+
+
+
+-- TODO: handle json error?
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            state ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode state n ]
+            state ! [ WebSocket.send (wsUrl state.server) << log "send" <| jsonActionOfNode state n ]
 
-        Received s ->
-            case decodeString jsonDecRogueGameView s of
-                Ok newView ->
-                    { state | gameView = RogueView newView } ! []
+        MsgFromServer msg ->
+            case msg of
+                GameView_ gameView ->
+                    { state | gameView = gameView } ! []
 
-                -- TODO: not only RogueView constructor
-                Err err ->
-                    log2 "error" err state ! []
+                InitialInfoForClient_ initInfo ->
+                    { state | gameView = initInfo.initialGameView, player = initInfo.player_ } ! []
 
         SelectEnergy transport ->
             { state | selectedEnergy = transport } ! []
 
+        None ->
+            state ! []
 
 
--- random dev helper functions and type defs
+
+-- random dev helper functions
 
 
-initialState : ClientState
-initialState =
+initialState : Flags -> ClientState
+initialState flags =
     { gameView = RogueView Example.rogueGameView
+    , player = { playerId = 0 }
     , selectedEnergy = { transportName = "orange" }
+    , server = flags.server
     }
 
 

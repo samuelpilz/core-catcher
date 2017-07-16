@@ -14,10 +14,15 @@ sudo: false
 # Do not choose a language; we provide our own build tools.
 language: generic
 
+notifications:
+  slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
+
 # Caching so the next build will be fast too.
 cache:
   directories:
   - $HOME/.stack
+  - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
+  - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
 
 # Ensure necessary system libraries are present
 addons:
@@ -37,29 +42,26 @@ before_install:
   - cd stack-hpc-coveralls
   - stack --no-terminal --install-ghc test --only-dependencies
   - stack build
-  - echo `stack path --local-install-root`/bin/shc
-  - echo `stack path --local-install-root`
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
-  - ls ../ # debug reasons
+  - npm install elm
+  - elm-package install -y
 
 
 
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
+  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
+
 
 script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
+  # test elm frontend TODO
 
 after_script:
   # publish coverage results coveralls.io
   # after_script might clean some things
-  - ls .stack-work/install/x86_64-linux/lts-8.13/8.0.2/hpc
-  - ls -al ~/.local/bin/shc
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
-  - file ~/.local/bin/shc
-  - ldd ~/.local/bin/shc
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
-  - cat json.file

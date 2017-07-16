@@ -13,9 +13,9 @@ module Main where
 
 import           App.ConnectionMgnt
 import           App.State
-import qualified App.WsApp                      as WsApp
+import           App.WsApp
 import qualified App.WsAppUtils                 as WsAppUtils
-import           ClassyPrelude
+import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
 import qualified Glue
 --import qualified Network.ExampleGameView        as Example
@@ -29,23 +29,24 @@ import qualified Network.WebSockets             as WS
 main :: IO ()
 main = do
     writeFileUtf8 "frontend/Protocol.elm" ElmDerive.elmProtocolModule
-    putStrLn "Starting Core-Catcher server on port 3000"
-    Warp.run 3000 $ WS.websocketsOr
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState }
+    putStrLn "Starting Core-Catcher server on port 7999"
+    Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
-        wsApp
+        (wsApp stateVar)
         httpApp
 
 httpApp :: Wai.Application
 httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket request"
 
 
-wsApp :: WS.ServerApp
-wsApp pendingConn = do -- TODO: fixme: new state for every connection...
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState } -- TODO: insert GL.GameState instead
+wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp
+wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
     let gameConn = GameConnection conn
     clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
     WS.forkPingThread conn 30
+    WsAppUtils.sendInitialInfo (clientId, gameConn) $ initialInfoForClient clientId Glue.initialState
     Exception.finally
         (wsListen (clientId, gameConn) stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
@@ -55,10 +56,11 @@ wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
-            -- TODO: what about request forging?
+            -- TODO: what about request forging? (send game-token to client using player-mgnt)
             -- TODO: validation playerId==clientId
-            WsApp.handle stateVar action
+            handle client stateVar action
             return ()
 
         Nothing     ->
             putStrLn "ERROR: The message could not be decoded"
+            -- TODO: send info back to client
