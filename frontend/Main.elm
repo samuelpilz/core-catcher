@@ -65,12 +65,12 @@ update msg state =
         Received s ->
             case decodeString jsonDecRogueGameView s of
                 Ok newView ->
-                    {state | gameView = RogueView newView } ! []
+                    { state | gameView = RogueView newView } ! []
 
                 -- TODO: not only RogueView constructor
                 Err err ->
                     log2 "error" err state ! []
-        
+
         SelectEnergy transport ->
             { state | selectedEnergy = transport } ! []
 
