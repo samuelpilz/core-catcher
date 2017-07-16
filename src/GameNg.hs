@@ -12,10 +12,8 @@ import           ClassyPrelude
 import           Config.InitialState
 import           Config.Network      as Config
 import           Data.Easy           (maybeToEither)
-import           Data.Map.Strict     (insert)
 import           Network.Protocol
 
--- TODO: is there a better insert function than Data.Map.Strict.insert?
 data GameState = GameState
     { stateNetwork         :: Network
     , statePlayerPositions :: PlayerPositions
@@ -72,10 +70,12 @@ updateState action state = do
                      rogueHistory (stateRogueHistory state)
                 else stateRogueHistory state
 
-    let newPlayerPositions =
-            PlayerPositions $
-            insert player targetNode . playerPositions . statePlayerPositions $
-            state
+    let newPlayerPositions = PlayerPositions
+            (insertMap player targetNode
+            . playerPositions
+            . statePlayerPositions
+            $ state
+            )
 
     let newState = state
             { statePlayerPositions = newPlayerPositions
@@ -114,9 +114,9 @@ nextPlayerEnergies pEnergies player energy = do
         eMap
     unless (energyCount >= 1) . Left $ GameError "not enough energy"
     return . PlayerEnergies $
-        insert
+        insertMap
             player
-            (EnergyMap . insert energy (energyCount - 1) $ energyMap eMap) .
+            (EnergyMap . insertMap energy (energyCount - 1) $ energyMap eMap) .
         playerEnergies $
         pEnergies
 
