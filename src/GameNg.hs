@@ -70,12 +70,10 @@ updateState action state = do
                      rogueHistory (stateRogueHistory state)
                 else stateRogueHistory state
 
-    let newPlayerPositions = PlayerPositions
-            (insertMap player targetNode
-            . playerPositions
+    let newPlayerPositions =
+            insertMap player targetNode
             . statePlayerPositions
             $ state
-            )
 
     let newState = state
             { statePlayerPositions = newPlayerPositions
