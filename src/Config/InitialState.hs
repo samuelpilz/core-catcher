@@ -17,11 +17,12 @@ startPlayer = Player 0
 initialPlayerPositions :: PlayerPositions
 initialPlayerPositions =
     PlayerPositions { playerPositions =
-        Map.fromList [ ( Player { playerId = 0 }, Node { nodeId = 1 } )
-        , ( Player { playerId = 1 }, Node { nodeId = 4 } )
-        , ( Player { playerId = 2 }, Node { nodeId = 2 } )
-        , ( Player { playerId = 3 }, Node { nodeId = 14 } )
-        ]
+        Map.fromList
+            [ ( Player { playerId = 0 }, Node { nodeId = 1 } )
+            , ( Player { playerId = 1 }, Node { nodeId = 4 } )
+            , ( Player { playerId = 2 }, Node { nodeId = 2 } )
+            , ( Player { playerId = 3 }, Node { nodeId = 14 } )
+            ]
     }
 
 
