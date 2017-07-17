@@ -4,6 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 -- Text has no arbitrary instance, defined here
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -283,3 +284,47 @@ deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
+
+type instance Element PlayerPositions = Node
+
+instance Monoid PlayerPositions where
+    mempty = PlayerPositions mempty
+    mappend pp1 pp2 = PlayerPositions $ playerPositions pp1 ++ playerPositions pp2
+
+instance MonoFunctor PlayerPositions where
+    omap f = PlayerPositions . omap f . playerPositions
+
+instance MonoFoldable PlayerPositions where
+    ofoldMap f = ofoldMap f . playerPositions
+    ofoldr f x = ofoldr f x . playerPositions
+    ofoldl' f x = ofoldl' f x . playerPositions
+    olength = olength . playerPositions
+    olength64 = olength64 . playerPositions
+    ofoldr1Ex f = ofoldr1Ex f . playerPositions
+    ofoldl1Ex' f = ofoldl1Ex' f . playerPositions
+
+instance MonoTraversable PlayerPositions where
+    otraverse f = map PlayerPositions . otraverse f . playerPositions
+
+instance Semigroup PlayerPositions where
+instance GrowingAppend PlayerPositions where
+
+
+instance SetContainer PlayerPositions where
+    type ContainerKey PlayerPositions = Player
+    member p = member p . playerPositions
+    notMember p = notMember p . playerPositions
+    union pp1 pp2 = PlayerPositions $ union (playerPositions pp1) (playerPositions pp2)
+    difference pp1 pp2 = PlayerPositions $ difference (playerPositions pp1) (playerPositions pp2)
+    intersection pp1 pp2 = PlayerPositions $ intersection (playerPositions pp1) (playerPositions pp2)
+    keys = keys . playerPositions
+
+
+instance IsMap PlayerPositions where
+    type MapValue PlayerPositions = Node
+    lookup k = lookup k . playerPositions
+    insertMap k v = PlayerPositions . insertMap k v . playerPositions
+    deleteMap k = PlayerPositions . deleteMap k . playerPositions
+    singletonMap k v = PlayerPositions $ singletonMap k v
+    mapFromList = PlayerPositions . mapFromList
+    mapToList = mapToList . playerPositions
