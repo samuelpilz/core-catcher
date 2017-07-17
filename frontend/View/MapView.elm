@@ -6,13 +6,15 @@ import Html.Events exposing (onClick)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
-import Dict exposing (..)
+import EveryDict exposing (..)
 import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
 
+
+-- TODO: css style with css-library?
 
 
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
@@ -28,11 +30,13 @@ mapView network displayInfo clientState =
             ++ List.concatMap
                 -- overlays
                 (mapViewOfNetworkOverlayName displayInfo network)
-                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) network.overlays)
+                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) <| EveryDict.toList network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
-                (playerPositions clientState.gameView).playerPositions_
+                (EveryDict.toList
+                    (playerPositions clientState.gameView).playerPositions_
+                )
 
 
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
@@ -102,8 +106,8 @@ playerCircle nodeXyMap playerColorMap ( player, node ) =
         , stroke << Maybe.withDefault "white" << AllDict.get player <| playerColorMap
         , Svg.Attributes.cursor "pointer"
         , onClick (Clicked node)
-        , strokeWidth "2"
-        , Svg.Attributes.strokeDasharray "5,5"
+        , strokeWidth "4"
+        , Svg.Attributes.strokeDasharray "5,3.5"
         ]
         []
 

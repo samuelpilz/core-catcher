@@ -25,7 +25,7 @@ anAction =
 
 nonEmptyServerIO :: IO (ServerState Fake.FakeConnection)
 nonEmptyServerIO = do
-    conns <- sequenceA . fromList $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..100]
+    conns <- sequenceA . fromList $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..10]
     let sndMvar = (Fake.contentMsg . snd $ conns `indexEx` 1)
     _ <- takeMVar sndMvar
     putMVar sndMvar (Fake.Msg $ Aeson.encode anAction)

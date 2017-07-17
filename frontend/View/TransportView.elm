@@ -48,7 +48,7 @@ historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
 historyView gameView displayInfo =
     List.map2 historyRecord (range 0 100)
         << List.map (Maybe.withDefault "black")
-        << List.map (\(t, _) -> AllDict.get t displayInfo.colorMap)
+        << List.map (\( t, _ ) -> AllDict.get t displayInfo.colorMap)
     <|
         (rogueHistory gameView).rogueHistory_
 
@@ -64,7 +64,11 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , Svg.Attributes.cursor "pointer"
             , fill color
             , stroke "#000000"
-            , strokeWidth << toString <| if selectedEnergy == transport then 3 else 1
+            , strokeWidth << toString <|
+                if selectedEnergy == transport then
+                    3
+                else
+                    1
             , onClick (SelectEnergy transport)
             ]
             []
@@ -73,8 +77,7 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , y << toString <| 30
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
-
-            --, onClick
+            , onClick (SelectEnergy transport)
             , textAnchor "middle"
             ]
             [ text << toString <| count ]

@@ -8,6 +8,7 @@ import Protocol exposing (..)
 import List exposing (..)
 import Tuple as Tuple
 import Maybe exposing (..)
+import EveryDict exposing (EveryDict)
 
 
 playerPositions : GameView -> PlayerPositions
@@ -61,9 +62,6 @@ getFromList k list =
 
 getEnergyForTransportAndPlayer : Player -> Transport -> GameView -> Int
 getEnergyForTransportAndPlayer player transport gameView =
-    Maybe.withDefault 0
-        << Maybe.andThen (getFromList transport)
-        << Maybe.map .energyMap
-        << getFromList player
-    <|
-        (energies gameView).playerEnergies
+    EveryDict.get player (energies gameView).playerEnergies
+        |> Maybe.andThen (\energies -> EveryDict.get transport energies.energyMap)
+        |> Maybe.withDefault 0

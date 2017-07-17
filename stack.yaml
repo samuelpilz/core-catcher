@@ -37,9 +37,14 @@ resolver: lts-8.16
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- location:
+    git: https://github.com/fendor/elm-bridge.git
+    commit: 78f3c81b01551e6845256843f2571538db1718b7
+  extra-dep: true
+
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps: [ data-easy-0.7.0 ]
 
 # Override default flag values for local packages and extra-deps
 flags: {}

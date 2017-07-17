@@ -19,18 +19,19 @@ import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
 import qualified Glue
 --import qualified Network.ExampleGameView        as Example
+import qualified Network.ElmDerive              as ElmDerive
 import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 
-
 main :: IO ()
 main = do
-    stateVar <- newTVarIO $ ServerState {connections = empty, gameState = Glue.initialState }
-    putStrLn "Starting Core-Catcher server on port 3000"
-    Warp.run 3000 $ WS.websocketsOr
+    writeFileUtf8 "frontend/Protocol.elm" ElmDerive.elmProtocolModule
+    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState }
+    putStrLn "Starting Core-Catcher server on port 7999"
+    Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
@@ -55,10 +56,11 @@ wsListen client stateVar = forever $ do
     maybeAction <- WsAppUtils.recvAction client
     case maybeAction of
         Just action -> do
-            -- TODO: what about request forging?
+            -- TODO: what about request forging? (send game-token to client using player-mgnt)
             -- TODO: validation playerId==clientId
             handle client stateVar action
             return ()
-        Nothing     -> do
-            putStrLn "ERROR: The message could not be decoded"
 
+        Nothing     ->
+            putStrLn "ERROR: The message could not be decoded"
+            -- TODO: send info back to client
