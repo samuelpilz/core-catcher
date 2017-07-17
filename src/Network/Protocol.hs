@@ -285,15 +285,13 @@ deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 
+-- IsMap implementation for PlayerPositions
 type instance Element PlayerPositions = Node
-
 instance Monoid PlayerPositions where
     mempty = PlayerPositions mempty
     mappend pp1 pp2 = PlayerPositions $ playerPositions pp1 ++ playerPositions pp2
-
 instance MonoFunctor PlayerPositions where
     omap f = PlayerPositions . omap f . playerPositions
-
 instance MonoFoldable PlayerPositions where
     ofoldMap f = ofoldMap f . playerPositions
     ofoldr f x = ofoldr f x . playerPositions
@@ -302,14 +300,10 @@ instance MonoFoldable PlayerPositions where
     olength64 = olength64 . playerPositions
     ofoldr1Ex f = ofoldr1Ex f . playerPositions
     ofoldl1Ex' f = ofoldl1Ex' f . playerPositions
-
 instance MonoTraversable PlayerPositions where
     otraverse f = map PlayerPositions . otraverse f . playerPositions
-
 instance Semigroup PlayerPositions where
 instance GrowingAppend PlayerPositions where
-
-
 instance SetContainer PlayerPositions where
     type ContainerKey PlayerPositions = Player
     member p = member p . playerPositions
@@ -318,8 +312,6 @@ instance SetContainer PlayerPositions where
     difference pp1 pp2 = PlayerPositions $ difference (playerPositions pp1) (playerPositions pp2)
     intersection pp1 pp2 = PlayerPositions $ intersection (playerPositions pp1) (playerPositions pp2)
     keys = keys . playerPositions
-
-
 instance IsMap PlayerPositions where
     type MapValue PlayerPositions = Node
     lookup k = lookup k . playerPositions
@@ -328,3 +320,75 @@ instance IsMap PlayerPositions where
     singletonMap k v = PlayerPositions $ singletonMap k v
     mapFromList = PlayerPositions . mapFromList
     mapToList = mapToList . playerPositions
+
+-- IsMap implementation for EnergyMap
+type instance Element EnergyMap = Int
+instance Monoid EnergyMap where
+    mempty = EnergyMap mempty
+    mappend pp1 pp2 = EnergyMap $ energyMap pp1 ++ energyMap pp2
+instance MonoFunctor EnergyMap where
+    omap f = EnergyMap . omap f . energyMap
+instance MonoFoldable EnergyMap where
+    ofoldMap f = ofoldMap f . energyMap
+    ofoldr f x = ofoldr f x . energyMap
+    ofoldl' f x = ofoldl' f x . energyMap
+    olength = olength . energyMap
+    olength64 = olength64 . energyMap
+    ofoldr1Ex f = ofoldr1Ex f . energyMap
+    ofoldl1Ex' f = ofoldl1Ex' f . energyMap
+instance MonoTraversable EnergyMap where
+    otraverse f = map EnergyMap . otraverse f . energyMap
+instance Semigroup EnergyMap where
+instance GrowingAppend EnergyMap where
+instance SetContainer EnergyMap where
+    type ContainerKey EnergyMap = Transport
+    member p = member p . energyMap
+    notMember p = notMember p . energyMap
+    union pp1 pp2 = EnergyMap $ union (energyMap pp1) (energyMap pp2)
+    difference pp1 pp2 = EnergyMap $ difference (energyMap pp1) (energyMap pp2)
+    intersection pp1 pp2 = EnergyMap $ intersection (energyMap pp1) (energyMap pp2)
+    keys = keys . energyMap
+instance IsMap EnergyMap where
+    type MapValue EnergyMap = Int
+    lookup k = lookup k . energyMap
+    insertMap k v = EnergyMap . insertMap k v . energyMap
+    deleteMap k = EnergyMap . deleteMap k . energyMap
+    singletonMap k v = EnergyMap $ singletonMap k v
+    mapFromList = EnergyMap . mapFromList
+    mapToList = mapToList . energyMap
+
+-- IsMap implementation for PlayerEnergies
+type instance Element PlayerEnergies = EnergyMap
+instance Monoid PlayerEnergies where
+    mempty = PlayerEnergies mempty
+    mappend pp1 pp2 = PlayerEnergies $ playerEnergies pp1 ++ playerEnergies pp2
+instance MonoFunctor PlayerEnergies where
+    omap f = PlayerEnergies . omap f . playerEnergies
+instance MonoFoldable PlayerEnergies where
+    ofoldMap f = ofoldMap f . playerEnergies
+    ofoldr f x = ofoldr f x . playerEnergies
+    ofoldl' f x = ofoldl' f x . playerEnergies
+    olength = olength . playerEnergies
+    olength64 = olength64 . playerEnergies
+    ofoldr1Ex f = ofoldr1Ex f . playerEnergies
+    ofoldl1Ex' f = ofoldl1Ex' f . playerEnergies
+instance MonoTraversable PlayerEnergies where
+    otraverse f = map PlayerEnergies . otraverse f . playerEnergies
+instance Semigroup PlayerEnergies where
+instance GrowingAppend PlayerEnergies where
+instance SetContainer PlayerEnergies where
+    type ContainerKey PlayerEnergies = Player
+    member p = member p . playerEnergies
+    notMember p = notMember p . playerEnergies
+    union pp1 pp2 = PlayerEnergies $ union (playerEnergies pp1) (playerEnergies pp2)
+    difference pp1 pp2 = PlayerEnergies $ difference (playerEnergies pp1) (playerEnergies pp2)
+    intersection pp1 pp2 = PlayerEnergies $ intersection (playerEnergies pp1) (playerEnergies pp2)
+    keys = keys . playerEnergies
+instance IsMap PlayerEnergies where
+    type MapValue PlayerEnergies = EnergyMap
+    lookup k = lookup k . playerEnergies
+    insertMap k v = PlayerEnergies . insertMap k v . playerEnergies
+    deleteMap k = PlayerEnergies . deleteMap k . playerEnergies
+    singletonMap k v = PlayerEnergies $ singletonMap k v
+    mapFromList = PlayerEnergies . mapFromList
+    mapToList = mapToList . playerEnergies

@@ -51,15 +51,16 @@ updateState action state = do
 
     previousNode <-
         maybeToEither (GameError "player not found") .
-        lookup player . playerPositions . statePlayerPositions $
+        lookup player .
+        statePlayerPositions $
         state
 
     newPlayerEnergies <-
         nextPlayerEnergies (statePlayerEnergies state) player energy
 
     unless (canMoveBetween (stateNetwork state) previousNode energy targetNode) .
-        Left $
-        GameError "Player is unable to reach this node"
+        Left .
+        GameError $ "Player is unable to reach this node"
 
     let newNextPlayer = Player $ (playerId player + 1) `mod` 4 -- TODO: model all players
 
@@ -104,19 +105,11 @@ nextPlayerEnergies ::
        PlayerEnergies -> Player -> Transport -> Either GameError PlayerEnergies
 nextPlayerEnergies pEnergies player energy = do
     eMap <-
-        maybeToEither (GameError "player not found") .
-        lookup player . playerEnergies $
-        pEnergies
+        maybeToEither (GameError "player not found") . lookup player $ pEnergies
     energyCount <-
-        maybeToEither (GameError "energy not found") . lookup energy . energyMap $
-        eMap
+        maybeToEither (GameError "energy not found") . lookup energy $ eMap
     unless (energyCount >= 1) . Left $ GameError "not enough energy"
-    return . PlayerEnergies $
-        insertMap
-            player
-            (EnergyMap . insertMap energy (energyCount - 1) $ energyMap eMap) .
-        playerEnergies $
-        pEnergies
+    return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
 
 getViews :: GameState -> (RogueGameView, CatcherGameView)
 getViews state =
