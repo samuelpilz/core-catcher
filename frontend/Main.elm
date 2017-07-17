@@ -64,7 +64,11 @@ receivedStringToMsg s =
             MsgFromServer msg
 
         Err err ->
-            None -- TODO: handle json error?
+            None
+
+
+
+-- TODO: handle json error?
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
