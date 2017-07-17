@@ -1,4 +1,4 @@
-# Core-Catcher [![Build Status](https://travis-ci.org/Haskell-Praxis/core-catcher.svg?branch=master)](https://travis-ci.org/Haskell-Praxis/core-catcher) [![Coverage Status](https://coveralls.io/repos/github/Haskell-Praxis/core-catcher/badge.svg?branch=master)](https://coveralls.io/github/Haskell-Praxis/core-catcher?branch=master)
+# Core-Catcher [![Build Status](https://travis-ci.org/Haskell-Praxis/core-catcher.svg?branch=dev)](https://travis-ci.org/Haskell-Praxis/core-catcher) [![Coverage Status](https://coveralls.io/repos/github/Haskell-Praxis/core-catcher/badge.svg?branch=dev)](https://coveralls.io/github/Haskell-Praxis/core-catcher?branch=dev)
 
 A multiplayer game server and frontend, written in Haskell and Elm.
 
