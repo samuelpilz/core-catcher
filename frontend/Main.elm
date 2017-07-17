@@ -19,12 +19,9 @@ import Json.Decode exposing (decodeString)
 import AllDict exposing (..)
 
 
-main : Program Never ClientState Msg
+main : Program Flags ClientState Msg
 main =
-    log2 "start state"
-        initialState
-        -- TODO: remove
-        program
+    programWithFlags
         { init = init
         , update = update
         , view = view
@@ -32,9 +29,9 @@ main =
         }
 
 
-init : ( ClientState, Cmd Msg )
-init =
-    ( initialState, Cmd.none )
+init : Flags -> ( ClientState, Cmd Msg )
+init flags =
+    initialState flags ! []
 
 
 view : ClientState -> Html Msg
@@ -46,14 +43,14 @@ view state =
         ]
 
 
-wsUrl : String
-wsUrl =
-    "ws://localhost:3000"
+wsUrl : String -> String
+wsUrl server =
+    "ws://" ++ log "server" server ++ ":7999"
 
 
 subscriptions : ClientState -> Sub Msg
-subscriptions _ =
-    WebSocket.listen wsUrl receivedStringToMsg
+subscriptions state =
+    WebSocket.listen (wsUrl state.server) receivedStringToMsg
 
 
 
@@ -70,11 +67,15 @@ receivedStringToMsg s =
             None
 
 
+
+-- TODO: handle json error?
+
+
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            state ! [ WebSocket.send wsUrl << log "send" <| jsonActionOfNode state n ]
+            state ! [ WebSocket.send (wsUrl state.server) << log "send" <| jsonActionOfNode state n ]
 
         MsgFromServer msg ->
             case msg of
@@ -92,14 +93,15 @@ update msg state =
 
 
 
--- random dev helper functions and type defs
+-- random dev helper functions
 
 
-initialState : ClientState
-initialState =
+initialState : Flags -> ClientState
+initialState flags =
     { gameView = RogueView Example.rogueGameView
     , player = { playerId = 0 }
     , selectedEnergy = { transportName = "orange" }
+    , server = flags.server
     }
 
 
