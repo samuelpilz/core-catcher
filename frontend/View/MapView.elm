@@ -12,8 +12,11 @@ import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import GameViewDisplay exposing (..)
+import Debug exposing (log)
+
 
 -- TODO: css style with css-library?
+
 
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
 mapView network displayInfo clientState =
@@ -33,6 +36,8 @@ mapView network displayInfo clientState =
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
                 (playerPositions clientState.gameView).playerPositions
+            ++ gameErrorText clientState.gameError
+
 
 
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
@@ -53,6 +58,22 @@ mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes
 
 
 -- svg create functions
+
+
+gameErrorText : Maybe GameError -> List (Svg Msg)
+gameErrorText errMay =
+    case log "error?" errMay of
+        Nothing ->
+            []
+
+        Just err ->
+            [ text_
+                [ x "15"
+                , y "15"
+                , fill "red"
+                ]
+                [ text err.myError ] -- TODO: popup for that?
+            ]
 
 
 nodeCircleStop : NodeXyMap -> Color -> NodeSize -> Node -> Svg Msg

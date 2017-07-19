@@ -45,8 +45,7 @@ updateGame stateVar action = do
             let newState = state { gameState = newGame }
             writeTVar stateVar newState
             return newState
-        Left _ -> do
-            return state
+        Left _ -> return state -- let state stay the same
 
     return (newState, updateResult)
 

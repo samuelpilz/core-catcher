@@ -32,7 +32,7 @@ sendCatcherView ci view =
 
 sendError :: IsConnection conn => ClientConnection conn -> GameError -> IO ()
 sendError ci err =
-    sendData (snd ci) (Aeson.encode err)
+    sendToClient ci $ GameError_ err
 
 recvAction :: IsConnection conn => ClientConnection conn -> IO (Maybe Action)
 recvAction (_,ws) = do
@@ -41,7 +41,7 @@ recvAction (_,ws) = do
 
 broadcastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGameView -> IO ()
 broadcastCatcherView conns view =
-    mapM_ (\conn -> sendCatcherView conn view) conns
+    mapM_ (`sendCatcherView` view) conns
 
 withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient cid =
