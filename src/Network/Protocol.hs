@@ -185,6 +185,7 @@ data MessageForServer =
 
 data MessageForClient =
     GameView_ GameView |
+    GameError_ GameError |
     InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
 
