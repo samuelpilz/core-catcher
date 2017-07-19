@@ -63,11 +63,11 @@ mkOverlay :: [(Int, Int)] -> NetworkOverlay
 mkOverlay list =
     NetworkOverlay { overlayNodes =
         map Node
-            . nub -- TODO: better function than nub?
+            . nub
             . unzipConcat
         $
             list
-    , overlayEdges =  map (Edge . (***) Node Node) list -- TODO: better function?
+    , overlayEdges =  map (Edge . (***) Node Node) list
     }
 
 unzipConcat :: [(a,a)] -> [a]
