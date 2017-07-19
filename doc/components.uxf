@@ -4,40 +4,39 @@
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>888</x>
+      <x>904</x>
       <y>248</y>
       <w>88</w>
       <h>64</h>
     </coordinates>
     <panel_attributes>symbol=component
 
-GameLogic</panel_attributes>
+GameNg</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>816</x>
+      <x>792</x>
       <y>264</y>
-      <w>88</w>
-      <h>48</h>
+      <w>128</w>
+      <h>40</h>
     </coordinates>
     <panel_attributes>lt=()-[]
-update
-state
-(via Glue)</panel_attributes>
-    <additional_attributes>10.0;20.0;90.0;20.0</additional_attributes>
+initialState
+updateState</panel_attributes>
+    <additional_attributes>10.0;20.0;140.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>752</x>
       <y>264</y>
-      <w>80</w>
+      <w>56</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=[]-(</panel_attributes>
-    <additional_attributes>10.0;20.0;70.0;20.0</additional_attributes>
+    <additional_attributes>10.0;20.0;40.0;20.0</additional_attributes>
   </element>
   <element>
     <id>UMLGeneric</id>
