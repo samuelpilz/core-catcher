@@ -17,25 +17,30 @@ import           App.WsApp
 import qualified App.WsAppUtils                 as WsAppUtils
 import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
-import qualified Glue
-import qualified Network.HTTP.Types             as Http
+import qualified GameNg
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import qualified GameNg
+import qualified Network.Wai.Application.Static as WaiStatic
 
 main :: IO ()
 main = do
     stateVar <- newTVarIO ServerState {connections = empty, gameState = GameNg.initialState }
-    putStrLn "Starting Core-Catcher server on port 7999"
-    Warp.run 7999 $ WS.websocketsOr
+    putStrLn "Starting Core-Catcher server on port 8000"
+    Warp.run 8000 $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
 
 httpApp :: Wai.Application
-httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket request"
+httpApp = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings "web")
+--     do
+--         let getFile = concat . Wai.pathInfo $ request
+--         putStrLn getFile
+--         responseText <- readFileUtf8 . unpack . concat . Wai.pathInfo $ request
+--         respond $ Wai.responseLBS Http.status200 []
+--             (builderToLazy. byteString . encodeUtf8 $ responseText)
 
 
 wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp

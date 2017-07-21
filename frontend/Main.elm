@@ -43,7 +43,7 @@ view state =
 
 wsUrl : String -> String
 wsUrl server =
-    "ws://" ++ server ++ ":7999"
+    "ws://" ++ server ++ ":8000"
 
 
 subscriptions : ClientState -> Sub Msg
