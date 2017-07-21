@@ -55,6 +55,7 @@ executable core-catcher-exe
                      , core-catcher
                      , warp
                      , wai
+                     , wai-app-static
                      , text
                      , websockets
                      , wai-websockets
