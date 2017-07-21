@@ -94,27 +94,31 @@ test_noEnergyLeft =
 test_gameRound :: IO ()
 test_gameRound =
     do
-        let updated0 = updateState (Move (Player 0) (Transport "orange") (Node 11)) initialState
-        state0 <- case updated0 of
-            Left (GameError err) -> assertFailure $ "failed to move player0: " ++ unpack err
-            Right (newState, _, _) -> return newState
+        let updated = utilGameMoves initialState
+                   [ (11, "orange")
+                   , (3, "blue")
+                   , (5, "orange")
+                   , (13, "orange")
+                   ]
+        state <- case updated of
+            Left (GameError err) -> assertFailure $ unpack err
+            Right newState -> return newState
 
-        let updated1 = updateState (Move (Player 1) (Transport "blue") (Node 3)) state0
-        state1 <- case updated1 of
-            Left (GameError err) -> assertFailure $ "failed to move player1: " ++ unpack err
-            Right (newState, _, _) -> return newState
+        Just (Node 11) @?= (lookup (Player 0) . playerPositions . statePlayerPositions $ state)
+        Just (Node 3) @?= (lookup (Player 1) . playerPositions . statePlayerPositions $ state)
+        Just (Node 5) @?= (lookup (Player 2) . playerPositions . statePlayerPositions $ state)
+        Just (Node 13) @?= (lookup (Player 3) . playerPositions . statePlayerPositions $ state)
+        Player 0 @?= stateNextPlayer state
 
-        let updated2 = updateState (Move (Player 2) (Transport "orange") (Node 5)) state1
-        state2 <- case updated2 of
-            Left (GameError err) -> assertFailure $ "failed to move player2: " ++ unpack err
-            Right (newState, _, _) -> return newState
-        let updated3 = updateState (Move (Player 3) (Transport "orange") (Node 13)) state2
-        state3 <- case updated3 of
-            Left (GameError err) -> assertFailure $ "failed to move player3: " ++ unpack err
-            Right (newState, _, _) -> return newState
+-- Utility functions for shortening tests
 
-        Just (Node 11) @?= (lookup (Player 0) . playerPositions . statePlayerPositions $ state3)
-        Just (Node 3) @?= (lookup (Player 1) . playerPositions . statePlayerPositions $ state3)
-        Just (Node 5) @?= (lookup (Player 2) . playerPositions . statePlayerPositions $ state3)
-        Just (Node 13) @?= (lookup (Player 3) . playerPositions . statePlayerPositions $ state3)
-        Player 0 @?= stateNextPlayer state3
+utilGameMoves :: GameState -> [(Int, Text)] -> Either GameError GameState
+utilGameMoves =
+    foldM
+        (\s (n, e) -> utilUpdateState (Move (stateNextPlayer s) (Transport e) (Node n)) s)
+
+utilUpdateState :: Action -> GameState -> Either GameError GameState
+utilUpdateState action state =
+    case updateState action state of
+        Left err -> Left err
+        Right (newState, _, _) -> Right newState
