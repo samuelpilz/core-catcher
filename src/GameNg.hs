@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -41,38 +42,35 @@ updateState ::
        Action
     -> GameState
     -> Either GameError (GameState, RogueGameView, CatcherGameView)
-updateState action state = do
-    let player = actionPlayer action
-    let energy = actionTransport action
-    let targetNode = actionNode action
 
-    unless (player == stateNextPlayer state) . Left .
-        GameError $ "not player " ++ tshow (playerId player) ++ "'s turn"
+updateState Move { actionPlayer, actionTransport, actionNode} state = do
+    unless (actionPlayer == stateNextPlayer state) . Left .
+        GameError $ "not player " ++ tshow (playerId actionPlayer) ++ "'s turn"
 
     previousNode <-
         maybeToEither (GameError "player not found") .
-        lookup player .
+        lookup actionPlayer .
         statePlayerPositions $
         state
 
     newPlayerEnergies <-
-        nextPlayerEnergies (statePlayerEnergies state) player energy
+        nextPlayerEnergies (statePlayerEnergies state) actionPlayer actionTransport
 
-    unless (canMoveBetween (stateNetwork state) previousNode energy targetNode) .
+    unless (canMoveBetween (stateNetwork state) previousNode actionTransport actionNode) .
         Left .
         GameError $ "Player is unable to reach this node"
 
-    let newNextPlayer = Player $ (playerId player + 1) `mod` 4 -- TODO: model all players
+    let newNextPlayer = Player $ (playerId actionPlayer + 1) `mod` 4 -- TODO: model all players
 
     let newRogueHistory =
-            if playerId player == 0
+            if playerId actionPlayer == 0
                 then RogueHistory $
-                     (energy, Just targetNode) :
+                     (actionTransport, Just actionNode) :
                      rogueHistory (stateRogueHistory state)
                 else stateRogueHistory state
 
     let newPlayerPositions =
-            insertMap player targetNode
+            insertMap actionPlayer actionNode
             . statePlayerPositions
             $ state
 
@@ -127,3 +125,5 @@ getViews state =
         }
 
     )
+
+
