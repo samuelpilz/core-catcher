@@ -25,10 +25,13 @@ import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           TH.MonoDerive
 
-$(genCurries 5)
+$(f)
 
 main :: IO ()
 main = do
+    let g = Test $ mapFromList [(1, "hello")]
+    let h = Test $ mapFromList [(2, "world")]
+    print $ g ++ h
     stateVar <- newTVarIO ServerState {connections = empty, gameState = GameNg.initialState }
     putStrLn "Starting Core-Catcher server on port 8000"
     Warp.run 8000 $ WS.websocketsOr
