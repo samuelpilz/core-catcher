@@ -15,19 +15,16 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , GameLogic
+  exposed-modules:     GameNg
                      , Network.Protocol
                      , Network.ElmDerive
                      , Config.Network
-                     , Config.InitialState
-                     , Glue
+                     , Config.GameConfig
                      , App.WsApp
                      , App.WsAppUtils
                      , App.State
                      , App.ConnectionMgnt
                      , App.Connection
-                     , GameNg
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
@@ -82,10 +79,8 @@ test-suite core-catcher-test
   hs-source-dirs:      test
   main-is:             TestMain.hs
   other-modules:       ProtocolTest
-                     , SpecTest
                      , MainTest
                      , StateTest
-                     , GameLogicTest
                      , WsAppUtilsTest
                      , Mock.Connection
                      , GameNgTest

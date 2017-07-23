@@ -6,17 +6,16 @@ module StateTest where
 import           App.ConnectionMgnt
 import           App.State
 import           ClassyPrelude
-import           GameLogicTest
-import           Glue               ()
+import qualified Config.GameConfig  as Config
+import qualified GameNg
 import           Mock.Connection
 import           Test.Framework
-import qualified GameNg
 
 emptyServerIO :: IO (ServerState FakeConnection)
 emptyServerIO =
     return
         ServerState
-            { gameState = GameNg.initialState
+            { gameState = GameNg.initialState Config.defaultConfig
             , connections = empty
             }
 
@@ -25,7 +24,7 @@ nonEmptyServerIO = do
     conns <- sequenceA . fromList $ map (\num -> emptyConnection >>= \conn -> return (num, conn)) [1, 2]
     return
         ServerState
-            { gameState = GameNg.initialState
+            { gameState = GameNg.initialState Config.defaultConfig
             , connections = conns
             }
 

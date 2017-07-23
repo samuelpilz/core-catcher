@@ -4,13 +4,13 @@
 
 module GameNg
     ( initialState
-    , initialViews
+    , getViews
     , updateState
     , GameState(..)
     ) where
 
 import           ClassyPrelude
-import           Config.InitialState
+import           Config.GameConfig
 import           Config.Network      as Config
 import           Data.Easy           (maybeToEither)
 import           Network.Protocol
@@ -24,26 +24,20 @@ data GameState = GameState
     }
 
 -- |The initial state of the game
-initialState :: GameState
-initialState =
+initialState :: GameConfig -> GameState
+initialState config =
     GameState
         Config.network
-        initialPlayerPositions
-        initialPlayerEnergies
-        initialRogueHistory
-        startPlayer
-
--- TODO: enhance setup process
-initialViews :: (RogueGameView, CatcherGameView)
-initialViews = getViews initialState
+        (initialPlayerPositions config)
+        (initialPlayerEnergies config)
+        (RogueHistory [])
+        (Player 0)
 
 -- |The game's update function.
-updateState ::
-       Action
-    -> GameState
-    -> Either GameError (GameState, RogueGameView, CatcherGameView)
+updateState :: Action -> GameState -> Either GameError GameState
 
 updateState Move { actionPlayer, actionTransport, actionNode} state = do
+
     unless (actionPlayer == stateNextPlayer state) . Left .
         GameError $ "not player " ++ tshow (playerId actionPlayer) ++ "'s turn"
 
@@ -74,16 +68,12 @@ updateState Move { actionPlayer, actionTransport, actionNode} state = do
             . statePlayerPositions
             $ state
 
-    let newState = state
+    return state
             { statePlayerPositions = newPlayerPositions
             , statePlayerEnergies = newPlayerEnergies
             , stateRogueHistory = newRogueHistory
             , stateNextPlayer = newNextPlayer
             }
-
-    let (rogueView, catcherView) = getViews newState
-
-    return (newState, rogueView, catcherView)
 
 canMoveBetween :: Network -> Node -> Transport -> Node -> Bool
 canMoveBetween net from energy to =
@@ -109,6 +99,7 @@ nextPlayerEnergies pEnergies player energy = do
     unless (energyCount >= 1) . Left $ GameError "not enough energy"
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
 
+-- |Converts the GameState into the 2 Views
 getViews :: GameState -> (RogueGameView, CatcherGameView)
 getViews state =
     ( RogueGameView
