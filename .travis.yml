@@ -24,6 +24,7 @@ cache:
   - $HOME/.stack
   - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
+  - /home/travis/build/Haskell-Praxis/stack-hpc-coveralls/.stack-work
   - $(npm config get prefix)/bin/elm
 
 # Ensure necessary system libraries are present
