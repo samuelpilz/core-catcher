@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE TemplateHaskell     #-}
 {-
 code taken from tutorial
 https://www.paramander.com/blog/playing-with-websockets-in-haskell-and-elm
@@ -19,10 +19,13 @@ import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
 import qualified GameNg
 import qualified Network.Wai                    as Wai
+import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import qualified Network.Wai.Application.Static as WaiStatic
+import           TH.MonoDerive
+
+$(genCurries 5)
 
 main :: IO ()
 main = do
@@ -66,4 +69,3 @@ wsListen client stateVar = forever $ do
         Nothing     -> do
             putStrLn "ERROR: The message could not be decoded"
             -- TODO: send info back to client
-

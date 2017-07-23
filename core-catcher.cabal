@@ -27,6 +27,7 @@ library
                      , App.State
                      , App.ConnectionMgnt
                      , App.Connection
+                     , TH.MonoDerive
                      , GameNg
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
@@ -44,6 +45,7 @@ library
                      , QuickCheck
                      , data-easy
                      , either
+                     , template-haskell
   default-language:    Haskell2010
 
 executable core-catcher-exe
