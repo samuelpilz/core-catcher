@@ -36,7 +36,6 @@ before_install:
   # Download and unpack the stack executable
   - npm install -g elm
   - elm --version
-  - elm --help
   - elm-package install -y
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
@@ -56,7 +55,7 @@ before_install:
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
+  #- travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:
