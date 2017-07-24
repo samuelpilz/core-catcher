@@ -5,7 +5,6 @@
 module GameNgTest where
 
 import           ClassyPrelude
-import           Data.Map.Strict  (insert)
 import           GameNg
 import           Network.Protocol
 import           Test.Framework
@@ -20,32 +19,49 @@ test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory =
     RogueHistory [] @?= stateRogueHistory defaultInitialState
 
--- TODO: split in more test cases such that one test-case asserts one thing
-test_player0ValidMove :: IO ()
-test_player0ValidMove =
-    case updateState (Move (Player 0) (Transport "red") (Node 6)) defaultInitialState of
+test_player0ValidMove_playerPositionUpdated :: IO ()
+test_player0ValidMove_playerPositionUpdated =
+    case utilGameMoves defaultInitialState [(6,"red")] of
         Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
-        Right newState -> do
-            (insert (Player 0) (Node 6) . playerPositions . statePlayerPositions $
-             defaultInitialState) @?=
-                (playerPositions . statePlayerPositions $ newState)
-            -- test that energy has been used
-            let energyLeft = remainingEnergy newState
-            Just 1 @?= energyLeft
+        Right newState ->
+            Just (Node 6) @?= (lookup (Player 0) . statePlayerPositions $ newState)
 
-            -- test that history has been appended
-            RogueHistory [(Transport "red", Just $ Node 6)] @?= stateRogueHistory newState
+test_player0ValidMove_energyDrained :: IO ()
+test_player0ValidMove_energyDrained =
+    case utilGameMoves defaultInitialState [(6,"red")] of
+        Left (GameError err) ->
+            assertFailure . unpack $ "action failed: " ++ err
+        Right newState ->
+            Just 1 @?= remainingEnergy newState
     where
         remainingEnergy state = do
             eMap <- lookup (Player 0) . statePlayerEnergies $ state
             lookup (Transport "red") eMap
 
+
+test_player0ValidMove_historyUpdated :: IO ()
+test_player0ValidMove_historyUpdated =
+    case utilGameMoves defaultInitialState [(6,"red")] of
+        Left (GameError err) ->
+            assertFailure . unpack $ "action failed: " ++ err
+        Right newState ->
+            RogueHistory [(Transport "red", Nothing)] @?= stateRogueHistory newState
+
+test_player0ValidMoveWithShow_historyUpdate :: IO ()
+test_player0ValidMoveWithShow_historyUpdate =
+    case utilGameMoves defaultInitialState [(6,"red")] of
+        Left (GameError err) ->
+            assertFailure . unpack $ "action failed: " ++ err
+        Right newState ->
+            RogueHistory [(Transport "red", Nothing)] @?= stateRogueHistory newState
+
 test_player1ValidMove_historyNotUpdated :: IO ()
 test_player1ValidMove_historyNotUpdated =
-    case utilGameMoves defaultInitialState [(6, "red"), (3, "blue")] of
-        Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
+    case utilGameMoves defaultInitialState [(6,"red"), (3,"blue")] of
+        Left (GameError err) ->
+            assertFailure . unpack $ "action failed: " ++ err
         Right newState ->
-            RogueHistory [(Transport "red", Just $ Node 6)] @?= stateRogueHistory newState
+            RogueHistory [(Transport "red", Nothing)] @?= stateRogueHistory newState
 
 
 test_notPlayer1Turn :: IO ()
@@ -106,18 +122,26 @@ test_noEnergyLeft =
                         singletonMap (Player 0) (EnergyMap $ singletonMap (Transport "orange") 0)
                 }
 
-test_getViews_allViewsEqualToFieldInGameState :: IO ()
-test_getViews_allViewsEqualToFieldInGameState = do
+test_getViews_rogueViewEqualToFieldInGameState :: IO ()
+test_getViews_rogueViewEqualToFieldInGameState = do
     let state = defaultInitialState
-    let (rogueView, catcherView) = getViews state
+    let (rogueView, _) = getViews state
     roguePlayerPositions rogueView @?= statePlayerPositions state
     rogueEnergies rogueView @?= statePlayerEnergies state
     rogueOwnHistory rogueView @?= stateRogueHistory state
     rogueNextPlayer rogueView @?= stateNextPlayer state
-    catcherPlayerPositions catcherView @?= statePlayerPositions state
-    catcherEnergies catcherView @?= statePlayerEnergies state
-    catcherRogueHistory catcherView @?= stateRogueHistory state
-    catcherNextPlayer catcherView @?= stateNextPlayer state
+
+test_getViews_catcherViewDoesNotContainRogue :: IO ()
+test_getViews_catcherViewDoesNotContainRogue = do
+    let (_, catcherView) = getViews defaultInitialState
+    Nothing @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+
+test_getViews_someFieldsEqualToGameState :: IO ()
+test_getViews_someFieldsEqualToGameState = do
+    let (_, catcherView) = getViews defaultInitialState
+    catcherEnergies catcherView @?= statePlayerEnergies defaultInitialState
+    catcherRogueHistory catcherView @?= stateRogueHistory defaultInitialState
+    catcherNextPlayer catcherView @?= stateNextPlayer defaultInitialState
 
 
 
