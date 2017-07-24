@@ -11,8 +11,8 @@ module GameNg
 
 import           ClassyPrelude
 import           Config.GameConfig
-import           Config.Network      as Config
-import           Data.Easy           (maybeToEither)
+import           Config.Network    as Config
+import           Data.Easy         (maybeToEither)
 import           Network.Protocol
 
 data GameState = GameState
@@ -21,6 +21,7 @@ data GameState = GameState
     , statePlayerEnergies  :: PlayerEnergies
     , stateRogueHistory    :: RogueHistory
     , stateNextPlayer      :: Player
+    , stateGameConfig      :: GameConfig
     }
 
 -- |The initial state of the game
@@ -32,25 +33,36 @@ initialState config =
         (initialPlayerEnergies config)
         (RogueHistory [])
         (Player 0)
+        config
 
 -- |The game's update function.
 updateState :: Action -> GameState -> Either GameError GameState
 
-updateState Move { actionPlayer, actionTransport, actionNode} state = do
+updateState
+    Move { actionPlayer, actionTransport, actionNode }
+    state@GameState
+        { stateNetwork
+        , statePlayerPositions
+        , statePlayerEnergies
+        , stateRogueHistory
+        , stateNextPlayer
+        , stateGameConfig
+        }
 
-    unless (actionPlayer == stateNextPlayer state) . Left .
+    = do
+
+    unless (actionPlayer == stateNextPlayer) . Left .
         GameError $ "not player " ++ tshow (playerId actionPlayer) ++ "'s turn"
 
     previousNode <-
         maybeToEither (GameError "player not found") .
-        lookup actionPlayer .
-        statePlayerPositions $
-        state
+        lookup actionPlayer $
+        statePlayerPositions
 
     newPlayerEnergies <-
-        nextPlayerEnergies (statePlayerEnergies state) actionPlayer actionTransport
+        nextPlayerEnergies statePlayerEnergies actionPlayer actionTransport
 
-    unless (canMoveBetween (stateNetwork state) previousNode actionTransport actionNode) .
+    unless (canMoveBetween stateNetwork previousNode actionTransport actionNode) .
         Left .
         GameError $ "Player is unable to reach this node"
 
@@ -59,14 +71,15 @@ updateState Move { actionPlayer, actionTransport, actionNode} state = do
     let newRogueHistory =
             if playerId actionPlayer == 0
                 then RogueHistory $
-                     (actionTransport, Just actionNode) :
-                     rogueHistory (stateRogueHistory state)
-                else stateRogueHistory state
+                    (actionTransport
+                    , if
+                        length stateRogueHistory `elem` rogueShowsAt stateGameConfig
+                    then
+                        Just actionNode else Nothing) :
+                        rogueHistory stateRogueHistory
+                else stateRogueHistory
 
-    let newPlayerPositions =
-            insertMap actionPlayer actionNode
-            . statePlayerPositions
-            $ state
+    let newPlayerPositions = insertMap actionPlayer actionNode statePlayerPositions
 
     return state
             { statePlayerPositions = newPlayerPositions
@@ -101,20 +114,33 @@ nextPlayerEnergies pEnergies player energy = do
 
 -- |Converts the GameState into the 2 Views
 getViews :: GameState -> (RogueGameView, CatcherGameView)
-getViews state =
+getViews GameState
+    { statePlayerPositions
+    , statePlayerEnergies
+    , stateRogueHistory
+    , stateNextPlayer
+    } =
     ( RogueGameView
-        { roguePlayerPositions = statePlayerPositions state
-        , rogueEnergies = statePlayerEnergies state
-        , rogueOwnHistory = stateRogueHistory state
-        , rogueNextPlayer = stateNextPlayer state
+        { roguePlayerPositions = statePlayerPositions
+        , rogueEnergies = statePlayerEnergies
+        , rogueOwnHistory = stateRogueHistory
+        , rogueNextPlayer = stateNextPlayer
         }
     , CatcherGameView
-        { catcherPlayerPositions = statePlayerPositions state
-        , catcherEnergies = statePlayerEnergies state
-        , catcherRogueHistory = stateRogueHistory state
-        , catcherNextPlayer = stateNextPlayer state
+        { catcherPlayerPositions = catcherPlayerPositions
+        , catcherEnergies = statePlayerEnergies
+        , catcherRogueHistory = stateRogueHistory
+        , catcherNextPlayer = stateNextPlayer
         }
-
     )
+    where
+        rogueShowsPosition =
+            join .
+            find isJust .
+            map snd .
+            rogueHistory $
+            stateRogueHistory
+        catcherPlayerPositions =
+            updateMap (const rogueShowsPosition) (Player 0) statePlayerPositions
 
 
