@@ -5,7 +5,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
 import View.MapView exposing (mapView)
-import View.TransportView exposing (transportView)
+import View.TransportView exposing (energyView)
 import Debug exposing (log)
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
@@ -37,7 +37,7 @@ view state =
     div []
         [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
         , mapView state.network displayInfo state
-        , transportView state.network displayInfo state
+        , energyView state.network displayInfo state
         ]
 
 
@@ -88,8 +88,8 @@ update msg state =
                     }
                         ! []
 
-        SelectEnergy transport ->
-            { state | selectedEnergy = transport } ! []
+        SelectEnergy energy ->
+            { state | selectedEnergy = energy } ! []
 
         None ->
             state ! []

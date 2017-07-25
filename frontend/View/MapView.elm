@@ -28,7 +28,7 @@ mapView network displayInfo clientState =
             ++ List.concatMap
                 -- overlays
                 (mapViewOfNetworkOverlayName displayInfo network)
-                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) network.overlays)
+                (List.sortBy (\( energy, _ ) -> getPriority displayInfo energy) network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)

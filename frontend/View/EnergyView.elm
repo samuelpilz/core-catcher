@@ -1,4 +1,4 @@
-module View.TransportView exposing (transportView)
+module View.EnergyView exposing (energyView)
 
 import Html as Html
 import Html.Attributes as Html
@@ -15,8 +15,8 @@ import Maybe exposing (..)
 import Tuple as Tuple
 
 
-transportView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
-transportView _ displayInfo clientState =
+energyView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
+energyView _ displayInfo clientState =
     svg
         [ height (toString displayInfo.mapHeight)
         , width "400"
@@ -36,11 +36,11 @@ energyView gameView displayInfo player selectedEnergy =
     List.map (energyRecord selectedEnergy)
         << List.sortBy (\( priority, _, _, _ ) -> priority)
         << List.map
-            (\( transport, color ) ->
-                ( getPriority displayInfo transport
-                , transport
+            (\( energy, color ) ->
+                ( getPriority displayInfo energy
+                , energy
                 , color
-                , getEnergyForTransportAndPlayer player transport gameView
+                , getEnergyForTransportAndPlayer player energy gameView
                 )
             )
         << AllDict.toList
@@ -63,7 +63,7 @@ historyView gameView displayInfo =
 
 
 energyRecord : Transport -> ( Int, Transport, Color, Int ) -> Svg.Svg Msg
-energyRecord selectedEnergy ( pos, transport, color, count ) =
+energyRecord selectedEnergy ( pos, energy, color, count ) =
     g []
         [ rect
             [ x << toString <| 50 * pos + 50
@@ -76,11 +76,11 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , strokeWidth
                 << toString
               <|
-                if selectedEnergy == transport then
+                if selectedEnergy == energy then
                     3
                 else
                     1
-            , onClick (SelectEnergy transport)
+            , onClick (SelectEnergy energy)
             ]
             []
         , text_
@@ -88,7 +88,7 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , y << toString <| 30
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
-            , onClick (SelectEnergy transport)
+            , onClick (SelectEnergy energy)
             , textAnchor "middle"
             ]
             [ text << toString <| count ]

@@ -37,16 +37,15 @@ newtype Edge =
     Edge { edge :: (Node, Node) }
     deriving (Show, Read, Eq, Ord, Generic)
 
--- TODO: rename transport to energy??
--- |Transport is a enum of possible enums.
-data Transport = Red | Blue | Orange
+-- |Energy is a enum of possible energies.
+data Energy = Red | Blue | Orange
     deriving (Show, Read, Eq, Ord, Generic)
 
-{- |A engergy-map is keeps track how much energy per transport a player has left.
+{- |A engergy-map is keeps track how much energy per energy a player has left.
 -}
 newtype EnergyMap =
     EnergyMap
-        { energyMap :: Map Transport Int
+        { energyMap :: Map Energy Int
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -70,7 +69,7 @@ Currently this is only a move, but this may be expanded in the future.
 data Action =
     Move
       { actionPlayer    :: Player
-      , actionTransport :: Transport
+      , actionEnergy :: Energy
       , actionNode      :: Node
       }
     deriving (Show, Read, Eq, Generic)
@@ -86,11 +85,11 @@ newtype PlayerPositions =
         }
     deriving (Show, Read, Eq, Generic)
 
-{- |The history of transports used by the rouge core.
+{- |The history of energies used by the rouge core.
 -} -- TODO: Seq instead of list?
 newtype RogueHistory =
     RogueHistory
-        { rogueHistory :: [(Transport, Maybe Node)]
+        { rogueHistory :: [(Energy, Maybe Node)]
         }
       deriving (Show, Read, Eq, Generic)
 
@@ -142,7 +141,7 @@ viewNextPlayer :: GameView -> Player
 viewNextPlayer (CatcherView view) = catcherNextPlayer view
 viewNextPlayer (RogueView view)   = rogueNextPlayer view
 
-{- |Network: Nodes and Map Transport to Overlay.
+{- |Network: Nodes and Map Energy to Overlay.
 
 The overlays contain the actual Edges
 
@@ -153,7 +152,7 @@ Representation is handled via NetworkDisplayInfo
 data Network =
     Network
         { nodes    :: [Node]
-        , overlays :: Map Transport NetworkOverlay
+        , overlays :: Map Energy NetworkOverlay
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -192,11 +191,11 @@ instance FromJSONKey Player where
 
 instance FromJSONKey Node where
 
-instance FromJSONKey Transport where
+instance FromJSONKey Energy where
 
 instance ToJSONKey Player where
 
-instance ToJSONKey Transport where
+instance ToJSONKey Energy where
 
 instance Arbitrary Text where
     arbitrary = pack <$> arbitrary
@@ -214,7 +213,7 @@ instance Arbitrary Edge  where
         Edge <$> ((,) <$> arbitrary <*> arbitrary)
 
 -- TODO: how to define arbitrary for enums?
-instance Arbitrary Transport  where
+instance Arbitrary Energy  where
     arbitrary = do
         x <- arbitrary
         return $ case (x :: Int) `mod` 3 of
@@ -284,7 +283,7 @@ deriveBoth Elm.Derive.defaultOptions ''NetworkOverlay
 deriveBoth Elm.Derive.defaultOptions ''Player
 deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
-deriveBoth Elm.Derive.defaultOptions ''Transport
+deriveBoth Elm.Derive.defaultOptions ''Energy
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
@@ -346,7 +345,7 @@ instance MonoTraversable EnergyMap where
 instance Semigroup EnergyMap where
 instance GrowingAppend EnergyMap where
 instance SetContainer EnergyMap where
-    type ContainerKey EnergyMap = Transport
+    type ContainerKey EnergyMap = Energy
     member p = member p . energyMap
     notMember p = notMember p . energyMap
     union pp1 pp2 = EnergyMap $ union (energyMap pp1) (energyMap pp2)
@@ -399,7 +398,7 @@ instance IsMap PlayerEnergies where
     mapToList = mapToList . playerEnergies
 
 -- MonoFoldable and MonoTraversable for RogueHistory
-type instance Element RogueHistory = (Transport, Maybe Node)
+type instance Element RogueHistory = (Energy, Maybe Node)
 instance Monoid RogueHistory where
     mempty = RogueHistory mempty
     mappend pp1 pp2 = RogueHistory $ rogueHistory pp1 ++ rogueHistory pp2

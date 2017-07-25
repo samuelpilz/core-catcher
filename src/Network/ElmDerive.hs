@@ -29,7 +29,7 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy Player)
             , DefineElm (Proxy :: Proxy Edge)
             , DefineElm (Proxy :: Proxy Node)
-            , DefineElm (Proxy :: Proxy Transport)
+            , DefineElm (Proxy :: Proxy Energy)
             , DefineElm (Proxy :: Proxy RogueHistory)
             , DefineElm (Proxy :: Proxy GameError)
             , DefineElm (Proxy :: Proxy InitialInfoForClient)
