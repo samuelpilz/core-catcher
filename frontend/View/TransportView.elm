@@ -10,7 +10,7 @@ import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
+import View.GameViewDisplay exposing (..)
 import Maybe exposing (..)
 import Tuple as Tuple
 

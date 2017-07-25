@@ -81,3 +81,16 @@ emptyRogueView =
     , rogueOwnHistory = { rogueHistory = [] }
     , rogueNextPlayer = { playerId = 0 }
     }
+
+
+energyId : Transport -> Int
+energyId e =
+    case e of
+        Red ->
+            0
+
+        Blue ->
+            1
+
+        Orange ->
+            2

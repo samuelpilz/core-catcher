@@ -42,7 +42,7 @@ defaultInitialPlayerEnergies =
 initialEnergiesPerPlayer :: EnergyMap
 initialEnergiesPerPlayer =
     mapFromList
-        [ ( Transport "orange", 5 )
-        , ( Transport "blue", 3 )
-        , ( Transport "red", 2 )
+        [ ( Orange, 5 )
+        , ( Blue, 3 )
+        , ( Red, 2 )
         ]

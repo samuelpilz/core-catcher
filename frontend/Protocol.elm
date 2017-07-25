@@ -246,20 +246,22 @@ jsonEncNode  val =
 
 
 
-type alias Transport  =
-   { transportName: String
-   }
+type Transport  =
+    Red 
+    | Blue 
+    | Orange 
 
 jsonDecTransport : Json.Decode.Decoder ( Transport )
-jsonDecTransport =
-   ("transportName" := Json.Decode.string) >>= \ptransportName ->
-   Json.Decode.succeed {transportName = ptransportName}
+jsonDecTransport = 
+    let jsonDecDictTransport = Dict.fromList [("Red", Red), ("Blue", Blue), ("Orange", Orange)]
+    in  decodeSumUnaries "Transport" jsonDecDictTransport
 
 jsonEncTransport : Transport -> Value
 jsonEncTransport  val =
-   Json.Encode.object
-   [ ("transportName", Json.Encode.string val.transportName)
-   ]
+    case val of
+        Red -> Json.Encode.string "Red"
+        Blue -> Json.Encode.string "Blue"
+        Orange -> Json.Encode.string "Orange"
 
 
 
