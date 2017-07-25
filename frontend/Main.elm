@@ -10,7 +10,7 @@ import Debug exposing (log)
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
+import View.GameViewDisplay exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
@@ -104,7 +104,7 @@ initialState flags =
     { gameView = RogueView emptyRogueView
     , network = emptyNetwork
     , player = { playerId = 0 }
-    , selectedEnergy = { transportName = "orange" }
+    , selectedEnergy = Orange
     , server = flags.server
     }
 

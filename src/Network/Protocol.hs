@@ -38,9 +38,8 @@ newtype Edge =
     deriving (Show, Read, Eq, Ord, Generic)
 
 -- TODO: rename transport to energy??
--- |Transport is a text
-newtype Transport =
-    Transport { transportName :: Text }
+-- |Transport is a enum of possible enums.
+data Transport = Red | Blue | Orange
     deriving (Show, Read, Eq, Ord, Generic)
 
 {- |A engergy-map is keeps track how much energy per transport a player has left.
@@ -214,9 +213,15 @@ instance Arbitrary Edge  where
     arbitrary =
         Edge <$> ((,) <$> arbitrary <*> arbitrary)
 
+-- TODO: how to define arbitrary for enums?
 instance Arbitrary Transport  where
-    arbitrary =
-        Transport <$> arbitrary
+    arbitrary = do
+        x <- arbitrary
+        return $ case (x :: Int) `mod` 3 of
+            0 -> Red
+            1 -> Blue
+            2 -> Orange
+            _ -> error ""
 
 instance Arbitrary Action where
     arbitrary =

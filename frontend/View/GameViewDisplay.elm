@@ -1,4 +1,4 @@
-module GameViewDisplay exposing (..)
+module View.GameViewDisplay exposing (..)
 
 {-| data types for displaying game views
 -}
@@ -32,7 +32,7 @@ Each transport type should be present in this map.
 
 -}
 type alias ColorMap =
-    AllDict Transport Color String
+    AllDict Transport Color Int
 
 
 {-| A map that contains the edge widths for each Transport type.
@@ -41,7 +41,7 @@ Each transport type should be present in this map.
 
 -}
 type alias EdgeWidthMap =
-    AllDict Transport EdgeWidth String
+    AllDict Transport EdgeWidth Int
 
 
 {-| A map that contains the node sizes for each Transport type.
@@ -52,7 +52,7 @@ Each transport type should be present in this map.
 
 -}
 type alias NodeSizeMap =
-    AllDict Transport NodeSize String
+    AllDict Transport NodeSize Int
 
 
 {-| A map that mapps nodes to coordinates

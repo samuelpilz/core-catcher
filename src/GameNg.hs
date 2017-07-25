@@ -66,7 +66,7 @@ updateState
         Left .
         GameError $ "Player is unable to reach this node"
 
-    let newNextPlayer = Player $ (playerId actionPlayer + 1) `mod` 4 -- TODO: model all players
+    let newNextPlayer = Player $ (playerId actionPlayer + 1) `mod` length (players stateGameConfig) -- TODO: model all players
 
     let newRogueHistory =
             if playerId actionPlayer == 0
@@ -91,7 +91,7 @@ updateState
 canMoveBetween :: Network -> Node -> Transport -> Node -> Bool
 canMoveBetween net from energy to =
     isJust $ -- true, if the do bock returns Just ()
-     do
+    do
         overlay <- lookup energy . overlays $ net
         let edges = overlayEdges overlay
         unless -- returns Just () if such pair is found

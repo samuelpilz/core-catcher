@@ -11,7 +11,7 @@ import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
+import View.GameViewDisplay exposing (..)
 
 -- TODO: css style with css-library?
 

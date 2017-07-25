@@ -1,7 +1,8 @@
 module Example.ExampleGameViewDisplay exposing (..)
 
 import Protocol exposing (..)
-import GameViewDisplay exposing (..)
+import ProtocolUtils exposing (..)
+import View.GameViewDisplay exposing (..)
 import List exposing (..)
 import AllDict exposing (..)
 import Maybe exposing (..)
@@ -14,9 +15,9 @@ displayInfo =
     , nodeSizeMap = nodeSizeMap
     , nodeXyMap = nodeXyMap
     , transportPriorityList =
-        [ { transportName = "red" }
-        , { transportName = "blue" }
-        , { transportName = "orange" }
+        [ Red
+        , Blue
+        , Orange
         ]
     , playerColorMap = playerColorMap
     , mapWidth = 800
@@ -29,30 +30,30 @@ displayInfo =
 colorMap : ColorMap
 colorMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, "red" )
-        , ( { transportName = "blue" }, "blue" )
-        , ( { transportName = "orange" }, "orange" )
+        energyId
+        [ ( Red, "red" )
+        , ( Blue, "blue" )
+        , ( Orange, "orange" )
         ]
 
 
 edgeWidthMap : EdgeWidthMap
 edgeWidthMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, 14 )
-        , ( { transportName = "blue" }, 8 )
-        , ( { transportName = "orange" }, 2 )
+        energyId
+        [ ( Red, 14 )
+        , ( Blue, 8 )
+        , ( Orange, 2 )
         ]
 
 
-nodeSizeMap : EdgeWidthMap
+nodeSizeMap : NodeSizeMap
 nodeSizeMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, 28 )
-        , ( { transportName = "blue" }, 25 )
-        , ( { transportName = "orange" }, 22 )
+        energyId
+        [ ( Red, 28 )
+        , ( Blue, 25 )
+        , ( Orange, 22 )
         ]
 
 

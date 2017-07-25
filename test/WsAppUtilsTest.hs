@@ -20,7 +20,7 @@ anAction :: Protocol.Action
 anAction =
     Protocol.Move
         (Protocol.Player 1)
-        (Protocol.Transport "green")
+        Protocol.Orange
         (Protocol.Node 1)
 
 
