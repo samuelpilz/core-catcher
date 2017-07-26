@@ -51,11 +51,10 @@ updateState
 
     = do
 
-    unless (actionPlayer == stateNextPlayer) . Left .
-        GameError $ "not player " ++ tshow (playerId actionPlayer) ++ "'s turn"
+    unless (actionPlayer == stateNextPlayer) $ Left NotTurn
 
     previousNode <-
-        maybeToEither (GameError "player not found") .
+        maybeToEither PlayerNotFound .
         lookup actionPlayer $
         statePlayerPositions
 
@@ -63,8 +62,7 @@ updateState
         nextPlayerEnergies statePlayerEnergies actionPlayer actionEnergy
 
     unless (canMoveBetween stateNetwork previousNode actionEnergy actionNode) .
-        Left .
-        GameError $ "Player is unable to reach this node"
+        Left $ NotReachable
 
     let newNextPlayer = Player $ (playerId actionPlayer + 1) `mod` length (players stateGameConfig) -- TODO: model all players
 
@@ -106,10 +104,10 @@ nextPlayerEnergies ::
        PlayerEnergies -> Player -> Energy -> Either GameError PlayerEnergies
 nextPlayerEnergies pEnergies player energy = do
     eMap <-
-        maybeToEither (GameError "player not found") . lookup player $ pEnergies
+        maybeToEither PlayerNotFound . lookup player $ pEnergies
     energyCount <-
-        maybeToEither (GameError "energy not found") . lookup energy $ eMap
-    unless (energyCount >= 1) . Left $ GameError "not enough energy"
+        maybeToEither EnergyNotFound . lookup energy $ eMap
+    unless (energyCount >= 1) . Left $ NotEnoughEnergy
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
 
 -- |Converts the GameState into the 2 Views

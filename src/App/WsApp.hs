@@ -32,7 +32,7 @@ handle client stateVar action = do
 
         Just gameError -> do
             sendError client gameError
-            putStrLn $ "invalid action " ++ tshow (myError gameError)
+            putStrLn $ "invalid action " ++ tshow gameError
 
     return ()
 

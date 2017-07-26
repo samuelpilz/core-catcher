@@ -32,19 +32,19 @@ Each energy type should be present in this map.
 
 -}
 type alias ColorMap =
-    AllDict Transport Color Int
+    AllDict Energy Color Int
 
 
-{-| A map that contains the edge widths for each Transport type.
+{-| A map that contains the edge widths for each Energy type.
 
 Each energy type should be present in this map.
 
 -}
 type alias EdgeWidthMap =
-    AllDict Transport EdgeWidth Int
+    AllDict Energy EdgeWidth Int
 
 
-{-| A map that contains the node sizes for each Transport type.
+{-| A map that contains the node sizes for each Energy type.
 This is the size of the circle that lies behind a node to represent
 that the node has a stop for the given energy
 
@@ -52,7 +52,7 @@ Each energy type should be present in this map.
 
 -}
 type alias NodeSizeMap =
-    AllDict Transport NodeSize Int
+    AllDict Energy NodeSize Int
 
 
 {-| A map that mapps nodes to coordinates
@@ -84,7 +84,7 @@ type alias GameViewDisplayInfo =
     , edgeWidthMap : EdgeWidthMap
     , nodeSizeMap : NodeSizeMap
     , nodeXyMap : NodeXyMap
-    , energyPriorityList : List Transport
+    , energyPriorityList : List Energy
     , playerColorMap : PlayerColorMap
     , mapWidth : Int
     , mapHeight : Int
@@ -117,8 +117,8 @@ Returns `Nothing` if the given energy type is missing in at least one of the
 NetworkDisplayInfo maps is missing.
 
 -}
-displayInfoForTransport : GameViewDisplayInfo -> Transport -> Maybe OverlayDisplayInfo
-displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } energy =
+displayInfoForEnergy : GameViewDisplayInfo -> Energy -> Maybe OverlayDisplayInfo
+displayInfoForEnergy { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } energy =
     Maybe.map4
         (\c e n xy ->
             { color = c
@@ -187,7 +187,7 @@ The overlays with higher priority are drawn first
 This is the reverse order of the list in NetworkDisplayInfo
 
 -}
-getPriority : GameViewDisplayInfo -> Transport -> Int
+getPriority : GameViewDisplayInfo -> Energy -> Int
 getPriority { energyPriorityList } t =
     Maybe.withDefault -1 << indexOf t <| energyPriorityList
 

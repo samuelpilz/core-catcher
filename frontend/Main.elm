@@ -5,12 +5,12 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
 import View.MapView exposing (mapView)
-import View.TransportView exposing (energyView)
+import View.GameViewDisplay exposing (..)
+import View.EnergyView exposing (..)
 import Debug exposing (log)
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import View.GameViewDisplay exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
@@ -119,7 +119,7 @@ jsonActionOfNode state n =
         << jsonEncAction
     <|
         { actionPlayer = state.player
-        , actionTransport = state.selectedEnergy
+        , actionEnergy = state.selectedEnergy
         , actionNode = n
         }
 
