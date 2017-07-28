@@ -346,15 +346,15 @@ jsonEncMessageForServer (Action_ v1) =
 
 type MessageForClient  =
     GameView_ GameView
-    | InitialInfoForClient_ InitialInfoForClient
     | GameError_ GameError
+    | InitialInfoForClient_ InitialInfoForClient
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
             [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
-            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
+            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
@@ -362,7 +362,7 @@ jsonEncMessageForClient : MessageForClient -> Value
 jsonEncMessageForClient  val =
     let keyval v = case v of
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
-                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
+                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
     in encodeSumObjectWithSingleField keyval val
 

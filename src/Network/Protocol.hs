@@ -203,8 +203,8 @@ data MessageForServer =
 
 data MessageForClient
     = GameView_ GameView
-    | InitialInfoForClient_ InitialInfoForClient
     | GameError_ GameError
+    | InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
 
 instance FromJSONKey Player where

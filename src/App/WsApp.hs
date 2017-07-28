@@ -54,7 +54,7 @@ updateGameAtomically stateVar action = do
             let newState = state { gameState = newGameState }
             writeTVar stateVar newState
             return newState
-        Left _ -> return state
+        Left _ -> return state -- let state stay the same
 
     return (newState, map (either GameOver_ GameRunning_) updateResult)
 

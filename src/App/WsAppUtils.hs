@@ -37,7 +37,7 @@ sendGameError ci err =
 
 sendError :: IsConnection conn => ClientConnection conn -> GameError -> IO ()
 sendError ci err =
-    sendData (snd ci) (Aeson.encode err)
+    sendToClient ci $ GameError_ err
 
 recvMsgForServer :: IsConnection conn => ClientConnection conn -> IO (Maybe MessageForServer)
 recvMsgForServer (_,ws) = do

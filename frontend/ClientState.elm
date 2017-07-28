@@ -17,6 +17,7 @@ type alias ClientState =
     , player : Player
     , selectedEnergy : Energy
     , server : String
+    , gameError : Maybe GameError
     }
 
 
