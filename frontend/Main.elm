@@ -87,6 +87,8 @@ update msg state =
                         , network = initInfo.networkForGame
                     }
                         ! []
+                GameError_ gameError ->
+                    state ! [] -- TODO: implement game-error
 
         SelectEnergy energy ->
             { state | selectedEnergy = energy } ! []

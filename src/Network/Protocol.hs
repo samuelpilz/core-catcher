@@ -53,8 +53,14 @@ newtype EnergyMap =
         deriving (Show, Read, Eq, Generic)
 
 -- |A GameError is a enum of possible errors
-data GameError = NotTurn | PlayerNotFound | EnergyNotFound | NotReachable | NotEnoughEnergy
-        deriving (Show, Read, Eq, Generic, Enum, Bounded)
+data GameError
+    = NotTurn
+    | PlayerNotFound
+    | EnergyNotFound
+    | NotReachable
+    | NotEnoughEnergy
+    | GameIsOver
+    deriving (Show, Read, Eq, Generic, Enum, Bounded)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -94,6 +100,11 @@ newtype RogueHistory =
         }
       deriving (Show, Read, Eq, Generic)
 
+newtype OpenRogueHistory =
+    OpenRogueHistory
+        { openRogeHistory :: [(Energy, Node)]
+        }
+
 {- |A game view as seen by the rouge-core.
 -}
 data RogueGameView =
@@ -115,6 +126,15 @@ data CatcherGameView =
         , catcherNextPlayer      :: Player
         }
         deriving (Show, Read, Eq, Generic)
+
+{- |A view for the game-over screen
+-}
+data GameOverView =
+    GameOverView
+        { gameOverViewPlayerPositions :: PlayerPositions
+        , gameOverViewEnergies        :: PlayerEnergies
+        , gameOverViewRogueHistory    :: OpenRogueHistory
+        }
 
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state.
@@ -168,6 +188,7 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
+-- TODO: include all players
 {- | InitialDataForClient the initial info the client gets
 
 -}
@@ -183,9 +204,10 @@ data MessageForServer =
     Action_ Action
     deriving (Show, Read, Eq, Generic)
 
-data MessageForClient =
-    GameView_ GameView |
-    InitialInfoForClient_ InitialInfoForClient
+data MessageForClient
+    = GameView_ GameView
+    | InitialInfoForClient_ InitialInfoForClient
+    | GameError_ GameError
     deriving (Show, Read, Eq, Generic)
 
 instance FromJSONKey Player where
@@ -233,6 +255,10 @@ instance Arbitrary RogueHistory where
     arbitrary =
         RogueHistory <$> arbitrary
 
+instance Arbitrary OpenRogueHistory where
+    arbitrary =
+        OpenRogueHistory <$> arbitrary
+
 instance Arbitrary GameError where
     arbitrary = arbitraryBoundedEnum
 
@@ -275,6 +301,7 @@ deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Energy
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
+deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
