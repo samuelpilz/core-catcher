@@ -7,83 +7,92 @@ module GameNg
     , getViews
     , updateState
     , GameState(..)
+    , GameRunning(..)
+    , GameOver(..)
+    , getGameOverView
+    , gameNetwork
     ) where
 
 import           ClassyPrelude
 import           Config.GameConfig
-import           Config.Network    as Config
 import           Data.Easy         (maybeToEither)
 import           Network.Protocol
 
-data GameState = GameState
-    { stateNetwork         :: Network
-    , statePlayerPositions :: PlayerPositions
-    , statePlayerEnergies  :: PlayerEnergies
-    , stateRogueHistory    :: RogueHistory
-    , stateNextPlayer      :: Player
-    , stateGameConfig      :: GameConfig
+data GameState = GameRunning_ GameRunning | GameOver_ GameOver
+
+data GameRunning = GameRunning
+    { gameRunningGameConfig      :: GameConfig
+    , gameRunningPlayerPositions :: PlayerPositions
+    , gameRunningPlayerEnergies  :: PlayerEnergies
+    , gameRunningRogueHistory    :: RogueHistory
+    , gameRunningNextPlayer      :: Player
     }
 
+data GameOver = GameOver
+    { gameOverGameConfig      :: GameConfig
+    , gameOverPlayerPositions :: PlayerPositions
+    , gameOverPlayerEnergies  :: PlayerEnergies
+    , gameOverRogueHistory    :: OpenRogueHistory
+    }
+
+-- TODO: make game-initiation better
 -- |The initial state of the game
-initialState :: GameConfig -> GameState
+initialState :: GameConfig -> GameRunning
 initialState config =
-    GameState
-        Config.network
+    GameRunning
+        config
         (initialPlayerPositions config)
         (initialPlayerEnergies config)
         (RogueHistory [])
         (Player 0)
-        config
 
 -- |The game's update function.
-updateState :: Action -> GameState -> Either GameError GameState
-
+updateState :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
 updateState
     Move { actionPlayer, actionEnergy, actionNode }
-    state@GameState
-        { stateNetwork
-        , statePlayerPositions
-        , statePlayerEnergies
-        , stateRogueHistory
-        , stateNextPlayer
-        , stateGameConfig
+    state@GameRunning
+        { gameRunningGameConfig
+        , gameRunningPlayerPositions
+        , gameRunningPlayerEnergies
+        , gameRunningRogueHistory
+        , gameRunningNextPlayer
         }
-
     = do
-
-    unless (actionPlayer == stateNextPlayer) $ Left NotTurn
+    unless (actionPlayer == gameRunningNextPlayer) $ Left NotTurn
 
     previousNode <-
         maybeToEither PlayerNotFound .
         lookup actionPlayer $
-        statePlayerPositions
+        gameRunningPlayerPositions
 
     newPlayerEnergies <-
-        nextPlayerEnergies statePlayerEnergies actionPlayer actionEnergy
+        nextPlayerEnergies gameRunningPlayerEnergies actionPlayer actionEnergy
 
-    unless (canMoveBetween stateNetwork previousNode actionEnergy actionNode) .
+    unless (canMoveBetween (network gameRunningGameConfig) previousNode actionEnergy actionNode) .
         Left $ NotReachable
 
-    let newNextPlayer = Player $ (playerId actionPlayer + 1) `mod` length (players stateGameConfig) -- TODO: model all players
+    let newNextPlayer = Player $
+            (playerId actionPlayer + 1) `mod` length (players gameRunningGameConfig)
 
     let newRogueHistory =
             if playerId actionPlayer == 0
                 then RogueHistory $
                     (actionEnergy
                     , if
-                        length stateRogueHistory `elem` rogueShowsAt stateGameConfig
+                        length gameRunningRogueHistory `elem` rogueShowsAt gameRunningGameConfig
                     then
                         Just actionNode else Nothing) :
-                        rogueHistory stateRogueHistory
-                else stateRogueHistory
+                        rogueHistory gameRunningRogueHistory
+                else gameRunningRogueHistory
 
-    let newPlayerPositions = insertMap actionPlayer actionNode statePlayerPositions
+    let newPlayerPositions = insertMap actionPlayer actionNode gameRunningPlayerPositions
 
-    return state
-            { statePlayerPositions = newPlayerPositions
-            , statePlayerEnergies = newPlayerEnergies
-            , stateRogueHistory = newRogueHistory
-            , stateNextPlayer = newNextPlayer
+    -- TODO: check if player collisions & check if game over
+    return . Right $ state
+            { gameRunningPlayerPositions = newPlayerPositions
+            , gameRunningPlayerEnergies = newPlayerEnergies
+            , gameRunningRogueHistory = newRogueHistory
+            , gameRunningNextPlayer = newNextPlayer
             }
 
 canMoveBetween :: Network -> Node -> Energy -> Node -> Bool
@@ -111,24 +120,25 @@ nextPlayerEnergies pEnergies player energy = do
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
 
 -- |Converts the GameState into the 2 Views
-getViews :: GameState -> (RogueGameView, CatcherGameView)
-getViews GameState
-    { statePlayerPositions
-    , statePlayerEnergies
-    , stateRogueHistory
-    , stateNextPlayer
+getViews :: GameRunning -> (RogueGameView, CatcherGameView)
+getViews
+    GameRunning
+    { gameRunningPlayerPositions
+    , gameRunningPlayerEnergies
+    , gameRunningRogueHistory
+    , gameRunningNextPlayer
     } =
     ( RogueGameView
-        { roguePlayerPositions = statePlayerPositions
-        , rogueEnergies = statePlayerEnergies
-        , rogueOwnHistory = stateRogueHistory
-        , rogueNextPlayer = stateNextPlayer
+        { roguePlayerPositions = gameRunningPlayerPositions
+        , rogueEnergies = gameRunningPlayerEnergies
+        , rogueOwnHistory = gameRunningRogueHistory
+        , rogueNextPlayer = gameRunningNextPlayer
         }
     , CatcherGameView
-        { catcherPlayerPositions = catcherPlayerPositions
-        , catcherEnergies = statePlayerEnergies
-        , catcherRogueHistory = stateRogueHistory
-        , catcherNextPlayer = stateNextPlayer
+        { catcherPlayerPositions = catcherPlayerPositions -- updated player positions
+        , catcherEnergies = gameRunningPlayerEnergies
+        , catcherRogueHistory = gameRunningRogueHistory
+        , catcherNextPlayer = gameRunningNextPlayer
         }
     )
     where
@@ -137,8 +147,24 @@ getViews GameState
             find isJust .
             map snd .
             rogueHistory $
-            stateRogueHistory
+            gameRunningRogueHistory
         catcherPlayerPositions =
-            updateMap (const rogueShowsPosition) (Player 0) statePlayerPositions
+            updateMap (const rogueShowsPosition) (Player 0) gameRunningPlayerPositions
 
+getGameOverView :: GameOver -> GameOverView
+getGameOverView GameOver
+    { gameOverPlayerPositions
+    , gameOverPlayerEnergies
+    , gameOverRogueHistory
+    } =
+    GameOverView
+        gameOverPlayerPositions
+        gameOverPlayerEnergies
+        gameOverRogueHistory
 
+gameNetwork :: GameState -> Network
+gameNetwork = network . gameConfig
+
+gameConfig :: GameState -> GameConfig
+gameConfig (GameRunning_ gameRunning) = gameRunningGameConfig gameRunning
+gameConfig (GameOver_ gameOver)       = gameOverGameConfig gameOver

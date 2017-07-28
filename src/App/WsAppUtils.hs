@@ -10,6 +10,7 @@ import           ClassyPrelude
 import qualified Data.Aeson         as Aeson
 import           Network.Protocol
 
+-- TODO: type-cass for send* functions
 sendToClient :: IsConnection conn => ClientConnection conn -> MessageForClient -> IO ()
 sendToClient ci msg =
     sendData (snd ci) (Aeson.encode msg)
@@ -30,19 +31,25 @@ sendCatcherView :: IsConnection conn => ClientConnection conn -> CatcherGameView
 sendCatcherView ci view =
     sendView ci $ CatcherView view
 
+sendGameError :: IsConnection conn => ClientConnection conn -> GameError -> IO ()
+sendGameError ci err =
+    sendToClient ci $ GameError_ err
+
 sendError :: IsConnection conn => ClientConnection conn -> GameError -> IO ()
 sendError ci err =
     sendData (snd ci) (Aeson.encode err)
 
-recvAction :: IsConnection conn => ClientConnection conn -> IO (Maybe Action)
-recvAction (_,ws) = do
+recvMsgForServer :: IsConnection conn => ClientConnection conn -> IO (Maybe MessageForServer)
+recvMsgForServer (_,ws) = do
     wsData <- receiveData ws
-    return (Aeson.decode wsData)
+    return $ Aeson.decode wsData
 
-broadcastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGameView -> IO ()
-broadcastCatcherView conns view =
-    mapM_ (\conn -> sendCatcherView conn view) conns
+multicastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGameView -> IO ()
+multicastCatcherView conns view =
+    mapM_ (`sendCatcherView` view) conns
 
 withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient cid =
     filter ((cid /=) . fst)
+
+

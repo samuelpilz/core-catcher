@@ -29,7 +29,8 @@ main :: IO ()
 main = do
     stateVar <- newTVarIO ServerState
         { connections = empty
-        , gameState = GameNg.initialState GameConfig.defaultConfig
+        -- TODO: improve game-state creation
+        , gameState = GameNg.GameRunning_ $ GameNg.initialState GameConfig.defaultConfig
         }
     putStrLn "Starting Core-Catcher server on port 8000"
     Warp.run 8000 $ WS.websocketsOr
@@ -56,7 +57,7 @@ wsApp stateVar pendingConn = do
 
 wsListen :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> IO ()
 wsListen client stateVar = forever $ do
-    maybeAction <- WsAppUtils.recvAction client
+    maybeAction <- WsAppUtils.recvMsgForServer client
     case maybeAction of
         Just action -> do
             -- TODO: what about request forging? (send game-token to client using player-mgnt)

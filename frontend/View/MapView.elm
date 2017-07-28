@@ -38,18 +38,18 @@ mapView network displayInfo clientState =
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
-        << Maybe.map2 (mapViewOfNetworkOverlay)
+        << Maybe.map2 (mapViewOfNetworkOverlay displayInfo.nodeXyMap)
             (displayInfoForEnergy displayInfo overlayName)
      <|
         Just overlay
     )
 
 
-mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, overlayEdges } =
+mapViewOfNetworkOverlay : NodeXyMap -> OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
+mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes, overlayEdges } =
     List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
-
+-- TODO: fix xymap
 
 
 -- svg create functions

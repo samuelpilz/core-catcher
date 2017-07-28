@@ -15,7 +15,7 @@ emptyServerIO :: IO (ServerState FakeConnection)
 emptyServerIO =
     return
         ServerState
-            { gameState = GameNg.initialState Config.defaultConfig
+            { gameState = GameNg.GameRunning_ $ GameNg.initialState Config.defaultConfig
             , connections = empty
             }
 
@@ -24,7 +24,7 @@ nonEmptyServerIO = do
     conns <- sequenceA . fromList $ map (\num -> emptyConnection >>= \conn -> return (num, conn)) [1, 2]
     return
         ServerState
-            { gameState = GameNg.initialState Config.defaultConfig
+            { gameState = GameNg.GameRunning_ $ GameNg.initialState Config.defaultConfig
             , connections = conns
             }
 
@@ -81,12 +81,12 @@ test_findClientById :: IO ()
 test_findClientById = do
     nonEmptyServer <- nonEmptyServerIO
     assertEqual (length $ getConnections nonEmptyServer) 2
-    let val = findConnectionById 1 nonEmptyServer
+    let val = findConnectionById 1 (connections nonEmptyServer)
     assertEqual (Just 1) (fst <$> val)
 
 test_findNonExistentClientById :: IO ()
 test_findNonExistentClientById = do
     nonEmptyServer <- nonEmptyServerIO
     assertEqual (length $ getConnections nonEmptyServer) 2
-    let val = findConnectionById 3 nonEmptyServer
+    let val = findConnectionById 3 (connections nonEmptyServer)
     assertEqual True (isNothing val)

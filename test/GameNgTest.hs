@@ -6,6 +6,7 @@ module GameNgTest where
 
 import           ClassyPrelude
 import           Config.GameConfig
+import           Data.Easy
 import           GameNg
 import           Network.Protocol
 import           Test.Framework
@@ -13,18 +14,18 @@ import           Test.HUnit.Base
 
 -- (@?=) = assertEqual
 test_defaultInitialStateHasStartingPlayer0 :: IO ()
-test_defaultInitialStateHasStartingPlayer0 = Player 0 @?= stateNextPlayer defaultInitialState
+test_defaultInitialStateHasStartingPlayer0 = Player 0 @?= gameRunningNextPlayer defaultInitialState
 
 test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory =
-    RogueHistory [] @?= stateRogueHistory defaultInitialState
+    RogueHistory [] @?= gameRunningRogueHistory defaultInitialState
 
 test_player0ValidMove_playerPositionUpdated :: IO ()
 test_player0ValidMove_playerPositionUpdated =
     case utilGameMoves defaultInitialState [(6,Red)] of
         Left err -> assertFailure $ "action failed: " ++ show err
         Right newState ->
-            Just (Node 6) @?= (lookup (Player 0) . statePlayerPositions $ newState)
+            Just (Node 6) @?= (lookup (Player 0) . gameRunningPlayerPositions $ newState)
 
 test_player0ValidMove_energyDrained :: IO ()
 test_player0ValidMove_energyDrained =
@@ -35,7 +36,7 @@ test_player0ValidMove_energyDrained =
             Just 1 @?= remainingEnergy newState
     where
         remainingEnergy state = do
-            eMap <- lookup (Player 0) . statePlayerEnergies $ state
+            eMap <- lookup (Player 0) . gameRunningPlayerEnergies $ state
             lookup Red eMap
 
 
@@ -45,7 +46,7 @@ test_player0ValidMove_historyUpdated =
         Left err ->
             assertFailure $ "action failed: " ++ show err
         Right newState ->
-            RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
+            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory newState
 
 test_player0ValidMoveWithShow_historyUpdate :: IO ()
 test_player0ValidMoveWithShow_historyUpdate =
@@ -53,7 +54,7 @@ test_player0ValidMoveWithShow_historyUpdate =
         Left err ->
             assertFailure $ "action failed: " ++ show err
         Right newState ->
-            RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
+            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory newState
 
 test_player1ValidMove_historyNotUpdated :: IO ()
 test_player1ValidMove_historyNotUpdated =
@@ -61,7 +62,7 @@ test_player1ValidMove_historyNotUpdated =
         Left err ->
             assertFailure $ "action failed: " ++ show err
         Right newState ->
-            RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
+            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory newState
 
 
 test_notPlayer1Turn :: IO ()
@@ -74,7 +75,7 @@ test_notPlayer1Turn =
 test_playerNotFoundInPositions :: IO ()
 test_playerNotFoundInPositions =
     case updateState (Move (Player 0) Red (Node 5)) $
-        defaultInitialState { statePlayerPositions = mempty } of
+        defaultInitialState { gameRunningPlayerPositions = mempty } of
         Left err ->
             PlayerNotFound @?= err
         Right _              -> assertFailure "should not find player"
@@ -82,7 +83,7 @@ test_playerNotFoundInPositions =
 test_playerNotFoundInEnergies :: IO ()
 test_playerNotFoundInEnergies =
     case updateState (Move (Player 0) Red (Node 5)) $
-        defaultInitialState { statePlayerEnergies = mempty } of
+        defaultInitialState { gameRunningPlayerEnergies = mempty } of
         Left err ->
             PlayerNotFound @?= err
         Right _              -> assertFailure "should not find player"
@@ -91,7 +92,7 @@ test_playerNotFoundInEnergies =
 test_energyNotFound :: IO ()
 test_energyNotFound =
     case updateState (Move (Player 0) Red (Node 5)) $
-        defaultInitialState { statePlayerEnergies = singletonMap (Player 0) mempty }of
+        defaultInitialState { gameRunningPlayerEnergies = singletonMap (Player 0) mempty }of
         Left err ->
             EnergyNotFound @?= err
         Right _              -> assertFailure "should not find energy"
@@ -112,7 +113,7 @@ test_noEnergyLeft =
     where
         noEnergyState =
             defaultInitialState
-                { statePlayerEnergies =
+                { gameRunningPlayerEnergies =
                     PlayerEnergies $
                         singletonMap (Player 0) (EnergyMap $ singletonMap Orange 0 )
                 }
@@ -121,10 +122,10 @@ test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 test_getViews_rogueViewEqualToFieldInGameState = do
     let state = defaultInitialState
     let (rogueView, _) = getViews state
-    roguePlayerPositions rogueView @?= statePlayerPositions state
-    rogueEnergies rogueView @?= statePlayerEnergies state
-    rogueOwnHistory rogueView @?= stateRogueHistory state
-    rogueNextPlayer rogueView @?= stateNextPlayer state
+    roguePlayerPositions rogueView @?= gameRunningPlayerPositions state
+    rogueEnergies rogueView @?= gameRunningPlayerEnergies state
+    rogueOwnHistory rogueView @?= gameRunningRogueHistory state
+    rogueNextPlayer rogueView @?= gameRunningNextPlayer state
 
 test_getViews_catcherViewDoesNotContainRogue :: IO ()
 test_getViews_catcherViewDoesNotContainRogue = do
@@ -134,9 +135,9 @@ test_getViews_catcherViewDoesNotContainRogue = do
 test_getViews_someFieldsEqualToGameState :: IO ()
 test_getViews_someFieldsEqualToGameState = do
     let (_, catcherView) = getViews defaultInitialState
-    catcherEnergies catcherView @?= statePlayerEnergies defaultInitialState
-    catcherRogueHistory catcherView @?= stateRogueHistory defaultInitialState
-    catcherNextPlayer catcherView @?= stateNextPlayer defaultInitialState
+    catcherEnergies catcherView @?= gameRunningPlayerEnergies defaultInitialState
+    catcherRogueHistory catcherView @?= gameRunningRogueHistory defaultInitialState
+    catcherNextPlayer catcherView @?= gameRunningNextPlayer defaultInitialState
 
 
 
@@ -150,21 +151,27 @@ test_gameRound =
                    , (13, Orange)
                    ]
         state <- case updated of
-            Left err -> assertFailure $ show err
-            Right newState       -> return newState
+            Left err       -> assertFailure $ "action failed: " ++ show err
+            Right newState -> return newState
 
-        Just (Node 11) @?= (lookup (Player 0) . playerPositions . statePlayerPositions $ state)
-        Just (Node 3) @?= (lookup (Player 1) . playerPositions . statePlayerPositions $ state)
-        Just (Node 5) @?= (lookup (Player 2) . playerPositions . statePlayerPositions $ state)
-        Just (Node 13) @?= (lookup (Player 3) . playerPositions . statePlayerPositions $ state)
-        Player 0 @?= stateNextPlayer state
+        Just (Node 11) @?= (lookup (Player 0) . playerPositions . gameRunningPlayerPositions $ state)
+        Just (Node 3) @?= (lookup (Player 1) . playerPositions . gameRunningPlayerPositions $ state)
+        Just (Node 5) @?= (lookup (Player 2) . playerPositions . gameRunningPlayerPositions $ state)
+        Just (Node 13) @?= (lookup (Player 3) . playerPositions . gameRunningPlayerPositions $ state)
+        Player 0 @?= gameRunningNextPlayer state
 
 -- Utility functions for shortening tests
 
-utilGameMoves :: GameState -> [(Int, Energy)] -> Either GameError GameState
+utilGameMoves :: GameRunning -> [(Int, Energy)] -> Either GameError GameRunning
 utilGameMoves =
     foldM
-        (\s (n, e) -> updateState (Move (stateNextPlayer s) e (Node n)) s)
+        (\s (n, e) ->
+            join .
+            mapRight (mapLeft . const $ GameIsOver) .
+            updateState (Move (gameRunningNextPlayer s) e (Node n)) $
+            s
+        )
 
-defaultInitialState :: GameState
+
+defaultInitialState :: GameRunning
 defaultInitialState = initialState defaultConfig

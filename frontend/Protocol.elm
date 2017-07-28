@@ -288,10 +288,11 @@ type GameError  =
     | EnergyNotFound 
     | NotReachable 
     | NotEnoughEnergy 
+    | GameIsOver 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
 jsonDecGameError = 
-    let jsonDecDictGameError = Dict.fromList [("NotTurn", NotTurn), ("PlayerNotFound", PlayerNotFound), ("EnergyNotFound", EnergyNotFound), ("NotReachable", NotReachable), ("NotEnoughEnergy", NotEnoughEnergy)]
+    let jsonDecDictGameError = Dict.fromList [("NotTurn", NotTurn), ("PlayerNotFound", PlayerNotFound), ("EnergyNotFound", EnergyNotFound), ("NotReachable", NotReachable), ("NotEnoughEnergy", NotEnoughEnergy), ("GameIsOver", GameIsOver)]
     in  decodeSumUnaries "GameError" jsonDecDictGameError
 
 jsonEncGameError : GameError -> Value
@@ -302,6 +303,7 @@ jsonEncGameError  val =
         EnergyNotFound -> Json.Encode.string "EnergyNotFound"
         NotReachable -> Json.Encode.string "NotReachable"
         NotEnoughEnergy -> Json.Encode.string "NotEnoughEnergy"
+        GameIsOver -> Json.Encode.string "GameIsOver"
 
 
 
@@ -345,12 +347,14 @@ jsonEncMessageForServer (Action_ v1) =
 type MessageForClient  =
     GameView_ GameView
     | InitialInfoForClient_ InitialInfoForClient
+    | GameError_ GameError
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
             [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
             , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
+            , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
@@ -359,5 +363,6 @@ jsonEncMessageForClient  val =
     let keyval v = case v of
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
                     InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
+                    GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
     in encodeSumObjectWithSingleField keyval val
 
