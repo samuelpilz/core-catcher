@@ -48,6 +48,14 @@ multicastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGa
 multicastCatcherView conns view =
     mapM_ (`sendCatcherView` view) conns
 
+sendGameOverView :: IsConnection conn => ClientConnection conn -> GameOverView -> IO ()
+sendGameOverView ci view =
+    sendToClient ci $ GameOverView_ view
+
+broadcastGameOverView :: IsConnection conn => ClientConnections conn -> GameOverView -> IO ()
+broadcastGameOverView conns view =
+    mapM_ (`sendGameOverView` view) conns
+
 withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient cid =
     filter ((cid /=) . fst)

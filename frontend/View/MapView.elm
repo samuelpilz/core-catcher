@@ -14,15 +14,12 @@ import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
 import Debug exposing (log)
 
--- TODO: css style with css-library?
-
 
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
 mapView network displayInfo clientState =
     svg
         [ height << toString <| displayInfo.mapHeight
         , width << toString <| displayInfo.mapWidth
-        , Html.style [ ( "backgroundColor", "#cccccc" ) ]
         ]
     -- elements of svg now
     <|
@@ -36,10 +33,14 @@ mapView network displayInfo clientState =
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
                 (playerPositions clientState.gameView).playerPositions
             ++ gameErrorText clientState.gameError
+            ++ gameOverText clientState.gameOver
 
 
-
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName :
+    GameViewDisplayInfo
+    -> Network
+    -> ( Energy, NetworkOverlay )
+    -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay displayInfo.nodeXyMap)
@@ -53,7 +54,6 @@ mapViewOfNetworkOverlay : NodeXyMap -> OverlayDisplayInfo -> NetworkOverlay -> L
 mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes, overlayEdges } =
     List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
--- TODO: fix xymap
 
 
 -- svg create functions
@@ -61,7 +61,7 @@ mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes,
 
 gameErrorText : Maybe GameError -> List (Svg Msg)
 gameErrorText errMay =
-    case log "error?" errMay of
+    case errMay of
         Nothing ->
             []
 
@@ -71,7 +71,26 @@ gameErrorText errMay =
                 , y "15"
                 , fill "red"
                 ]
-                [ text << toString <| err ] -- TODO: popup for that?
+                [ text << toString <| err ]
+
+            -- TODO: popup notification for that?
+            ]
+
+gameOverText : Bool -> List (Svg Msg)
+gameOverText gameOverBool =
+    case gameOverBool of
+        False ->
+            []
+
+        True ->
+            [ text_
+                [ x "500"
+                , y "15"
+                , fill "red"
+                ]
+                [ text "Game Over" ]
+
+            -- TODO: visual design for that, and present more info
             ]
 
 

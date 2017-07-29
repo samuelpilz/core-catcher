@@ -52,12 +52,13 @@ newtype EnergyMap =
 -- |A GameError is a enum of possible errors
 data GameError
     = NotTurn
-    | PlayerNotFound
+    | PlayerNotFound Player
     | EnergyNotFound
     | NotReachable
+    | NodeBlocked Player
     | NotEnoughEnergy
     | GameIsOver
-    deriving (Show, Read, Eq, Generic, Enum, Bounded)
+    deriving (Show, Read, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -72,10 +73,10 @@ Currently this is only a move, but this may be expanded in the future.
 -} -- TODO: write into design document that an action may be more than a move. Maybe change?
 data Action =
     Move
-      { actionPlayer    :: Player
-      , actionEnergy :: Energy
-      , actionNode      :: Node
-      }
+        { actionPlayer    :: Player
+        , actionEnergy :: Energy
+        , actionNode      :: Node
+        }
     deriving (Show, Read, Eq, Generic)
 
 {- |The playerPositions map keeps track of the current nodes each player is on.
@@ -89,18 +90,28 @@ newtype PlayerPositions =
         }
     deriving (Show, Read, Eq, Generic)
 
+-- TODO: Seq instead of list?
+-- TODO: rename to shadowRogueHistory?
 {- |The history of energies used by the rouge core.
--} -- TODO: Seq instead of list?
+-}
 newtype RogueHistory =
     RogueHistory
         { rogueHistory :: [(Energy, Maybe Node)]
         }
-      deriving (Show, Read, Eq, Generic)
+    deriving (Show, Read, Eq, Generic)
+-- TODO: derive type-classes like monoFunctor, ...
 
+{- |The history of energies used by the rogue together with all nodes
+
+The bool flag indicates whether the node in the history-entry is shown to the catchers
+ during the game
+-}
 newtype OpenRogueHistory =
     OpenRogueHistory
-        { openRogeHistory :: [(Energy, Node)]
+        { openRogueHistory :: [(Energy, Node, Bool)]
         }
+    deriving (Show, Read, Eq, Generic)
+
 
 {- |A game view as seen by the rouge-core.
 -}
@@ -111,7 +122,7 @@ data RogueGameView =
         , rogueOwnHistory      :: RogueHistory
         , rogueNextPlayer      :: Player
         }
-        deriving (Show, Read,  Eq, Generic)
+    deriving (Show, Read,  Eq, Generic)
 
 {- |A game view as seen by the catchers
 -}
@@ -122,7 +133,7 @@ data CatcherGameView =
         , catcherRogueHistory    :: RogueHistory
         , catcherNextPlayer      :: Player
         }
-        deriving (Show, Read, Eq, Generic)
+    deriving (Show, Read, Eq, Generic)
 
 {- |A view for the game-over screen
 -}
@@ -132,6 +143,7 @@ data GameOverView =
         , gameOverViewEnergies        :: PlayerEnergies
         , gameOverViewRogueHistory    :: OpenRogueHistory
         }
+    deriving (Show, Read, Eq, Generic)
 
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state.
@@ -204,6 +216,7 @@ data MessageForServer =
 data MessageForClient
     = GameView_ GameView
     | GameError_ GameError
+    | GameOverView_ GameOverView
     | InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
 
@@ -257,7 +270,7 @@ instance Arbitrary OpenRogueHistory where
         OpenRogueHistory <$> arbitrary
 
 instance Arbitrary GameError where
-    arbitrary = arbitraryBoundedEnum
+    arbitrary = undefined -- TODO: implement arbitrary for game-error??
 
 instance Arbitrary CatcherGameView where
     arbitrary =
@@ -299,6 +312,7 @@ deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Energy
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
+deriveBoth Elm.Derive.defaultOptions ''GameOverView
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
@@ -307,13 +321,14 @@ deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 type instance Element PlayerPositions = Node
 instance Monoid PlayerPositions where
     mempty = PlayerPositions mempty
-    mappend pp1 pp2 = PlayerPositions $ playerPositions pp1 ++ playerPositions pp2
+    mappend m1 m2 = PlayerPositions $ playerPositions m1 ++ playerPositions m2
 instance MonoFunctor PlayerPositions where
     omap f = PlayerPositions . omap f . playerPositions
 instance MonoFoldable PlayerPositions where
     ofoldMap f = ofoldMap f . playerPositions
     ofoldr f x = ofoldr f x . playerPositions
     ofoldl' f x = ofoldl' f x . playerPositions
+    otoList = toList . playerPositions
     olength = olength . playerPositions
     olength64 = olength64 . playerPositions
     ofoldr1Ex f = ofoldr1Ex f . playerPositions
@@ -326,9 +341,9 @@ instance SetContainer PlayerPositions where
     type ContainerKey PlayerPositions = Player
     member p = member p . playerPositions
     notMember p = notMember p . playerPositions
-    union pp1 pp2 = PlayerPositions $ union (playerPositions pp1) (playerPositions pp2)
-    difference pp1 pp2 = PlayerPositions $ difference (playerPositions pp1) (playerPositions pp2)
-    intersection pp1 pp2 = PlayerPositions $ intersection (playerPositions pp1) (playerPositions pp2)
+    union m1 m2 = PlayerPositions $ union (playerPositions m1) (playerPositions m2)
+    difference m1 m2 = PlayerPositions $ difference (playerPositions m1) (playerPositions m2)
+    intersection m1 m2 = PlayerPositions $ intersection (playerPositions m1) (playerPositions m2)
     keys = keys . playerPositions
 instance IsMap PlayerPositions where
     type MapValue PlayerPositions = Node
@@ -343,13 +358,14 @@ instance IsMap PlayerPositions where
 type instance Element EnergyMap = Int
 instance Monoid EnergyMap where
     mempty = EnergyMap mempty
-    mappend pp1 pp2 = EnergyMap $ energyMap pp1 ++ energyMap pp2
+    mappend m1 m2 = EnergyMap $ energyMap m1 ++ energyMap m2
 instance MonoFunctor EnergyMap where
     omap f = EnergyMap . omap f . energyMap
 instance MonoFoldable EnergyMap where
     ofoldMap f = ofoldMap f . energyMap
     ofoldr f x = ofoldr f x . energyMap
     ofoldl' f x = ofoldl' f x . energyMap
+    otoList = toList . energyMap
     olength = olength . energyMap
     olength64 = olength64 . energyMap
     ofoldr1Ex f = ofoldr1Ex f . energyMap
@@ -362,9 +378,9 @@ instance SetContainer EnergyMap where
     type ContainerKey EnergyMap = Energy
     member p = member p . energyMap
     notMember p = notMember p . energyMap
-    union pp1 pp2 = EnergyMap $ union (energyMap pp1) (energyMap pp2)
-    difference pp1 pp2 = EnergyMap $ difference (energyMap pp1) (energyMap pp2)
-    intersection pp1 pp2 = EnergyMap $ intersection (energyMap pp1) (energyMap pp2)
+    union m1 m2 = EnergyMap $ union (energyMap m1) (energyMap m2)
+    difference m1 m2 = EnergyMap $ difference (energyMap m1) (energyMap m2)
+    intersection m1 m2 = EnergyMap $ intersection (energyMap m1) (energyMap m2)
     keys = keys . energyMap
 instance IsMap EnergyMap where
     type MapValue EnergyMap = Int
@@ -379,13 +395,14 @@ instance IsMap EnergyMap where
 type instance Element PlayerEnergies = EnergyMap
 instance Monoid PlayerEnergies where
     mempty = PlayerEnergies mempty
-    mappend pp1 pp2 = PlayerEnergies $ playerEnergies pp1 ++ playerEnergies pp2
+    mappend m1 m2 = PlayerEnergies $ playerEnergies m1 ++ playerEnergies m2
 instance MonoFunctor PlayerEnergies where
     omap f = PlayerEnergies . omap f . playerEnergies
 instance MonoFoldable PlayerEnergies where
     ofoldMap f = ofoldMap f . playerEnergies
     ofoldr f x = ofoldr f x . playerEnergies
     ofoldl' f x = ofoldl' f x . playerEnergies
+    otoList = toList . playerEnergies
     olength = olength . playerEnergies
     olength64 = olength64 . playerEnergies
     ofoldr1Ex f = ofoldr1Ex f . playerEnergies
@@ -398,9 +415,9 @@ instance SetContainer PlayerEnergies where
     type ContainerKey PlayerEnergies = Player
     member p = member p . playerEnergies
     notMember p = notMember p . playerEnergies
-    union pp1 pp2 = PlayerEnergies $ union (playerEnergies pp1) (playerEnergies pp2)
-    difference pp1 pp2 = PlayerEnergies $ difference (playerEnergies pp1) (playerEnergies pp2)
-    intersection pp1 pp2 = PlayerEnergies $ intersection (playerEnergies pp1) (playerEnergies pp2)
+    union m1 m2 = PlayerEnergies $ union (playerEnergies m1) (playerEnergies m2)
+    difference m1 m2 = PlayerEnergies $ difference (playerEnergies m1) (playerEnergies m2)
+    intersection m1 m2 = PlayerEnergies $ intersection (playerEnergies m1) (playerEnergies m2)
     keys = keys . playerEnergies
 instance IsMap PlayerEnergies where
     type MapValue PlayerEnergies = EnergyMap
@@ -411,20 +428,71 @@ instance IsMap PlayerEnergies where
     mapFromList = PlayerEnergies . mapFromList
     mapToList = mapToList . playerEnergies
 
--- MonoFoldable and MonoTraversable for RogueHistory
+-- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
 type instance Element RogueHistory = (Energy, Maybe Node)
 instance Monoid RogueHistory where
     mempty = RogueHistory mempty
-    mappend pp1 pp2 = RogueHistory $ rogueHistory pp1 ++ rogueHistory pp2
+    mappend m1 m2 = RogueHistory $ rogueHistory m1 ++ rogueHistory m2
 instance MonoFunctor RogueHistory where
     omap f = RogueHistory . omap f . rogueHistory
 instance MonoFoldable RogueHistory where
     ofoldMap f = ofoldMap f . rogueHistory
     ofoldr f x = ofoldr f x . rogueHistory
     ofoldl' f x = ofoldl' f x . rogueHistory
+    otoList = rogueHistory
     olength = olength . rogueHistory
     olength64 = olength64 . rogueHistory
     ofoldr1Ex f = ofoldr1Ex f . rogueHistory
     ofoldl1Ex' f = ofoldl1Ex' f . rogueHistory
 instance MonoTraversable RogueHistory where
     otraverse f = map RogueHistory . otraverse f . rogueHistory
+instance GrowingAppend RogueHistory where
+instance Semigroup RogueHistory where
+instance SemiSequence RogueHistory where
+    type Index RogueHistory = Int
+    intersperse e = RogueHistory . intersperse e . rogueHistory
+    reverse = RogueHistory . reverse . rogueHistory
+    find p = find p . rogueHistory
+    sortBy f = RogueHistory . sortBy f . rogueHistory
+    cons e = RogueHistory . cons e . rogueHistory
+    snoc s e = RogueHistory . flip snoc e . rogueHistory $ s
+instance MonoPointed RogueHistory where
+    opoint = RogueHistory . singleton
+instance IsSequence RogueHistory where
+    fromList = RogueHistory . fromList
+    -- maybe others for performance..
+
+-- MonoFoldable and MonoTraversable and IsSequence for OpenRogueHistory
+type instance Element OpenRogueHistory = (Energy, Node, Bool)
+instance Monoid OpenRogueHistory where
+    mempty = OpenRogueHistory mempty
+    mappend m1 m2 = OpenRogueHistory $ openRogueHistory m1 ++ openRogueHistory m2
+instance MonoFunctor OpenRogueHistory where
+    omap f = OpenRogueHistory . omap f . openRogueHistory
+instance MonoFoldable OpenRogueHistory where
+    ofoldMap f = ofoldMap f . openRogueHistory
+    ofoldr f x = ofoldr f x . openRogueHistory
+    ofoldl' f x = ofoldl' f x . openRogueHistory
+    otoList = openRogueHistory
+    olength = olength . openRogueHistory
+    olength64 = olength64 . openRogueHistory
+    ofoldr1Ex f = ofoldr1Ex f . openRogueHistory
+    ofoldl1Ex' f = ofoldl1Ex' f . openRogueHistory
+instance MonoTraversable OpenRogueHistory where
+    otraverse f = map OpenRogueHistory . otraverse f . openRogueHistory
+instance GrowingAppend OpenRogueHistory where
+instance Semigroup OpenRogueHistory where
+instance SemiSequence OpenRogueHistory where
+    type Index OpenRogueHistory = Int
+    intersperse e = OpenRogueHistory . intersperse e . openRogueHistory
+    reverse = OpenRogueHistory . reverse . openRogueHistory
+    find p = find p . openRogueHistory
+    sortBy f = OpenRogueHistory . sortBy f . openRogueHistory
+    cons e = OpenRogueHistory . cons e . openRogueHistory
+    snoc s e = OpenRogueHistory . flip snoc e . openRogueHistory $ s
+instance MonoPointed OpenRogueHistory where
+    opoint = OpenRogueHistory . singleton
+instance IsSequence OpenRogueHistory where
+    fromList = OpenRogueHistory . fromList
+    -- maybe others for performance..
+

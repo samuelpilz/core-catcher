@@ -16,6 +16,7 @@ data GameConfig =
         , rogueShowsAt           :: [Int]
         , network                :: Network
         }
+    deriving (Eq, Show, Read)
 
 -- | The default GameConfig
 defaultConfig :: GameConfig

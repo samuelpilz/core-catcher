@@ -63,7 +63,9 @@ sendGameViews (GameRunning_ game) conn = do
     let (rogueGameView, catcherGameView) = Game.getViews game
     multicastCatcherView (withoutClient 0 conn) catcherGameView
     whenJust (findConnectionById 0 conn) (`sendRogueView` rogueGameView)
-sendGameViews _ _ = undefined
+sendGameViews (GameOver_ game) conn =
+    broadcastGameOverView conn $ Game.getGameOverView game
+
 
 initialInfoForClient :: GameConfig -> ClientId -> InitialInfoForClient
 initialInfoForClient config clientId =
