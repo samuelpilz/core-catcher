@@ -18,6 +18,7 @@ import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
 import qualified Test.QuickCheck.Gen       as Gen
 import qualified TH.MonoDerive             as Derive
+
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
@@ -38,25 +39,21 @@ newtype Edge =
     Edge { edge :: (Node, Node) }
     deriving (Show, Read, Eq, Ord, Generic)
 
--- TODO: rename transport to energy??
--- |Transport is a text
-newtype Transport =
-    Transport { transportName :: Text }
-    deriving (Show, Read, Eq, Ord, Generic)
+-- |Energy is a enum of possible energies.
+data Energy = Red | Blue | Orange
+    deriving (Show, Read, Eq, Ord, Generic, Enum, Bounded)
 
-{- |A engergy-map is keeps track how much energy per transport a player has left.
+{- |A engergy-map is keeps track how much energy per energy a player has left.
 -}
 newtype EnergyMap =
     EnergyMap
-        { energyMap :: Map Transport Int
+        { energyMap :: Map Energy Int
         }
         deriving (Show, Read, Eq, Generic)
 
-newtype GameError =
-    GameError
-        { myError :: Text
-        }
-        deriving (Show, Read, Eq, Generic)
+-- |A GameError is a enum of possible errors
+data GameError = NotTurn | PlayerNotFound | EnergyNotFound | NotReachable | NotEnoughEnergy
+        deriving (Show, Read, Eq, Generic, Enum, Bounded)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -68,12 +65,12 @@ newtype PlayerEnergies =
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
--} -- TODO: write into design document that an action is more than a move. Maybe change?
+-} -- TODO: write into design document that an action may be more than a move. Maybe change?
 data Action =
     Move
-      { actionPlayer    :: Player
-      , actionTransport :: Transport
-      , actionNode      :: Node
+      { actionPlayer :: Player
+      , actionEnergy :: Energy
+      , actionNode   :: Node
       }
     deriving (Show, Read, Eq, Generic)
 
@@ -88,11 +85,11 @@ newtype PlayerPositions =
         }
     deriving (Show, Read, Eq, Generic)
 
-{- |The history of transports used by the rouge core.
+{- |The history of energies used by the rouge core.
 -} -- TODO: Seq instead of list?
 newtype RogueHistory =
     RogueHistory
-        { rogueHistory :: [(Transport, Maybe Node)]
+        { rogueHistory :: [(Energy, Maybe Node)]
         }
       deriving (Show, Read, Eq, Generic)
 
@@ -144,7 +141,7 @@ viewNextPlayer :: GameView -> Player
 viewNextPlayer (CatcherView view) = catcherNextPlayer view
 viewNextPlayer (RogueView view)   = rogueNextPlayer view
 
-{- |Network: Nodes and Map Transport to Overlay.
+{- |Network: Nodes and Map Energy to Overlay.
 
 The overlays contain the actual Edges
 
@@ -155,7 +152,7 @@ Representation is handled via NetworkDisplayInfo
 data Network =
     Network
         { nodes    :: [Node]
-        , overlays :: Map Transport NetworkOverlay
+        , overlays :: Map Energy NetworkOverlay
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -194,14 +191,11 @@ instance FromJSONKey Player where
 
 instance FromJSONKey Node where
 
-instance FromJSONKey Transport where
+instance FromJSONKey Energy where
 
 instance ToJSONKey Player where
 
-instance ToJSONKey Transport where
-
-instance Arbitrary Text where
-    arbitrary = pack <$> arbitrary
+instance ToJSONKey Energy where
 
 instance Arbitrary Player  where
     arbitrary =
@@ -215,9 +209,8 @@ instance Arbitrary Edge  where
     arbitrary =
         Edge <$> ((,) <$> arbitrary <*> arbitrary)
 
-instance Arbitrary Transport  where
-    arbitrary =
-        Transport <$> arbitrary
+instance Arbitrary Energy  where
+    arbitrary = arbitraryBoundedEnum
 
 instance Arbitrary Action where
     arbitrary =
@@ -240,8 +233,7 @@ instance Arbitrary RogueHistory where
         RogueHistory <$> arbitrary
 
 instance Arbitrary GameError where
-    arbitrary =
-        GameError <$> (arbitrary :: Gen.Gen Text)
+    arbitrary = arbitraryBoundedEnum
 
 instance Arbitrary CatcherGameView where
     arbitrary =
@@ -280,7 +272,7 @@ deriveBoth Elm.Derive.defaultOptions ''NetworkOverlay
 deriveBoth Elm.Derive.defaultOptions ''Player
 deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
-deriveBoth Elm.Derive.defaultOptions ''Transport
+deriveBoth Elm.Derive.defaultOptions ''Energy
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
@@ -292,3 +284,9 @@ Derive.deriveMap ''PlayerPositions
 Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
 Derive.deriveMap ''PlayerEnergies
+-- MonoFoldable and MonoTraversable for RogueHistory
+type instance Element RogueHistory = (Energy, Maybe Node)
+Derive.monoidTh ''RogueHistory
+Derive.monoFunctorTh ''RogueHistory
+Derive.monoFoldableTh ''RogueHistory
+Derive.monoTraversableTh ''RogueHistory

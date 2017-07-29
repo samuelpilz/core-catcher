@@ -5,12 +5,12 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import WebSocket
 import View.MapView exposing (mapView)
-import View.TransportView exposing (transportView)
+import View.GameViewDisplay exposing (..)
+import View.EnergyView exposing (..)
 import Debug exposing (log)
 import Example.ExampleGameViewDisplay as Example
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
@@ -37,7 +37,7 @@ view state =
     div []
         [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
         , mapView state.network displayInfo state
-        , transportView state.network displayInfo state
+        , energyView state.network displayInfo state
         ]
 
 
@@ -88,8 +88,8 @@ update msg state =
                     }
                         ! []
 
-        SelectEnergy transport ->
-            { state | selectedEnergy = transport } ! []
+        SelectEnergy energy ->
+            { state | selectedEnergy = energy } ! []
 
         None ->
             state ! []
@@ -104,7 +104,7 @@ initialState flags =
     { gameView = RogueView emptyRogueView
     , network = emptyNetwork
     , player = { playerId = 0 }
-    , selectedEnergy = { transportName = "orange" }
+    , selectedEnergy = Orange
     , server = flags.server
     }
 
@@ -119,7 +119,7 @@ jsonActionOfNode state n =
         << jsonEncAction
     <|
         { actionPlayer = state.player
-        , actionTransport = state.selectedEnergy
+        , actionEnergy = state.selectedEnergy
         , actionNode = n
         }
 

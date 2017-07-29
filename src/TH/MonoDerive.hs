@@ -3,6 +3,14 @@
 {-# LANGUAGE TemplateHaskell   #-}
 module TH.MonoDerive
   ( deriveMap
+  , monoidTh
+  , monoTraversableTh
+  , monoFunctorTh
+  , monoFoldableTh
+  , semigroupTh
+  , growingAppendTh
+  , setContainerTh
+  , isMapTh
   ) where
 
 import           ClassyPrelude

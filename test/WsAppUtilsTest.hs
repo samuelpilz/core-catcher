@@ -8,19 +8,19 @@ import qualified App.ConnectionMgnt as Mgnt
 import           App.State
 import           App.WsAppUtils
 import           ClassyPrelude
+import qualified Config.GameConfig  as Config
 import qualified Data.Aeson         as Aeson
-import           GameLogicTest
-import qualified Glue               ()
+import qualified GameNg
 import qualified Mock.Connection    as Fake
 import qualified Network.Protocol   as Protocol
 import           Test.Framework
-import qualified GameNg
+
 
 anAction :: Protocol.Action
 anAction =
     Protocol.Move
         (Protocol.Player 1)
-        (Protocol.Transport "green")
+        Protocol.Orange
         (Protocol.Node 1)
 
 
@@ -31,7 +31,7 @@ nonEmptyServerIO = do
     _ <- takeMVar sndMvar
     putMVar sndMvar (Fake.Msg $ Aeson.encode anAction)
     return ServerState
-        { gameState = GameNg.initialState
+        { gameState = GameNg.initialState Config.defaultConfig
         , connections = conns
         }
 

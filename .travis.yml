@@ -24,6 +24,7 @@ cache:
   - $HOME/.stack
   - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
+  - $(npm config get prefix)/bin/elm
 
 # Ensure necessary system libraries are present
 addons:
@@ -33,6 +34,9 @@ addons:
 
 before_install:
   # Download and unpack the stack executable
+  - npm install -g elm
+  - elm --version
+  - elm-package install -y
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - export TRAVIS=travis-ci
@@ -45,15 +49,13 @@ before_install:
   - stack build
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
-  - npm install elm
-  - elm-package install -y
 
 
 
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
+  #- travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:

@@ -11,7 +11,7 @@ import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
+import View.GameViewDisplay exposing (..)
 
 -- TODO: css style with css-library?
 
@@ -28,18 +28,18 @@ mapView network displayInfo clientState =
             ++ List.concatMap
                 -- overlays
                 (mapViewOfNetworkOverlayName displayInfo network)
-                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) network.overlays)
+                (List.sortBy (\( energy, _ ) -> getPriority displayInfo energy) network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
                 (playerPositions clientState.gameView).playerPositions
 
 
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay)
-            (displayInfoForTransport displayInfo overlayName)
+            (displayInfoForEnergy displayInfo overlayName)
      <|
         Just overlay
     )

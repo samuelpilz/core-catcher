@@ -12,9 +12,9 @@ network :: Network
 network =
     Network { nodes = map Node [1..16]
     , overlays = mapFromList
-        [ ( Transport "red", redOverlay )
-        , ( Transport "blue", blueOverlay )
-        , ( Transport "orange", orangeOverlay )
+        [ ( Red, redOverlay )
+        , ( Blue, blueOverlay )
+        , ( Orange, orangeOverlay )
         ]
     }
 

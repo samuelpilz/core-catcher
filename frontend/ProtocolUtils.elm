@@ -59,10 +59,10 @@ getFromList k list =
         list
 
 
-getEnergyForTransportAndPlayer : Player -> Transport -> GameView -> Int
-getEnergyForTransportAndPlayer player transport gameView =
+getEnergyForEnergyAndPlayer : Player -> Energy -> GameView -> Int
+getEnergyForEnergyAndPlayer player energy gameView =
     Maybe.withDefault 0
-        << Maybe.andThen (getFromList transport)
+        << Maybe.andThen (getFromList energy)
         << Maybe.map .energyMap
         << getFromList player
     <|
@@ -81,3 +81,16 @@ emptyRogueView =
     , rogueOwnHistory = { rogueHistory = [] }
     , rogueNextPlayer = { playerId = 0 }
     }
+
+
+energyId : Energy -> Int
+energyId e =
+    case e of
+        Red ->
+            0
+
+        Blue ->
+            1
+
+        Orange ->
+            2

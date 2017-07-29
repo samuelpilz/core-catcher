@@ -1,4 +1,4 @@
-module GameViewDisplay exposing (..)
+module View.GameViewDisplay exposing (..)
 
 {-| data types for displaying game views
 -}
@@ -26,33 +26,33 @@ type alias NodeSize =
     Int
 
 
-{-| A map that contains the mappings from transport type to color.
+{-| A map that contains the mappings from energy type to color.
 
-Each transport type should be present in this map.
+Each energy type should be present in this map.
 
 -}
 type alias ColorMap =
-    AllDict Transport Color String
+    AllDict Energy Color Int
 
 
-{-| A map that contains the edge widths for each Transport type.
+{-| A map that contains the edge widths for each Energy type.
 
-Each transport type should be present in this map.
+Each energy type should be present in this map.
 
 -}
 type alias EdgeWidthMap =
-    AllDict Transport EdgeWidth String
+    AllDict Energy EdgeWidth Int
 
 
-{-| A map that contains the node sizes for each Transport type.
+{-| A map that contains the node sizes for each Energy type.
 This is the size of the circle that lies behind a node to represent
-that the node has a stop for the given transport
+that the node has a stop for the given energy
 
-Each transport type should be present in this map.
+Each energy type should be present in this map.
 
 -}
 type alias NodeSizeMap =
-    AllDict Transport NodeSize String
+    AllDict Energy NodeSize Int
 
 
 {-| A map that mapps nodes to coordinates
@@ -67,12 +67,12 @@ type alias PlayerColorMap =
 
 {-| A tuple that contains all information needed to display a network.
 
-The first 3 entries are maps that store the color, edgeWidth and nodeSize per transport type
+The first 3 entries are maps that store the color, edgeWidth and nodeSize per energy type
 
 The 4th entry is a map of coordinates per node
 
-The 5th entry is the list of transports used in order which they should be rendered.
-The smallest / thinnest transport type should be namen last.
+The 5th entry is the list of energies used in order which they should be rendered.
+The smallest / thinnest energy type should be named last.
 
 The 6th entry is a map that mapps each player to a color
 
@@ -84,7 +84,7 @@ type alias GameViewDisplayInfo =
     , edgeWidthMap : EdgeWidthMap
     , nodeSizeMap : NodeSizeMap
     , nodeXyMap : NodeXyMap
-    , transportPriorityList : List Transport
+    , energyPriorityList : List Energy
     , playerColorMap : PlayerColorMap
     , mapWidth : Int
     , mapHeight : Int
@@ -111,14 +111,14 @@ type alias OverlayDisplayInfo =
     }
 
 
-{-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one transport type.
+{-| extract the OverlayDisplayInfo from the NetworkDisplayInfo for one energy type.
 
-Returns `Nothing` if the given transport type is missing in at least one of the
+Returns `Nothing` if the given energy type is missing in at least one of the
 NetworkDisplayInfo maps is missing.
 
 -}
-displayInfoForTransport : GameViewDisplayInfo -> Transport -> Maybe OverlayDisplayInfo
-displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } transport =
+displayInfoForEnergy : GameViewDisplayInfo -> Energy -> Maybe OverlayDisplayInfo
+displayInfoForEnergy { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } energy =
     Maybe.map4
         (\c e n xy ->
             { color = c
@@ -127,9 +127,9 @@ displayInfoForTransport { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } trans
             , nodeXyMap = xy
             }
         )
-        (get transport colorMap)
-        (get transport edgeWidthMap)
-        (get transport nodeSizeMap)
+        (get energy colorMap)
+        (get energy edgeWidthMap)
+        (get energy nodeSizeMap)
         (Just nodeXyMap)
 
 
@@ -180,16 +180,16 @@ indexOf a l =
                 Maybe.map ((+) 1) <| indexOf a xs
 
 
-{-| gets the priority value for the given transport.
+{-| gets the priority value for the given energy.
 
 The overlays with higher priority are drawn first
 
 This is the reverse order of the list in NetworkDisplayInfo
 
 -}
-getPriority : GameViewDisplayInfo -> Transport -> Int
-getPriority { transportPriorityList } t =
-    Maybe.withDefault -1 << indexOf t <| transportPriorityList
+getPriority : GameViewDisplayInfo -> Energy -> Int
+getPriority { energyPriorityList } t =
+    Maybe.withDefault -1 << indexOf t <| energyPriorityList
 
 
 
