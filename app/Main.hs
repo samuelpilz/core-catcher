@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-
 code taken from tutorial
@@ -24,19 +23,9 @@ import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
-import           TH.MonoDerive
-
-type instance Element Test = String
-$(monoidTh ''Test)
-$(monoFunctorTh ''Test)
-$(monoTraversableTh ''Test)
-$(monoFoldableTh ''Test)
 
 main :: IO ()
 main = do
-    let g = Test $ mapFromList [(1, "hello")]
-    let h = Test $ mapFromList [(2, "world")]
-    print $ g `mappend` h
     stateVar <- newTVarIO ServerState {connections = empty, gameState = GameNg.initialState }
     putStrLn "Starting Core-Catcher server on port 8000"
     Warp.run 8000 $ WS.websocketsOr
