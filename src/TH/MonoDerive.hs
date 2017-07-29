@@ -338,28 +338,3 @@ getNewTypeCon typeName = do
       (NewtypeD _ _ _ _ (RecC con _) _) -> return con
       (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
       _ -> fail "Only Newtype datastructures are allowed"
-
-{--
-TODO: can this instance be derived?
--- answer: probably
-type instance Element PlayerPositions = Node
-
-instance SetContainer PlayerPositions where
-    -- TODO: could this be somehow done?
-    type ContainerKey PlayerPositions = Player
-    member p = member p . playerPositions
-    notMember p = notMember p . playerPositions
-    union pp1 pp2 = PlayerPositions $ union (playerPositions pp1) (playerPositions pp2)
-    difference pp1 pp2 = PlayerPositions $ difference (playerPositions pp1) (playerPositions pp2)
-    intersection pp1 pp2 = PlayerPositions $ intersection (playerPositions pp1) (playerPositions pp2)
-    keys = keys . playerPositions
-instance IsMap PlayerPositions where
-    -- TODO: could this be somehow done?
-    type MapValue PlayerPositions = Node
-    lookup k = lookup k . playerPositions
-    insertMap k v = PlayerPositions . insertMap k v . playerPositions
-    deleteMap k = PlayerPositions . deleteMap k . playerPositions
-    singletonMap k v = PlayerPositions $ singletonMap k v
-    mapFromList = PlayerPositions . mapFromList
-    mapToList = mapToList . playerPositions
---}
