@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
 {-
 code taken from tutorial
 https://www.paramander.com/blog/playing-with-websockets-in-haskell-and-elm
@@ -25,13 +26,17 @@ import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           TH.MonoDerive
 
-$(f)
+type instance Element Test = String
+$(monoidTh ''Test)
+$(monoFunctorTh ''Test)
+$(monoTraversableTh ''Test)
+$(monoFoldableTh ''Test)
 
 main :: IO ()
 main = do
     let g = Test $ mapFromList [(1, "hello")]
     let h = Test $ mapFromList [(2, "world")]
-    print $ g ++ h
+    print $ g `mappend` h
     stateVar <- newTVarIO ServerState {connections = empty, gameState = GameNg.initialState }
     putStrLn "Starting Core-Catcher server on port 8000"
     Warp.run 8000 $ WS.websocketsOr
