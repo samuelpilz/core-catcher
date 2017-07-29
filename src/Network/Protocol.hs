@@ -73,9 +73,9 @@ Currently this is only a move, but this may be expanded in the future.
 -} -- TODO: write into design document that an action may be more than a move. Maybe change?
 data Action =
     Move
-        { actionPlayer    :: Player
+        { actionPlayer :: Player
         , actionEnergy :: Energy
-        , actionNode      :: Node
+        , actionNode   :: Node
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -140,7 +140,7 @@ data CatcherGameView =
 data GameOverView =
     GameOverView
         { gameOverViewPlayerPositions :: PlayerPositions
-        , gameOverViewEnergies        :: PlayerEnergies
+        , gameOverViewPlayerEnergies  :: PlayerEnergies
         , gameOverViewRogueHistory    :: OpenRogueHistory
         }
     deriving (Show, Read, Eq, Generic)

@@ -337,22 +337,22 @@ jsonEncGameError  val =
 
 type alias GameOverView  =
    { gameOverViewPlayerPositions: PlayerPositions
-   , gameOverViewEnergies: PlayerEnergies
+   , gameOverViewPlayerEnergies: PlayerEnergies
    , gameOverViewRogueHistory: OpenRogueHistory
    }
 
 jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
 jsonDecGameOverView =
    ("gameOverViewPlayerPositions" := jsonDecPlayerPositions) >>= \pgameOverViewPlayerPositions ->
-   ("gameOverViewEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewEnergies ->
+   ("gameOverViewPlayerEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewPlayerEnergies ->
    ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
-   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewEnergies = pgameOverViewEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory}
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory}
 
 jsonEncGameOverView : GameOverView -> Value
 jsonEncGameOverView  val =
    Json.Encode.object
    [ ("gameOverViewPlayerPositions", jsonEncPlayerPositions val.gameOverViewPlayerPositions)
-   , ("gameOverViewEnergies", jsonEncPlayerEnergies val.gameOverViewEnergies)
+   , ("gameOverViewPlayerEnergies", jsonEncPlayerEnergies val.gameOverViewPlayerEnergies)
    , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
    ]
 
