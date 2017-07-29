@@ -26,31 +26,10 @@ monoidTh name = do
     return [InstanceD Nothing [] instanceType [mem, man] ]
     where
       memptyTh :: DecQ
-      memptyTh = do
-          TyConI mn <- reify name
-          con <- getNewTypeCon mn
-          let mempty_ = mkName "mempty"
-          let bodyExpr = [e| $(conE con) $(varE 'mempty) |]
-          let cl = clause [] (normalB bodyExpr) []
-          funD mempty_ [cl]
+      memptyTh = simpleWrap "mempty" name
 
       mappendTh :: DecQ
-      mappendTh = do
-          TyConI mn <- reify name
-          con <- getNewTypeCon mn
-          firstName <- newName "a"
-          secondName <- newName "b"
-          let firstPat = conP con [varP firstName]
-          let secondPat = conP con [varP secondName]
-          let mappend_ = mkName "mappend"
-          let bodyExpr = [e| $(conE con) $ $(varE 'mappend) $(varE firstName) $(varE secondName) |]
-          let cl = clause [firstPat, secondPat] (normalB bodyExpr) []
-          funD mappend_ [cl]
-
-emptyDerive :: Name -> Name-> DecsQ
-emptyDerive typeclass name = do
-    let instanceType           = AppT (ConT typeclass) (ConT name)
-    return [InstanceD Nothing [] instanceType [] ]
+      mappendTh = simpleBinOp "mappend" name
 
 semigroupTh :: Name -> DecsQ
 semigroupTh = emptyDerive ''Semigroup
@@ -70,8 +49,7 @@ monoTraversableTh name = do
     where
       otraverseTh :: DecQ
       otraverseTh = do
-          TyConI mn <- reify name
-          con <- getNewTypeCon mn
+          con <- getNewTypeCon name
           conVar <- newName "a"
           funName <- newName "f"
           let funcPat = varP funName
@@ -88,17 +66,7 @@ monoFunctorTh name = do
     return [InstanceD Nothing [] instanceType [omapTh'] ]
     where
       omapTh :: DecQ
-      omapTh = do
-          TyConI mn <- reify name
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          let funcPat = varP funName
-          let typePat = conP con [varP conVar]
-          let otraverseName = mkName "omap"
-          let bodyExpr = [e| $(conE con) $ $(varE 'omap) $(varE funName) $(varE conVar) |]
-          let cl = clause [funcPat, typePat] (normalB bodyExpr) []
-          funD otraverseName [cl]
+      omapTh = simpleMap "omap" name
 
 
 monoFoldableTh :: Name -> DecsQ
@@ -106,123 +74,118 @@ monoFoldableTh typeName = do
     funcs <- sequenceA [ofoldMapTh, ofoldrTh, ofoldlTh', olengthTh, olength64Th, ofoldr1ExTh, ofoldl1ExTh']
     let instanceType           = AppT (ConT ''MonoFoldable) (ConT typeName)
     return [InstanceD Nothing [] instanceType funcs]
-
     where
       ofoldMapTh :: DecQ
-      ofoldMapTh = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          let otraverseName = mkName "ofoldMap"
-          let bodyExpr = [e| $(varE 'ofoldMap) $(varE funName) $(varE conVar) |]
-          let cl = clause
-                  [ varP funName
-                  , conP con [varP conVar]
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD otraverseName [cl]
+      ofoldMapTh = simpleFold1 "ofoldMap" typeName
 
       ofoldrTh :: DecQ
-      ofoldrTh = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          accName <- newName "acc"
-          let funcName = mkName "ofoldr"
-          let bodyExpr = [e| $(varE 'ofoldr) $(varE funName) $(varE accName) $(varE conVar) |]
-          let cl = clause
-                  [ varP funName
-                  , conP con [varP conVar]
-                  , varP accName
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD funcName [cl]
+      ofoldrTh = simpleFold "ofoldr" typeName
 
       ofoldlTh' :: DecQ
-      ofoldlTh' = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          accName <- newName "acc"
-          let funcName = mkName "ofoldl'"
-          let bodyExpr = [e| $(varE 'ofoldl') $(varE funName) $(varE accName) $(varE conVar) |]
-          let cl = clause
-                  [ varP funName
-                  , conP con [varP conVar]
-                  , varP accName
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD funcName [cl]
+      ofoldlTh' = simpleFold "ofoldl'" typeName
 
       olengthTh :: DecQ
-      olengthTh = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          let funcName = mkName "olength"
-          let bodyExpr = [e| $(varE 'olength) $(varE conVar) |]
-          let cl = clause
-                  [ conP con [varP conVar]
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD funcName [cl]
+      olengthTh = simplePattern "olength" typeName
 
       olength64Th :: DecQ
-      olength64Th = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          let funcName = mkName "olength64"
-          let bodyExpr = [e| $(varE 'olength64) $(varE conVar) |]
-          let cl = clause
-                  [ conP con [varP conVar]
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD funcName [cl]
+      olength64Th = simplePattern "olength64" typeName
 
       ofoldr1ExTh :: DecQ
-      ofoldr1ExTh = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          let otraverseName = mkName "ofoldr1Ex"
-          let bodyExpr = [e| $(varE 'ofoldr1Ex) $(varE funName) $(varE conVar) |]
-          let cl = clause
-                  [ varP funName
-                  , conP con [varP conVar]
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD otraverseName [cl]
+      ofoldr1ExTh = simpleFold1 "ofoldr1Ex" typeName
 
       ofoldl1ExTh' :: DecQ
-      ofoldl1ExTh' = do
-          TyConI mn <- reify typeName
-          con <- getNewTypeCon mn
-          conVar <- newName "a"
-          funName <- newName "f"
-          let otraverseName = mkName "ofoldl1Ex'"
-          let bodyExpr = [e| $(varE 'ofoldl1Ex') $(varE funName) $(varE conVar) |]
-          let cl = clause
-                  [ varP funName
-                  , conP con [varP conVar]
-                  ]
-                  (normalB bodyExpr)
-                  []
-          funD otraverseName [cl]
+      ofoldl1ExTh' = simpleFold1 "ofoldl1Ex'" typeName
 
-getNewTypeCon :: Dec -> Q Name
-getNewTypeCon dec =
-    case dec of
+simpleWrap :: String -> Name -> DecQ
+simpleWrap realFunName typeName = do
+    con <- getNewTypeCon typeName
+    let funcName = mkName realFunName
+    let bodyExpr = [e| $(conE con) $(varE funcName) |]
+    let cl = clause
+            []
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simplePattern :: String -> Name -> DecQ
+simplePattern realFunName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    let funcName = mkName realFunName
+    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
+    let cl = clause
+            [ conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleFold :: String -> Name -> DecQ
+simpleFold realFuncName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    funName <- newName "f"
+    accName <- newName "acc"
+    let funcName = mkName realFuncName
+    let bodyExpr = [e| $(varE funcName) $(varE funName) $(varE accName) $(varE conVar) |]
+    let cl = clause
+            [ varP funName
+            , varP accName
+            , conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleFold1 :: String -> Name -> DecQ
+simpleFold1 realFuncName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    funName <- newName "f"
+    let funcName = mkName realFuncName
+    let bodyExpr = [e| $(varE funcName) $(varE funName) $(varE conVar) |]
+    let cl = clause
+            [ varP funName
+            , conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleMap :: String -> Name -> DecQ
+simpleMap realFuncName name = do
+    con <- getNewTypeCon name
+    conVar <- newName "a"
+    funName <- newName "f"
+    let funcPat = varP funName
+    let typePat = conP con [varP conVar]
+    let funcName = mkName realFuncName
+    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE funName) $(varE conVar) |]
+    let cl = clause [funcPat, typePat] (normalB bodyExpr) []
+    funD funcName [cl]
+
+simpleBinOp :: String -> Name -> DecQ
+simpleBinOp realFuncName name = do
+    con <- getNewTypeCon name
+    firstName <- newName "a"
+    secondName <- newName "b"
+    let firstPat = conP con [varP firstName]
+    let secondPat = conP con [varP secondName]
+    let funcName = mkName realFuncName
+    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE firstName) $(varE secondName) |]
+    let cl = clause [firstPat, secondPat] (normalB bodyExpr) []
+    funD funcName [cl]
+
+
+emptyDerive :: Name -> Name-> DecsQ
+emptyDerive typeclass name = do
+    let instanceType           = AppT (ConT typeclass) (ConT name)
+    return [InstanceD Nothing [] instanceType [] ]
+
+getNewTypeCon :: Name -> Q Name
+getNewTypeCon typeName = do
+    TyConI mn <- reify typeName
+    case mn of
       (NewtypeD _ _ _ _ (RecC con _) _) -> return con
       (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
       _ -> fail "Only Newtype datastructures are allowed"
