@@ -287,10 +287,8 @@ deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 
 -- IsMap implementation for PlayerPositions
-$(Derive.deriveMap ''PlayerPositions)
-
+Derive.deriveMap ''PlayerPositions
 -- IsMap implementation for EnergyMap
-$(Derive.deriveMap ''EnergyMap)
-
+Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
-$(Derive.deriveMap ''PlayerEnergies)
+Derive.deriveMap ''PlayerEnergies
