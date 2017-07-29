@@ -35,12 +35,6 @@ main = do
 
 httpApp :: Wai.Application
 httpApp = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings "web")
---     do
---         let getFile = concat . Wai.pathInfo $ request
---         putStrLn getFile
---         responseText <- readFileUtf8 . unpack . concat . Wai.pathInfo $ request
---         respond $ Wai.responseLBS Http.status200 []
---             (builderToLazy. byteString . encodeUtf8 $ responseText)
 
 
 wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp
