@@ -326,69 +326,9 @@ Derive.deriveMap ''PlayerPositions
 Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
 Derive.deriveMap ''PlayerEnergies
-
 -- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+Derive.deriveSequence ''RogueHistory
 type instance Element RogueHistory = (Energy, Maybe Node)
-instance Monoid RogueHistory where
-    mempty = RogueHistory mempty
-    mappend m1 m2 = RogueHistory $ rogueHistory m1 ++ rogueHistory m2
-instance MonoFunctor RogueHistory where
-    omap f = RogueHistory . omap f . rogueHistory
-instance MonoFoldable RogueHistory where
-    ofoldMap f = ofoldMap f . rogueHistory
-    ofoldr f x = ofoldr f x . rogueHistory
-    ofoldl' f x = ofoldl' f x . rogueHistory
-    otoList = rogueHistory
-    olength = olength . rogueHistory
-    olength64 = olength64 . rogueHistory
-    ofoldr1Ex f = ofoldr1Ex f . rogueHistory
-    ofoldl1Ex' f = ofoldl1Ex' f . rogueHistory
-instance MonoTraversable RogueHistory where
-    otraverse f = map RogueHistory . otraverse f . rogueHistory
-instance GrowingAppend RogueHistory where
-instance Semigroup RogueHistory where
-instance SemiSequence RogueHistory where
-    type Index RogueHistory = Int
-    intersperse e = RogueHistory . intersperse e . rogueHistory
-    reverse = RogueHistory . reverse . rogueHistory
-    find p = find p . rogueHistory
-    sortBy f = RogueHistory . sortBy f . rogueHistory
-    cons e = RogueHistory . cons e . rogueHistory
-    snoc s e = RogueHistory . flip snoc e . rogueHistory $ s
-instance MonoPointed RogueHistory where
-    opoint = RogueHistory . singleton
-instance IsSequence RogueHistory where
-    fromList = RogueHistory . fromList
-    -- maybe others for performance..
-
+-- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+Derive.deriveSequence ''OpenRogueHistory
 type instance Element OpenRogueHistory = (Energy, Node, Bool)
-instance Monoid OpenRogueHistory where
-    mempty = OpenRogueHistory mempty
-    mappend m1 m2 = OpenRogueHistory $ openRogueHistory m1 ++ openRogueHistory m2
-instance MonoFunctor OpenRogueHistory where
-    omap f = OpenRogueHistory . omap f . openRogueHistory
-instance MonoFoldable OpenRogueHistory where
-    ofoldMap f = ofoldMap f . openRogueHistory
-    ofoldr f x = ofoldr f x . openRogueHistory
-    ofoldl' f x = ofoldl' f x . openRogueHistory
-    otoList = openRogueHistory
-    olength = olength . openRogueHistory
-    olength64 = olength64 . openRogueHistory
-    ofoldr1Ex f = ofoldr1Ex f . openRogueHistory
-    ofoldl1Ex' f = ofoldl1Ex' f . openRogueHistory
-instance MonoTraversable OpenRogueHistory where
-    otraverse f = map OpenRogueHistory . otraverse f . openRogueHistory
-instance GrowingAppend OpenRogueHistory where
-instance Semigroup OpenRogueHistory where
-instance SemiSequence OpenRogueHistory where
-    type Index OpenRogueHistory = Int
-    intersperse e = OpenRogueHistory . intersperse e . openRogueHistory
-    reverse = OpenRogueHistory . reverse . openRogueHistory
-    find p = find p . openRogueHistory
-    sortBy f = OpenRogueHistory . sortBy f . openRogueHistory
-    cons e = OpenRogueHistory . cons e . openRogueHistory
-    snoc s e = OpenRogueHistory . flip snoc e . openRogueHistory $ s
-instance MonoPointed OpenRogueHistory where
-    opoint = OpenRogueHistory . singleton
-instance IsSequence OpenRogueHistory where
-    fromList = OpenRogueHistory . fromList

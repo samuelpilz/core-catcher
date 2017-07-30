@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 module TH.MonoDerive
   ( deriveMap
+  , deriveSequence
   , monoidTh
   , monoTraversableTh
   , monoFunctorTh
@@ -11,6 +12,9 @@ module TH.MonoDerive
   , growingAppendTh
   , setContainerTh
   , isMapTh
+  , semiSequenceTh
+  , monoPointedTh
+  , isSequenceTh
   ) where
 
 import           ClassyPrelude
@@ -34,6 +38,26 @@ deriveMap name = do
                 , isMapTh
                 ]
     return (elementInstance `cons` instances)
+
+deriveSequence :: Name -> DecsQ
+deriveSequence name = do
+    -- TODO: this needs to be redone
+    instances <-
+        map concat
+            . sequenceA
+            $ map
+                (\f -> f name)
+                [ monoidTh
+                , monoFunctorTh
+                , monoFoldableTh
+                , monoTraversableTh
+                , semigroupTh
+                , growingAppendTh
+                , semiSequenceTh
+                , monoPointedTh
+                , isSequenceTh
+                ]
+    return instances
 
 monoidTh :: Name -> DecsQ
 monoidTh name = do
@@ -82,17 +106,11 @@ monoFoldableTh typeName = do
     return [InstanceD Nothing [] instanceType funcs]
     where
       ofoldMapTh = simpleFold1 'ofoldMap typeName
-
       ofoldrTh = simpleFold 'ofoldr typeName
-
       ofoldlTh' = simpleFold 'ofoldl' typeName
-
       olengthTh = simplePattern 'olength typeName
-
       olength64Th = simplePattern 'olength64 typeName
-
       ofoldr1ExTh = simpleFold1 'ofoldr1Ex typeName
-
       ofoldl1ExTh' = simpleFold1 'ofoldl1Ex' typeName
 
 semigroupTh :: Name -> DecsQ
@@ -109,15 +127,10 @@ setContainerTh name = do
     return [InstanceD Nothing [] instanceType (containerKeyFamily `cons` funcs)]
     where
       memberTh = simpleUnwrap 'member name
-
       notMemberTh = simpleUnwrap 'notMember name
-
       unionTh = simpleBinOp 'union name
-
       differenceTh = simpleBinOp 'difference name
-
       intersectionTh = simpleBinOp 'intersection name
-
       keysTh = simplePattern 'keys name
 
       createContainerFamily :: DecQ
@@ -143,15 +156,10 @@ isMapTh name = do
     return [InstanceD Nothing [] instanceType (containerKeyFamily `cons` funcs)]
     where
       lookupTh = simpleUnwrap 'lookup name
-
-      insertMapTh = simpleUnwrapWrap1 'insertMap name
-
-      deleteMapTh = simpleUnwrapWrap 'deleteMap name
-
+      insertMapTh = simpleUnwrapWrap2 'insertMap name
+      deleteMapTh = simpleUnwrapWrap1 'deleteMap name
       singletonMapTh = simpleWrap2 'singletonMap name
-
       mapFromListTh = simpleWrap1 'mapFromList name
-
       mapToListTh = simpleUnwrap1 'mapToList name
 
 createMapValueFamily :: Name -> Name -> DecQ
@@ -169,6 +177,51 @@ createMapValueFamily typeInstance name = do
 
     return $ TySynInstD typeInstance (TySynEqn [ConT name] valueType)
 
+semiSequenceTh :: Name -> DecsQ
+semiSequenceTh name = do
+    funcs <- sequenceA [intersperseTh, reverseTh, findTh, sortByTh, consTh, snocTh]
+    let instanceType           = AppT (ConT ''SemiSequence) (ConT name)
+    let indexFamily = TySynInstD ''Index (TySynEqn [ConT name] (ConT ''Int))
+    return [InstanceD Nothing [] instanceType (indexFamily `cons` funcs)]
+    where
+      intersperseTh = simpleUnwrapWrap1 'intersperse name
+      reverseTh = simpleUnwrapWrap 'reverse name
+      findTh = simpleUnwrap 'find name
+      sortByTh = simpleUnwrapWrap1 'sortBy name
+      consTh = simpleUnwrapWrap1 'cons name
+      snocTh = simpleUnwrapWrap1' 'snoc name
+
+isSequenceTh :: Name -> DecsQ
+isSequenceTh name = do
+    funcs <- sequenceA [fromListTh]
+    let instanceType           = AppT (ConT ''IsSequence) (ConT name)
+    return [InstanceD Nothing [] instanceType funcs ]
+    where
+      fromListTh :: DecQ
+      fromListTh = simpleWrap1 'fromList name
+
+monoPointedTh :: Name -> DecsQ
+monoPointedTh name = do
+    funcs <- sequenceA [opointTh]
+    let instanceType           = AppT (ConT ''MonoPointed) (ConT name)
+    return [InstanceD Nothing [] instanceType funcs ]
+    where
+      opointTh :: DecQ
+      opointTh = simpleWrap1 'opoint name
+{--
+instance SemiSequence OpenRogueHistory where
+    type Index OpenRogueHistory = Int
+    intersperse e = OpenRogueHistory . intersperse e . openRogueHistory
+    reverse = OpenRogueHistory . reverse . openRogueHistory
+    find p = find p . openRogueHistory
+    sortBy f = OpenRogueHistory . sortBy f . openRogueHistory
+    cons e = OpenRogueHistory . cons e . openRogueHistory
+    snoc (OpenRogueHistory a) e = OpenRogueHistory . snoc a e
+instance MonoPointed OpenRogueHistory where
+    opoint = OpenRogueHistory . singleton
+instance IsSequence OpenRogueHistory where
+    fromList = OpenRogueHistory . fromList
+--}
 
 
 simpleWrap :: Name -> Name -> DecQ
@@ -244,8 +297,48 @@ simpleUnwrap1 funcName typeName = do
     funD funcName [cl]
 
 
+simpleUnwrapWrap :: Name -> Name -> DecQ
+simpleUnwrapWrap funcName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE conVar) |]
+    let cl = clause
+            [ conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleUnwrapWrap1' :: Name -> Name -> DecQ
+simpleUnwrapWrap1' funcName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    keyVar <- newName "k"
+    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE conVar) $(varE keyVar) |]
+    let cl = clause
+            [ conP con [varP conVar]
+            , varP keyVar
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
 simpleUnwrapWrap1 :: Name -> Name -> DecQ
 simpleUnwrapWrap1 funcName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
+    keyVar <- newName "k"
+    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE keyVar) $(varE conVar) |]
+    let cl = clause
+            [ varP keyVar
+            , conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleUnwrapWrap2 :: Name -> Name -> DecQ
+simpleUnwrapWrap2 funcName typeName = do
     con <- getNewTypeCon typeName
     conVar <- newName "a"
     keyVar <- newName "k"
@@ -254,20 +347,6 @@ simpleUnwrapWrap1 funcName typeName = do
     let cl = clause
             [ varP keyVar
             , varP valueVar
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrapWrap :: Name -> Name -> DecQ
-simpleUnwrapWrap funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    keyVar <- newName "k"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE keyVar) $(varE conVar) |]
-    let cl = clause
-            [ varP keyVar
             , conP con [varP conVar]
             ]
             (normalB bodyExpr)
