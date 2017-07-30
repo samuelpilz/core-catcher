@@ -5,9 +5,8 @@ module ProtocolUtils exposing (..)
 -}
 
 import Protocol exposing (..)
-import List exposing (..)
-import Tuple as Tuple
 import Maybe exposing (..)
+import EveryDict
 
 
 playerPositions : GameView -> PlayerPositions
@@ -50,34 +49,25 @@ nextPlayer gameView =
             view.catcherNextPlayer
 
 
-getFromList : k -> List ( k, v ) -> Maybe v
-getFromList k list =
-    List.head
-        << List.map Tuple.second
-        << List.filter ((==) k << Tuple.first)
-    <|
-        list
-
-
 getEnergyForEnergyAndPlayer : Player -> Energy -> GameView -> Int
 getEnergyForEnergyAndPlayer player energy gameView =
     Maybe.withDefault 0
-        << Maybe.andThen (getFromList energy)
+        << Maybe.andThen (EveryDict.get energy)
         << Maybe.map .energyMap
-        << getFromList player
+        << EveryDict.get player
     <|
         (energies gameView).playerEnergies
 
 
 emptyNetwork : Network
 emptyNetwork =
-    { nodes = [], overlays = [] }
+    { nodes = [], overlays = EveryDict.empty }
 
 
 emptyRogueView : RogueGameView
 emptyRogueView =
-    { roguePlayerPositions = { playerPositions = [] }
-    , rogueEnergies = { playerEnergies = [] }
+    { roguePlayerPositions = { playerPositions = EveryDict.empty }
+    , rogueEnergies = { playerEnergies = EveryDict.empty }
     , rogueOwnHistory = { rogueHistory = [] }
     , rogueNextPlayer = { playerId = 0 }
     }

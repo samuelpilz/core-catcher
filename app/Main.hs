@@ -32,6 +32,7 @@ main = do
         , gameState = GameNg.initialState GameConfig.defaultConfig
         }
     putStrLn "Starting Core-Catcher server on port 8000"
+
     Warp.run 8000 $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
@@ -63,7 +64,7 @@ wsListen client stateVar = forever $ do
             -- TODO: validation playerId==clientId
             handle client stateVar action
             return ()
+
         Nothing     ->
             putStrLn "ERROR: The message could not be decoded"
             -- TODO: send info back to client?
-
