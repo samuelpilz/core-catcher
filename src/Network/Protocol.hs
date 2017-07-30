@@ -174,6 +174,7 @@ data InitialInfoForClient =
         { initialPlayer   :: Player
         , networkForGame  :: Network
         , initialGameView :: GameView
+        -- TODO: network?
         }
         deriving (Show, Read, Eq, Generic)
 
