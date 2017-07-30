@@ -19,8 +19,8 @@ playerPositions gameView =
             view.catcherPlayerPositions
 
 
-energies : GameView -> PlayerEnergies
-energies gameView =
+playerEnergies : GameView -> PlayerEnergies
+playerEnergies gameView =
     case gameView of
         RogueView view ->
             view.rogueEnergies
@@ -49,14 +49,14 @@ nextPlayer gameView =
             view.catcherNextPlayer
 
 
-getEnergyForEnergyAndPlayer : Player -> Energy -> GameView -> Int
-getEnergyForEnergyAndPlayer player energy gameView =
+getEnergyForEnergyAndPlayer : Player -> Energy -> PlayerEnergies -> Int
+getEnergyForEnergyAndPlayer player energy playerEnergies =
     Maybe.withDefault 0
         << Maybe.andThen (EveryDict.get energy)
         << Maybe.map .energyMap
         << EveryDict.get player
     <|
-        (energies gameView).playerEnergies
+        playerEnergies.playerEnergies
 
 
 emptyNetwork : Network

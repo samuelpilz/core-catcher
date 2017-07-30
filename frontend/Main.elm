@@ -14,7 +14,7 @@ import ProtocolUtils exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
-import AllDict exposing (..)
+import EveryDict
 
 
 main : Program Flags ClientState Msg
@@ -57,15 +57,16 @@ subscriptions state =
 
 receivedStringToMsg : String -> Msg
 receivedStringToMsg s =
-    case decodeString jsonDecMessageForClient s of
+    case decodeString jsonDecMessageForClient (log "received" s) of
         Ok msg ->
             MsgFromServer msg
 
         Err err ->
-            None
+            log2 "error" err None
 
 
 
+-- TODO: popup for that?
 -- TODO: handle json error?
 
 
@@ -73,18 +74,45 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            state ! [ WebSocket.send (wsUrl state.server) << log "send" <| jsonActionOfNode state n ]
+            { state | gameError = Nothing }
+                ! [ WebSocket.send (wsUrl state.server)
+                        << log "send"
+                    <|
+                        jsonActionOfNode state n
+                  ]
 
         MsgFromServer msg ->
             case msg of
                 GameView_ gameView ->
-                    { state | gameView = gameView } ! []
+                    { state
+                        | playerPositions = playerPositions gameView
+                        , playerEnergies = playerEnergies gameView
+                        , rogueHistory = rogueHistory gameView
+                    }
+                        ! []
 
                 InitialInfoForClient_ initInfo ->
                     { state
-                        | gameView = initInfo.initialGameView
+                        | playerPositions = playerPositions initInfo.initialGameView
+                        , playerEnergies = playerEnergies <| initInfo.initialGameView
+                        , rogueHistory = rogueHistory <| initInfo.initialGameView
                         , player = initInfo.initialPlayer
                         , network = initInfo.networkForGame
+                        , gameOver = False
+                    }
+                        ! []
+
+                GameError_ err ->
+                    { state | gameError = Just err } ! []
+
+                GameOverView_ gameOver ->
+                    { state
+                        | gameOver = True
+                        , playerPositions = gameOver.gameOverViewPlayerPositions
+                        , playerEnergies = gameOver.gameOverViewPlayerEnergies
+
+                        --, rogueHistory = gameOver.gameOverViewRogueHistory
+                        -- TODO: openRougeHistory
                     }
                         ! []
 
@@ -101,12 +129,17 @@ update msg state =
 
 initialState : Flags -> ClientState
 initialState flags =
-    { gameView = RogueView emptyRogueView
+    { playerPositions = { playerPositions = EveryDict.empty }
+    , playerEnergies = { playerEnergies = EveryDict.empty }
+    , rogueHistory = { rogueHistory = [] }
     , network = emptyNetwork
     , player = { playerId = 0 }
     , selectedEnergy = Orange
     , server = flags.server
+    , gameError = Nothing
+    , gameOver = False
     }
+
 
 displayInfo : GameViewDisplayInfo
 displayInfo =

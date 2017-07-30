@@ -65,18 +65,19 @@ type alias PlayerColorMap =
     AllDict Player Color Int
 
 
-{-| A tuple that contains all information needed to display a network.
+{-| An object that contains all information needed to display a network.
 
-The first 3 entries are maps that store the color, edgeWidth and nodeSize per energy type
+The first 3 fields are maps that store the color, edgeWidth and nodeSize per energy type
 
-The 4th entry is a map of coordinates per node
+The nodeXyMap field is a map of coordinates per node
 
-The 5th entry is the list of energies used in order which they should be rendered.
+The energyPriorityList is the list of energies to the determine the order
+in which they should be rendered.
 The smallest / thinnest energy type should be named last.
 
-The 6th entry is a map that mapps each player to a color
+The playerColorMap assigns each player a color
 
-TODO: rework
+mapHeight and mapWidth contain the number of pixels the map is drawn
 
 -}
 type alias GameViewDisplayInfo =
@@ -93,21 +94,18 @@ type alias GameViewDisplayInfo =
     }
 
 
-{-| A tuple that contains all information needed to display a single networkOverlay.
+{-| An object that contains all information needed to display a single networkOverlay.
 
-The 1st entry is the color in which the edges and node rings are drawn.
-The 2nd entry is the width of the edges, the 3rd is the size of the rings around the nodes.
+The color-property represents the color the overlay- node-rings and edges should be displayed in.
 
-The 4th entry is a map of coordinates per node, the same in the NetworkDisplayInfo type.
-
-TODO: rework
+The nodeSize and edgeWidth properties determine the size of the circle of the rings around nodes
+and the stroke-width of the edges
 
 -}
 type alias OverlayDisplayInfo =
     { color : Color
     , edgeWidth : EdgeWidth
     , nodeSize : NodeSize
-    , nodeXyMap : NodeXyMap
     }
 
 
@@ -118,23 +116,21 @@ NetworkDisplayInfo maps is missing.
 
 -}
 displayInfoForEnergy : GameViewDisplayInfo -> Energy -> Maybe OverlayDisplayInfo
-displayInfoForEnergy { colorMap, edgeWidthMap, nodeSizeMap, nodeXyMap } energy =
-    Maybe.map4
-        (\c e n xy ->
+displayInfoForEnergy { colorMap, edgeWidthMap, nodeSizeMap } energy =
+    Maybe.map3
+        (\c e n ->
             { color = c
             , edgeWidth = e
             , nodeSize = n
-            , nodeXyMap = xy
             }
         )
         (get energy colorMap)
         (get energy edgeWidthMap)
         (get energy nodeSizeMap)
-        (Just nodeXyMap)
 
 
 
--- TODO: nodeXy : NodeXyMap -> Node -> (Int,Int)?
+-- TODO: nodeXy : NodeXyMap -> Node -> (Int,Int) to use with let?
 
 
 {-| get the X coordinates of the node within the svg, given the map of coordinates
@@ -190,11 +186,3 @@ This is the reverse order of the list in NetworkDisplayInfo
 getPriority : GameViewDisplayInfo -> Energy -> Int
 getPriority { energyPriorityList } t =
     Maybe.withDefault -1 << indexOf t <| energyPriorityList
-
-
-
-{-
-   movePlayerInGame : Game -> Player -> Node -> Game
-   movePlayerInGame game player newNode =
-       { game | gameState = Dict.update player (\_ -> Just newNode) game.gameState }
--}

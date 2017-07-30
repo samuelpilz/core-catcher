@@ -24,15 +24,15 @@ energyView _ displayInfo clientState =
         ]
     <|
         availableEnergyView
-            clientState.gameView
+            clientState.playerEnergies
             displayInfo
             clientState.player
             clientState.selectedEnergy
-            ++ historyView clientState.gameView displayInfo
+            ++ historyView clientState.rogueHistory displayInfo
 
 
-availableEnergyView : GameView -> GameViewDisplayInfo -> Player -> Energy -> List (Svg.Svg Msg)
-availableEnergyView gameView displayInfo player selectedEnergy =
+availableEnergyView : PlayerEnergies -> GameViewDisplayInfo -> Player -> Energy -> List (Svg.Svg Msg)
+availableEnergyView playerEnergies displayInfo player selectedEnergy =
     List.map (energyRecord selectedEnergy)
         << List.sortBy (\( priority, _, _, _ ) -> priority)
         << List.map
@@ -40,7 +40,7 @@ availableEnergyView gameView displayInfo player selectedEnergy =
                 ( getPriority displayInfo energy
                 , energy
                 , color
-                , getEnergyForEnergyAndPlayer player energy gameView
+                , getEnergyForEnergyAndPlayer player energy playerEnergies
                 )
             )
         << AllDict.toList
@@ -48,8 +48,8 @@ availableEnergyView gameView displayInfo player selectedEnergy =
         displayInfo.colorMap
 
 
-historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
-historyView gameView displayInfo =
+historyView : RogueHistory -> GameViewDisplayInfo -> List (Svg.Svg Msg)
+historyView rogueHistory displayInfo =
     List.map2 historyRecord (range 0 100)
         << List.map
             (\( t, n ) ->
@@ -59,7 +59,7 @@ historyView gameView displayInfo =
             )
         << List.reverse
     <|
-        (rogueHistory gameView).rogueHistory
+        rogueHistory.rogueHistory
 
 
 energyRecord : Energy -> ( Int, Energy, Color, Int ) -> Svg.Svg Msg

@@ -4,6 +4,7 @@
 module Config.GameConfig (GameConfig(..), defaultConfig) where
 
 import           ClassyPrelude
+import qualified Config.Network   as Network
 import           Network.Protocol
 
 data GameConfig =
@@ -13,9 +14,9 @@ data GameConfig =
         , initialPlayerPositions :: PlayerPositions
         , maxRounds              :: Int
         , rogueShowsAt           :: [Int]
+        , network                :: Network
         }
-
--- TODO: configurable network
+    deriving (Eq, Show, Read)
 
 -- | The default GameConfig
 defaultConfig :: GameConfig
@@ -25,6 +26,7 @@ defaultConfig = GameConfig
     , initialPlayerPositions = defaultInitialPlayerPositions
     , maxRounds = 10
     , rogueShowsAt = [2,5,8,10]
+    , network = Network.network
     }
 
 defaultPlayers :: [Player]
