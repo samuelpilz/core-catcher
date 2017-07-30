@@ -6,13 +6,16 @@ import Html.Events exposing (onClick)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import List exposing (..)
-import Dict exposing (..)
+import EveryDict exposing (..)
 import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
 import Debug exposing (log)
+
+
+-- TODO: css style with css-library?
 
 
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
@@ -27,11 +30,11 @@ mapView network displayInfo clientState =
             ++ List.concatMap
                 -- overlays
                 (mapViewOfNetworkOverlayName displayInfo network)
-                (List.sortBy (\( energy, _ ) -> getPriority displayInfo energy) network.overlays)
+                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) <| EveryDict.toList network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
-                clientState.playerPositions.playerPositions
+                (EveryDict.toList clientState.playerPositions.playerPositions)
             ++ gameErrorText clientState.gameError
             ++ gameOverText clientState.gameOver
 
@@ -56,6 +59,7 @@ mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes,
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
 
 
+
 -- svg create functions
 
 
@@ -75,6 +79,7 @@ gameErrorText errMay =
 
             -- TODO: popup notification for that?
             ]
+
 
 gameOverText : Bool -> List (Svg Msg)
 gameOverText gameOverBool =

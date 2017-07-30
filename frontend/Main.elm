@@ -14,7 +14,7 @@ import ProtocolUtils exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
-import AllDict exposing (..)
+import EveryDict
 
 
 main : Program Flags ClientState Msg
@@ -110,6 +110,7 @@ update msg state =
                         | gameOver = True
                         , playerPositions = gameOver.gameOverViewPlayerPositions
                         , playerEnergies = gameOver.gameOverViewPlayerEnergies
+
                         --, rogueHistory = gameOver.gameOverViewRogueHistory
                         -- TODO: openRougeHistory
                     }
@@ -128,8 +129,8 @@ update msg state =
 
 initialState : Flags -> ClientState
 initialState flags =
-    { playerPositions = { playerPositions = [] }
-    , playerEnergies = { playerEnergies = [] }
+    { playerPositions = { playerPositions = EveryDict.empty }
+    , playerEnergies = { playerEnergies = EveryDict.empty }
     , rogueHistory = { rogueHistory = [] }
     , network = emptyNetwork
     , player = { playerId = 0 }
