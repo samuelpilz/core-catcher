@@ -25,8 +25,9 @@ library
                      , App.State
                      , App.ConnectionMgnt
                      , App.Connection
-
                      , TH.MonoDerive
+                     , TH.TypeFamily
+                     , TH.MonoFunctions
 
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
