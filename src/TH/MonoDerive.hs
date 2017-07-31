@@ -41,7 +41,8 @@ deriveMap name = do
 
 deriveSequence :: Name -> DecsQ
 deriveSequence name = do
-    -- TODO: this needs to be redone
+    -- Does not work for arbitrary types
+    -- elementInstance <- deriveNewtypedTypeFamily ''Element name
     instances <-
         map concat
             . sequenceA
@@ -162,21 +163,6 @@ isMapTh name = do
       mapFromListTh = simpleWrap1 'mapFromList name
       mapToListTh = simpleUnwrap1 'mapToList name
 
-createMapValueFamily :: Name -> Name -> DecQ
-createMapValueFamily typeInstance name = do
-    TyConI mn <- reify name
-    valueType <- case mn of
-        (NewtypeD _ _ _ _ (RecC _ [(_,_, AppT (AppT _ _) valueType')]) _) ->
-            return valueType'
-
-        (NewtypeD _ _ _ _ (NormalC _ [(_, AppT (AppT _ _) valueType')]) _) ->
-            return valueType'
-
-        _ ->
-            fail "Newtype must contain a map like data structure of the form `AppT (AppT (ConT c) key ) value `"
-
-    return $ TySynInstD typeInstance (TySynEqn [ConT name] valueType)
-
 semiSequenceTh :: Name -> DecsQ
 semiSequenceTh name = do
     funcs <- sequenceA [intersperseTh, reverseTh, findTh, sortByTh, consTh, snocTh]
@@ -208,21 +194,6 @@ monoPointedTh name = do
     where
       opointTh :: DecQ
       opointTh = simpleWrap1 'opoint name
-{--
-instance SemiSequence OpenRogueHistory where
-    type Index OpenRogueHistory = Int
-    intersperse e = OpenRogueHistory . intersperse e . openRogueHistory
-    reverse = OpenRogueHistory . reverse . openRogueHistory
-    find p = find p . openRogueHistory
-    sortBy f = OpenRogueHistory . sortBy f . openRogueHistory
-    cons e = OpenRogueHistory . cons e . openRogueHistory
-    snoc (OpenRogueHistory a) e = OpenRogueHistory . snoc a e
-instance MonoPointed OpenRogueHistory where
-    opoint = OpenRogueHistory . singleton
-instance IsSequence OpenRogueHistory where
-    fromList = OpenRogueHistory . fromList
---}
-
 
 simpleWrap :: Name -> Name -> DecQ
 simpleWrap funcName typeName = do
@@ -417,3 +388,58 @@ getNewTypeCon typeName = do
       (NewtypeD _ _ _ _ (RecC con _) _) -> return con
       (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
       _ -> fail "Only Newtype datastructures are allowed"
+
+deriveNewtypedTypeFamily :: Name -> Name -> DecsQ
+deriveNewtypedTypeFamily typeFamily newtypeName = do
+    decl <- getDeclaration
+    instances <- getInstances decl
+    isInstance' <- isInstance typeFamily [decl]
+    reportWarning $ show isInstance'
+    let newInstances = getTypeSynInstance decl instances
+    reportWarning $ "New type family instances: " ++ show newInstances
+    return newInstances
+    where
+        getInstances :: Type -> Q [InstanceDec]
+        getInstances newtypeName' = do
+            inst <- reifyInstances typeFamily [newtypeName']
+            reportWarning $ "Instances: " ++ show inst
+            return inst
+
+        getDeclaration :: Q Type
+        getDeclaration = do
+            TyConI mn <- reify newtypeName
+            case mn of
+                (NewtypeD _ _ _ _ (RecC _ [(_,_, typeD)]) _) -> do
+                    reportWarning $ "Investigated Type: " ++ show typeD
+                    return typeD
+
+                (NewtypeD _ _ _ _ (NormalC _ [(_, typeD)]) _) -> do
+                    reportWarning $ "Investigated Type: " ++ show typeD
+                    return typeD
+
+                _ ->
+                    fail $ show newtypeName ++ "Not a newtype"
+
+
+        getTypeSynInstance :: Type -> [InstanceDec] -> [Dec]
+        getTypeSynInstance dec inst =
+            map
+                ( \(TySynInstD _ (TySynEqn _ right)) ->
+                    TySynInstD typeFamily (TySynEqn [ConT newtypeName] right)
+                )
+                inst
+
+createMapValueFamily :: Name -> Name -> DecQ
+createMapValueFamily typeInstance name = do
+    TyConI mn <- reify name
+    valueType <- case mn of
+        (NewtypeD _ _ _ _ (RecC _ [(_,_, AppT (AppT _ _) valueType')]) _) ->
+            return valueType'
+
+        (NewtypeD _ _ _ _ (NormalC _ [(_, AppT (AppT _ _) valueType')]) _) ->
+            return valueType'
+
+        _ ->
+            fail "Newtype must contain a map like data structure of the form `AppT (AppT (ConT c) key ) value `"
+
+    return $ TySynInstD typeInstance (TySynEqn [ConT name] valueType)
