@@ -16,6 +16,7 @@ import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
+import qualified TH.MonoDerive             as Derive
 
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
@@ -50,8 +51,15 @@ newtype EnergyMap =
         deriving (Show, Read, Eq, Generic)
 
 -- |A GameError is a enum of possible errors
-data GameError = NotTurn | PlayerNotFound | EnergyNotFound | NotReachable | NotEnoughEnergy
-        deriving (Show, Read, Eq, Generic, Enum, Bounded)
+data GameError
+    = NotTurn
+    | PlayerNotFound Player
+    | EnergyNotFound
+    | NotReachable
+    | NodeBlocked Player
+    | NotEnoughEnergy
+    | GameIsOver
+    deriving (Show, Read, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -66,10 +74,11 @@ Currently this is only a move, but this may be expanded in the future.
 -} -- TODO: write into design document that an action may be more than a move. Maybe change?
 data Action =
     Move
-      { actionPlayer    :: Player
-      , actionEnergy :: Energy
-      , actionNode      :: Node
-      }
+        { actionPlayer :: Player
+        , actionEnergy :: Energy
+        , actionNode   :: Node
+        }
+
     deriving (Show, Read, Eq, Generic)
 
 {- |The playerPositions map keeps track of the current nodes each player is on.
@@ -83,13 +92,28 @@ newtype PlayerPositions =
         }
     deriving (Show, Read, Eq, Generic)
 
+-- TODO: Seq instead of list?
+-- TODO: rename to shadowRogueHistory?
 {- |The history of energies used by the rouge core.
--} -- TODO: Seq instead of list?
+-}
 newtype RogueHistory =
     RogueHistory
         { rogueHistory :: [(Energy, Maybe Node)]
         }
-      deriving (Show, Read, Eq, Generic)
+    deriving (Show, Read, Eq, Generic)
+-- TODO: derive type-classes like monoFunctor, ...
+
+{- |The history of energies used by the rogue together with all nodes
+
+The bool flag indicates whether the node in the history-entry is shown to the catchers
+ during the game
+-}
+newtype OpenRogueHistory =
+    OpenRogueHistory
+        { openRogueHistory :: [(Energy, Node, Bool)]
+        }
+    deriving (Show, Read, Eq, Generic)
+
 
 {- |A game view as seen by the rouge-core.
 -}
@@ -100,7 +124,7 @@ data RogueGameView =
         , rogueOwnHistory      :: RogueHistory
         , rogueNextPlayer      :: Player
         }
-        deriving (Show, Read,  Eq, Generic)
+    deriving (Show, Read,  Eq, Generic)
 
 {- |A game view as seen by the catchers
 -}
@@ -111,7 +135,17 @@ data CatcherGameView =
         , catcherRogueHistory    :: RogueHistory
         , catcherNextPlayer      :: Player
         }
-        deriving (Show, Read, Eq, Generic)
+    deriving (Show, Read, Eq, Generic)
+
+{- |A view for the game-over screen
+-}
+data GameOverView =
+    GameOverView
+        { gameOverViewPlayerPositions :: PlayerPositions
+        , gameOverViewPlayerEnergies  :: PlayerEnergies
+        , gameOverViewRogueHistory    :: OpenRogueHistory
+        }
+    deriving (Show, Read, Eq, Generic)
 
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state.
@@ -165,6 +199,7 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
+-- TODO: include all players
 {- | InitialDataForClient the initial info the client gets
 
 -}
@@ -181,9 +216,11 @@ data MessageForServer =
     Action_ Action
     deriving (Show, Read, Eq, Generic)
 
-data MessageForClient =
-    GameView_ GameView |
-    InitialInfoForClient_ InitialInfoForClient
+data MessageForClient
+    = GameView_ GameView
+    | GameError_ GameError
+    | GameOverView_ GameOverView
+    | InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
 
 instance FromJSONKey Player where
@@ -231,8 +268,12 @@ instance Arbitrary RogueHistory where
     arbitrary =
         RogueHistory <$> arbitrary
 
+instance Arbitrary OpenRogueHistory where
+    arbitrary =
+        OpenRogueHistory <$> arbitrary
+
 instance Arbitrary GameError where
-    arbitrary = arbitraryBoundedEnum
+    arbitrary = undefined -- TODO: implement arbitrary for game-error??
 
 instance Arbitrary CatcherGameView where
     arbitrary =
@@ -273,132 +314,21 @@ deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Energy
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
+deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
+deriveBoth Elm.Derive.defaultOptions ''GameOverView
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 
 -- IsMap implementation for PlayerPositions
-type instance Element PlayerPositions = Node
-instance Monoid PlayerPositions where
-    mempty = PlayerPositions mempty
-    mappend pp1 pp2 = PlayerPositions $ playerPositions pp1 ++ playerPositions pp2
-instance MonoFunctor PlayerPositions where
-    omap f = PlayerPositions . omap f . playerPositions
-instance MonoFoldable PlayerPositions where
-    ofoldMap f = ofoldMap f . playerPositions
-    ofoldr f x = ofoldr f x . playerPositions
-    ofoldl' f x = ofoldl' f x . playerPositions
-    olength = olength . playerPositions
-    olength64 = olength64 . playerPositions
-    ofoldr1Ex f = ofoldr1Ex f . playerPositions
-    ofoldl1Ex' f = ofoldl1Ex' f . playerPositions
-instance MonoTraversable PlayerPositions where
-    otraverse f = map PlayerPositions . otraverse f . playerPositions
-instance Semigroup PlayerPositions where
-instance GrowingAppend PlayerPositions where
-instance SetContainer PlayerPositions where
-    type ContainerKey PlayerPositions = Player
-    member p = member p . playerPositions
-    notMember p = notMember p . playerPositions
-    union pp1 pp2 = PlayerPositions $ union (playerPositions pp1) (playerPositions pp2)
-    difference pp1 pp2 = PlayerPositions $ difference (playerPositions pp1) (playerPositions pp2)
-    intersection pp1 pp2 = PlayerPositions $ intersection (playerPositions pp1) (playerPositions pp2)
-    keys = keys . playerPositions
-instance IsMap PlayerPositions where
-    type MapValue PlayerPositions = Node
-    lookup k = lookup k . playerPositions
-    insertMap k v = PlayerPositions . insertMap k v . playerPositions
-    deleteMap k = PlayerPositions . deleteMap k . playerPositions
-    singletonMap k v = PlayerPositions $ singletonMap k v
-    mapFromList = PlayerPositions . mapFromList
-    mapToList = mapToList . playerPositions
-
+Derive.deriveMap ''PlayerPositions
 -- IsMap implementation for EnergyMap
-type instance Element EnergyMap = Int
-instance Monoid EnergyMap where
-    mempty = EnergyMap mempty
-    mappend pp1 pp2 = EnergyMap $ energyMap pp1 ++ energyMap pp2
-instance MonoFunctor EnergyMap where
-    omap f = EnergyMap . omap f . energyMap
-instance MonoFoldable EnergyMap where
-    ofoldMap f = ofoldMap f . energyMap
-    ofoldr f x = ofoldr f x . energyMap
-    ofoldl' f x = ofoldl' f x . energyMap
-    olength = olength . energyMap
-    olength64 = olength64 . energyMap
-    ofoldr1Ex f = ofoldr1Ex f . energyMap
-    ofoldl1Ex' f = ofoldl1Ex' f . energyMap
-instance MonoTraversable EnergyMap where
-    otraverse f = map EnergyMap . otraverse f . energyMap
-instance Semigroup EnergyMap where
-instance GrowingAppend EnergyMap where
-instance SetContainer EnergyMap where
-    type ContainerKey EnergyMap = Energy
-    member p = member p . energyMap
-    notMember p = notMember p . energyMap
-    union pp1 pp2 = EnergyMap $ union (energyMap pp1) (energyMap pp2)
-    difference pp1 pp2 = EnergyMap $ difference (energyMap pp1) (energyMap pp2)
-    intersection pp1 pp2 = EnergyMap $ intersection (energyMap pp1) (energyMap pp2)
-    keys = keys . energyMap
-instance IsMap EnergyMap where
-    type MapValue EnergyMap = Int
-    lookup k = lookup k . energyMap
-    insertMap k v = EnergyMap . insertMap k v . energyMap
-    deleteMap k = EnergyMap . deleteMap k . energyMap
-    singletonMap k v = EnergyMap $ singletonMap k v
-    mapFromList = EnergyMap . mapFromList
-    mapToList = mapToList . energyMap
-
+Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
-type instance Element PlayerEnergies = EnergyMap
-instance Monoid PlayerEnergies where
-    mempty = PlayerEnergies mempty
-    mappend pp1 pp2 = PlayerEnergies $ playerEnergies pp1 ++ playerEnergies pp2
-instance MonoFunctor PlayerEnergies where
-    omap f = PlayerEnergies . omap f . playerEnergies
-instance MonoFoldable PlayerEnergies where
-    ofoldMap f = ofoldMap f . playerEnergies
-    ofoldr f x = ofoldr f x . playerEnergies
-    ofoldl' f x = ofoldl' f x . playerEnergies
-    olength = olength . playerEnergies
-    olength64 = olength64 . playerEnergies
-    ofoldr1Ex f = ofoldr1Ex f . playerEnergies
-    ofoldl1Ex' f = ofoldl1Ex' f . playerEnergies
-instance MonoTraversable PlayerEnergies where
-    otraverse f = map PlayerEnergies . otraverse f . playerEnergies
-instance Semigroup PlayerEnergies where
-instance GrowingAppend PlayerEnergies where
-instance SetContainer PlayerEnergies where
-    type ContainerKey PlayerEnergies = Player
-    member p = member p . playerEnergies
-    notMember p = notMember p . playerEnergies
-    union pp1 pp2 = PlayerEnergies $ union (playerEnergies pp1) (playerEnergies pp2)
-    difference pp1 pp2 = PlayerEnergies $ difference (playerEnergies pp1) (playerEnergies pp2)
-    intersection pp1 pp2 = PlayerEnergies $ intersection (playerEnergies pp1) (playerEnergies pp2)
-    keys = keys . playerEnergies
-instance IsMap PlayerEnergies where
-    type MapValue PlayerEnergies = EnergyMap
-    lookup k = lookup k . playerEnergies
-    insertMap k v = PlayerEnergies . insertMap k v . playerEnergies
-    deleteMap k = PlayerEnergies . deleteMap k . playerEnergies
-    singletonMap k v = PlayerEnergies $ singletonMap k v
-    mapFromList = PlayerEnergies . mapFromList
-    mapToList = mapToList . playerEnergies
-
--- MonoFoldable and MonoTraversable for RogueHistory
+Derive.deriveMap ''PlayerEnergies
+-- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+Derive.deriveSequence ''RogueHistory
 type instance Element RogueHistory = (Energy, Maybe Node)
-instance Monoid RogueHistory where
-    mempty = RogueHistory mempty
-    mappend pp1 pp2 = RogueHistory $ rogueHistory pp1 ++ rogueHistory pp2
-instance MonoFunctor RogueHistory where
-    omap f = RogueHistory . omap f . rogueHistory
-instance MonoFoldable RogueHistory where
-    ofoldMap f = ofoldMap f . rogueHistory
-    ofoldr f x = ofoldr f x . rogueHistory
-    ofoldl' f x = ofoldl' f x . rogueHistory
-    olength = olength . rogueHistory
-    olength64 = olength64 . rogueHistory
-    ofoldr1Ex f = ofoldr1Ex f . rogueHistory
-    ofoldl1Ex' f = ofoldl1Ex' f . rogueHistory
-instance MonoTraversable RogueHistory where
-    otraverse f = map RogueHistory . otraverse f . rogueHistory
+-- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+Derive.deriveSequence ''OpenRogueHistory
+type instance Element OpenRogueHistory = (Energy, Node, Bool)

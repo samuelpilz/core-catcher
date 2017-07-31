@@ -12,11 +12,16 @@ type Msg
 
 
 type alias ClientState =
-    { gameView : GameView
+    { playerPositions : PlayerPositions
+    , playerEnergies : PlayerEnergies
+    , rogueHistory : RogueHistory -- TODO: possibility for open history
+    --, gameView : GameView
     , network : Network
     , player : Player
     , selectedEnergy : Energy
     , server : String
+    , gameError : Maybe GameError
+    , gameOver : Bool
     }
 
 

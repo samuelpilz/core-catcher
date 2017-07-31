@@ -45,11 +45,11 @@ class HasConnections state where
         atomically $ removeClient clientId stateVar
         putStrLn $ "disconnect " ++ tshow clientId
 
-    findConnectionById :: ClientId -> state -> Maybe (ClientConnection (Conn state))
-    findConnectionById cid state =
-        find ((==cid) . fst) $ getConnections state
 
 
+findConnectionById :: ClientId -> ClientConnections conn -> Maybe (ClientConnection conn)
+findConnectionById cid =
+    find ((==cid) . fst)
 
 -- helper functions (not exported)
 addClient :: HasConnections state => Conn state -> TVar state -> STM ClientId

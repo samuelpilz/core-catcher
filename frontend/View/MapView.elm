@@ -12,6 +12,7 @@ import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
+import Debug exposing (log)
 
 
 -- TODO: css style with css-library?
@@ -22,7 +23,6 @@ mapView network displayInfo clientState =
     svg
         [ height << toString <| displayInfo.mapHeight
         , width << toString <| displayInfo.mapWidth
-        , Html.style [ ( "backgroundColor", "#cccccc" ) ]
         ]
     -- elements of svg now
     <|
@@ -34,29 +34,69 @@ mapView network displayInfo clientState =
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
-                (EveryDict.toList
-                    (playerPositions clientState.gameView).playerPositions
-                )
+                (EveryDict.toList clientState.playerPositions.playerPositions)
+            ++ gameErrorText clientState.gameError
+            ++ gameOverText clientState.gameOver
 
 
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName :
+    GameViewDisplayInfo
+    -> Network
+    -> ( Energy, NetworkOverlay )
+    -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
-        << Maybe.map2 (mapViewOfNetworkOverlay)
+        << Maybe.map2 (mapViewOfNetworkOverlay displayInfo.nodeXyMap)
             (displayInfoForEnergy displayInfo overlayName)
      <|
         Just overlay
     )
 
 
-mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, overlayEdges } =
+mapViewOfNetworkOverlay : NodeXyMap -> OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
+mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes, overlayEdges } =
     List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
 
 
 
 -- svg create functions
+
+
+gameErrorText : Maybe GameError -> List (Svg Msg)
+gameErrorText errMay =
+    case errMay of
+        Nothing ->
+            []
+
+        Just err ->
+            [ text_
+                [ x "15"
+                , y "15"
+                , fill "red"
+                ]
+                [ text << toString <| err ]
+
+            -- TODO: popup notification for that?
+            ]
+
+
+gameOverText : Bool -> List (Svg Msg)
+gameOverText gameOverBool =
+    case gameOverBool of
+        False ->
+            []
+
+        True ->
+            [ text_
+                [ x "500"
+                , y "15"
+                , fill "red"
+                ]
+                [ text "Game Over" ]
+
+            -- TODO: visual design for that, and present more info
+            ]
 
 
 nodeCircleStop : NodeXyMap -> Color -> NodeSize -> Node -> Svg Msg
