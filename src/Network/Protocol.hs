@@ -53,7 +53,7 @@ newtype EnergyMap =
 data GameError
     = NotTurn
     | PlayerNotFound Player
-    | EnergyNotFound
+    | EnergyNotFound Energy
     | NotReachable
     | NodeBlocked Player
     | NotEnoughEnergy

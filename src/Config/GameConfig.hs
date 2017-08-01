@@ -15,6 +15,7 @@ data GameConfig =
         , maxRounds              :: Int
         , rogueShowsAt           :: [Int]
         , network                :: Network
+        , firstPlayer :: Player
         }
     deriving (Eq, Show, Read)
 
@@ -27,6 +28,7 @@ defaultConfig = GameConfig
     , maxRounds = 10
     , rogueShowsAt = [2,5,8,10]
     , network = Network.network
+    , firstPlayer = Player 0
     }
 
 defaultPlayers :: [Player]
