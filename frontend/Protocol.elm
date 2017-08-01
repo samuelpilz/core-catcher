@@ -326,7 +326,7 @@ jsonEncOpenRogueHistory  val =
 type GameError  =
     NotTurn 
     | PlayerNotFound Player
-    | EnergyNotFound 
+    | EnergyNotFound Energy
     | NotReachable 
     | NodeBlocked Player
     | NotEnoughEnergy 
@@ -337,7 +337,7 @@ jsonDecGameError =
     let jsonDecDictGameError = Dict.fromList
             [ ("NotTurn", Json.Decode.succeed NotTurn)
             , ("PlayerNotFound", Json.Decode.map PlayerNotFound (jsonDecPlayer))
-            , ("EnergyNotFound", Json.Decode.succeed EnergyNotFound)
+            , ("EnergyNotFound", Json.Decode.map EnergyNotFound (jsonDecEnergy))
             , ("NotReachable", Json.Decode.succeed NotReachable)
             , ("NodeBlocked", Json.Decode.map NodeBlocked (jsonDecPlayer))
             , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
@@ -350,7 +350,7 @@ jsonEncGameError  val =
     let keyval v = case v of
                     NotTurn  -> ("NotTurn", encodeValue (Json.Encode.list []))
                     PlayerNotFound v1 -> ("PlayerNotFound", encodeValue (jsonEncPlayer v1))
-                    EnergyNotFound  -> ("EnergyNotFound", encodeValue (Json.Encode.list []))
+                    EnergyNotFound v1 -> ("EnergyNotFound", encodeValue (jsonEncEnergy v1))
                     NotReachable  -> ("NotReachable", encodeValue (Json.Encode.list []))
                     NodeBlocked v1 -> ("NodeBlocked", encodeValue (jsonEncPlayer v1))
                     NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
