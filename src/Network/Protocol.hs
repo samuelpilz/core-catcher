@@ -326,7 +326,7 @@ Derive.deriveMap ''PlayerPositions
 Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
 Derive.deriveMap ''PlayerEnergies
--- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+-- IsSequence for RogueHistory
 Derive.deriveSequence ''RogueHistory
--- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+-- IsSequence for RogueHistory
 Derive.deriveSequence ''OpenRogueHistory
