@@ -149,8 +149,8 @@ setContainerTh name = do
     containerKeyFamily <- Family.deriveNewtypedTypeFamily ''ContainerKey name
     return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
-      memberTh = simpleUnwrap 'member name
-      notMemberTh = simpleUnwrap 'notMember name
+      memberTh = simpleUnwrap1 'member name
+      notMemberTh = simpleUnwrap1 'notMember name
       unionTh = simpleBinOp 'union name
       differenceTh = simpleBinOp 'difference name
       intersectionTh = simpleBinOp 'intersection name
@@ -163,12 +163,12 @@ isMapTh name = do
     containerKeyFamily <- Family.deriveNewtypedTypeFamily ''MapValue name
     return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
-      lookupTh = simpleUnwrap 'lookup name
+      lookupTh = simpleUnwrap1 'lookup name
       insertMapTh = simpleUnwrapWrap2 'insertMap name
       deleteMapTh = simpleUnwrapWrap1 'deleteMap name
       singletonMapTh = simpleWrap2 'singletonMap name
       mapFromListTh = simpleWrap1 'mapFromList name
-      mapToListTh = simpleUnwrap1 'mapToList name
+      mapToListTh = simpleUnwrap 'mapToList name
 
 semiSequenceTh :: Name -> DecsQ
 semiSequenceTh name = do
@@ -179,7 +179,7 @@ semiSequenceTh name = do
     where
       intersperseTh = simpleUnwrapWrap1 'intersperse name
       reverseTh = simpleUnwrapWrap 'reverse name
-      findTh = simpleUnwrap 'find name
+      findTh = simpleUnwrap1 'find name
       sortByTh = simpleUnwrapWrap1 'sortBy name
       consTh = simpleUnwrapWrap1 'cons name
       snocTh = simpleUnwrapWrap1' 'snoc name
@@ -212,7 +212,7 @@ isSetTh name = do
       deleteSetTh = simpleUnwrapWrap1 'deleteSet name
       singletonSetTh = simpleWrap1 'singletonSet name
       setFromListTh = simpleWrap1 'setFromList name
-      setToListTh = simpleUnwrap1 'setToList name
+      setToListTh = simpleUnwrap 'setToList name
 
 emptyDerive :: Name -> Name-> DecsQ
 emptyDerive typeclass name = do

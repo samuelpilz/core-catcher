@@ -57,6 +57,18 @@ simpleUnwrap :: Name -> Name -> DecQ
 simpleUnwrap funcName typeName = do
     con <- getNewTypeCon typeName
     conVar <- newName "a"
+    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
+    let cl = clause
+            [ conP con [varP conVar]
+            ]
+            (normalB bodyExpr)
+            []
+    funD funcName [cl]
+
+simpleUnwrap1 :: Name -> Name -> DecQ
+simpleUnwrap1 funcName typeName = do
+    con <- getNewTypeCon typeName
+    conVar <- newName "a"
     otherVar <- newName "p"
     let bodyExpr = [e| $(varE funcName) $(varE otherVar) $(varE conVar) |]
     let cl = clause
@@ -66,20 +78,6 @@ simpleUnwrap funcName typeName = do
             (normalB bodyExpr)
             []
     funD funcName [cl]
-
--- TODO: naming is fucked up
-simpleUnwrap1 :: Name -> Name -> DecQ
-simpleUnwrap1 funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
-    let cl = clause
-            [ conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
 
 simpleUnwrapWrap :: Name -> Name -> DecQ
 simpleUnwrapWrap funcName typeName = do
