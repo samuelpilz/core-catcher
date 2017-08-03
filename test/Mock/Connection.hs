@@ -2,45 +2,53 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Mock.Connection where
+module Mock.Connection (
+    FakeConnection,
+    newFakeConnection,
+    prepareMsgToRead,
+    getSentMsg
+    ) where
 
-import           App.Connection
+import           App.ConnectionMgnt
 import           ClassyPrelude
 import           Network.WebSockets
 
+import           Data.Maybe         (fromJust)
 import           Test.Framework
 
-newtype FakeConnection =
+data FakeConnection =
     FakeConnection
-        { contentMsg    :: MVar Msg
+        { sendBuffer :: TVar (Maybe Msg)
+        , recvBuffer :: TVar (Maybe Msg)
         }
 
-newtype Msg =
-    Msg LByteString
+type Msg = LByteString
 
 data PendingConn = PendingConn
 
-emptyConnection :: IO FakeConnection
-emptyConnection = do
-    mvar <- newMVar (Msg "")
-    return (FakeConnection mvar)
 
-connectionWith :: LByteString -> IO FakeConnection
-connectionWith msg = do
-    mvar <- newMVar (Msg msg)
-    return (FakeConnection mvar)
+newFakeConnection :: IO FakeConnection
+newFakeConnection = do
+    sb <- newTVarIO Nothing
+    rb <- newTVarIO Nothing
+    return $ FakeConnection sb rb
+
+prepareMsgToRead :: Msg -> FakeConnection -> IO ()
+prepareMsgToRead msg conn =
+    atomically $ writeTVar (recvBuffer conn) $ Just msg
+
+getSentMsg :: FakeConnection -> IO (Maybe Msg)
+getSentMsg = readTVarIO . sendBuffer
 
 instance IsConnection FakeConnection where
     type Pending FakeConnection = PendingConn
 
-    sendData conn msg = do
-        _ <- takeMVar (contentMsg conn)
-        putMVar (contentMsg conn) (Msg $ toLazyByteString msg)
-        return ()
+    sendData conn =
+        atomically . writeTVar (sendBuffer conn) . Just . toLazyByteString
 
-    receiveData (FakeConnection content) = do
-        (Msg msg') <- readMVar content
-        return $ fromLazyByteString msg'
+    receiveData (FakeConnection _ rb) = do
+        msg <- atomically $ swapTVar rb Nothing
+        return . fromLazyByteString $ fromJust msg
 
     acceptRequest PendingConn =
-        emptyConnection
+        newFakeConnection

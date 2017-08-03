@@ -14,7 +14,6 @@ module Main where
 import           App.ConnectionMgnt
 import           App.State
 import           App.WsApp
-import qualified App.WsAppUtils                 as WsAppUtils
 import           ClassyPrelude                  hiding (handle)
 import qualified Config.GameConfig              as GameConfig
 import qualified Control.Exception              as Exception
@@ -24,6 +23,7 @@ import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
+import           WsConnection
 
 main :: IO ()
 main = do
@@ -43,22 +43,23 @@ httpApp :: Wai.Application
 httpApp = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings "web")
 
 
-wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp
+wsApp :: TVar (ServerState WsConnection) -> WS.ServerApp
 wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
-    let gameConn = GameConnection conn
-    clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
+    let wsConn = WsConnection conn
     WS.forkPingThread conn 30
-    -- TODO: send more up-to-date info
-    WsAppUtils.sendInitialInfo (clientId, gameConn) $
+    clientId <- connectClient wsConn stateVar -- call to ConnectionMgnt
+    let clientConn = ClientConnection (clientId, wsConn)
+    -- TODO: handshake first
+    sendSendableMsg clientConn $
         initialInfoForClient GameConfig.defaultConfig clientId
     Exception.finally
-        (wsListen (clientId, gameConn) stateVar)
+        (wsListen clientConn stateVar)
         (disconnectClient clientId stateVar) -- call to ConnectionMgnt
 
 wsListen :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> IO ()
 wsListen client stateVar = forever $ do
-    maybeAction <- WsAppUtils.recvMsgForServer client
+    maybeAction <- recvMsg client
     case maybeAction of
         Just action -> do
             -- TODO: what about request forging? (send game-token to client using player-mgnt)

@@ -21,11 +21,8 @@ library
                      , Config.Network
                      , Config.GameConfig
                      , App.WsApp
-                     , App.WsAppUtils
                      , App.State
                      , App.ConnectionMgnt
-                     , App.Connection
-
                      , TH.MonoDerive
 
   ghc-options:         -Wall
@@ -51,7 +48,7 @@ library
 executable core-catcher-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  other-modules:
+  other-modules:       WsConnection
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher

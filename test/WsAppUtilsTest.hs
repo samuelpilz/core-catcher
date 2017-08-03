@@ -23,13 +23,18 @@ anAction =
         Protocol.Orange
         (Protocol.Node 1)
 
-
+{- TODO: This should not test:
+    * ServerState
+    * ConnectionMgnt
+    * WsApp
+-}
+-- TODO: what does this test?
+-- TODO: refactor these tests
 nonEmptyServerIO :: IO (ServerState Fake.FakeConnection)
 nonEmptyServerIO = do
-    conns <- sequenceA . fromList $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..10]
+    conns <- sequenceA $ map (\num -> Fake.emptyConnection >>= \conn -> return (num, conn)) [1..10]
     let sndMvar = Fake.contentMsg . snd $ conns `indexEx` 1
-    _ <- takeMVar sndMvar
-    putMVar sndMvar (Fake.Msg $ Aeson.encode anAction)
+    atomically $ writeTVar sndMvar (Fake.Msg $ Aeson.encode anAction)
     return ServerState
         { gameState = GameNg.GameRunning_ $ GameNg.initialState Config.defaultConfig
         , connections = conns
@@ -40,13 +45,13 @@ test_receiveInvalidMessage = do
     nonEmptyServer <- nonEmptyServerIO
     let (Just conn) = Mgnt.findConnectionById 1 (connections nonEmptyServer)
     maybeMsg <- recvMsgForServer conn
-    assertEqual True (isNothing maybeMsg)
+    assertEqual Nothing maybeMsg
 
-prop_arbitraryActionIsParsable :: Protocol.Action -> Property
-prop_arbitraryActionIsParsable action = assertionAsProperty $ do
+prop_arbitraryActionIsParseable :: Protocol.Action -> Property
+prop_arbitraryActionIsParseable action = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(1, conn)) = Mgnt.findConnectionById 1 (connections nonEmptyServer)
-    _ <- swapMVar (Fake.contentMsg conn) (Fake.Msg $ Aeson.encode action)
+    atomically $ writeTVar (Fake.contentMsg conn) (Fake.Msg $ Aeson.encode action)
     maybeMsg <- recvMsgForServer cli
     assertEqual True (isJust maybeMsg)
     let Just (Protocol.Action_ realAction) = maybeMsg
@@ -56,13 +61,13 @@ prop_withoutClient :: Mgnt.ClientId -> Property
 prop_withoutClient cid = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let conns = Mgnt.getConnections nonEmptyServer
-    assertEqual True (cid `notElem` map fst (withoutClient cid conns))
+    assertEqual True (cid `notElem` map fst (Mgnt.withoutClient cid conns))
 
 prop_sendArbitraryRogueGameView :: Protocol.RogueGameView -> Property
 prop_sendArbitraryRogueGameView rgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 (connections nonEmptyServer)
-    sendRogueView cli rgv
+    sendToClient cli rgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
     Just (Protocol.GameView_ (Protocol.RogueView rgv')) <- Aeson.decode `map` receiveData conn
     assertEqual rgv rgv'
@@ -71,7 +76,7 @@ prop_sendArbitraryCatcherGameView :: Protocol.CatcherGameView -> Property
 prop_sendArbitraryCatcherGameView cgv = assertionAsProperty $ do
     nonEmptyServer <- nonEmptyServerIO
     let (Just cli@(_, conn)) = Mgnt.findConnectionById 1 (connections nonEmptyServer)
-    sendCatcherView cli cgv
+    sendToClient cli cgv
     -- small hack, sendView saves the sent message which can be read out with receiveData
     Just (Protocol.GameView_ (Protocol.CatcherView cgv')) <- Aeson.decode `map` receiveData conn
     assertEqual cgv cgv'
@@ -88,7 +93,7 @@ prop_broadcastCatcherGameView =
           assertionAsProperty
               $ do
                   nonEmptyServer <- nonEmptyServerIO
-                  multicastCatcherView (Mgnt.getConnections nonEmptyServer) cgv
+                  multicastToClients (Mgnt.getConnections nonEmptyServer) cgv
                   -- small hack, sendView saves the sent message which can be read out with receiveData
                   res <- mapM (receiveData . snd) (Mgnt.getConnections nonEmptyServer) :: IO (Seq LByteString)
                   let answers = map Aeson.decode res

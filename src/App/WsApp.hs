@@ -4,10 +4,8 @@
 
 module App.WsApp (handle, initialInfoForClient) where
 
-import           App.Connection
 import           App.ConnectionMgnt
 import           App.State
-import           App.WsAppUtils
 import           ClassyPrelude       hiding (handle)
 import           Config.GameConfig   (GameConfig)
 import qualified Config.GameConfig   as Game
@@ -15,6 +13,7 @@ import           Control.Monad.Extra (whenJust)
 import           GameNg              (GameState (..))
 import qualified GameNg              as Game
 import           Network.Protocol
+
 
 handle
     :: IsConnection conn
@@ -30,7 +29,7 @@ handle client stateVar msg = do
             case updateResult of
                 Right newGameState -> sendGameViews newGameState (connections newState)
                 Left gameError -> do
-                    sendError client gameError
+                    sendSendableMsg client gameError
                     putStrLn $ "invalid action " ++ tshow gameError
     return ()
 
@@ -61,10 +60,10 @@ updateGameAtomically stateVar action = do
 sendGameViews :: IsConnection conn => GameState -> ClientConnections conn -> IO ()
 sendGameViews (GameRunning_ game) conn = do
     let (rogueGameView, catcherGameView) = Game.getViews game
-    multicastCatcherView (withoutClient 0 conn) catcherGameView
-    whenJust (findConnectionById 0 conn) (`sendRogueView` rogueGameView)
+    multicastMsg (withoutClient 0 conn) catcherGameView
+    whenJust (findConnectionById 0 conn) (`sendSendableMsg` rogueGameView)
 sendGameViews (GameOver_ game) conn =
-    broadcastGameOverView conn $ Game.getGameOverView game
+    multicastMsg conn $ Game.getGameOverView game
 
 
 initialInfoForClient :: GameConfig -> ClientId -> InitialInfoForClient

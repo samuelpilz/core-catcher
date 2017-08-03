@@ -200,7 +200,6 @@ toShadowRogueHistory =
     map (\(e,n,showing) -> (e, showing `ifToMaybe` n)) .
     openRogueHistory
 
--- TODO: test
 getGameOverView :: GameOver -> GameOverView
 getGameOverView GameOver
     { gameOverPlayerPositions

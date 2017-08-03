@@ -199,7 +199,6 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
--- TODO: include all players
 {- | InitialDataForClient the initial info the client gets
 
 -}
@@ -208,7 +207,6 @@ data InitialInfoForClient =
         { initialPlayer   :: Player
         , networkForGame  :: Network
         , initialGameView :: GameView
-        -- TODO: network?
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -222,6 +220,25 @@ data MessageForClient
     | GameOverView_ GameOverView
     | InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
+
+class SendableToClient msg where
+    wrap :: msg -> MessageForClient
+
+
+instance SendableToClient MessageForClient where
+    wrap = id
+instance SendableToClient GameError where
+    wrap = GameError_
+instance SendableToClient GameView where
+    wrap = GameView_
+instance SendableToClient GameOverView where
+    wrap = GameOverView_
+instance SendableToClient RogueGameView where
+    wrap = GameView_ . RogueView
+instance SendableToClient CatcherGameView where
+    wrap = GameView_ . CatcherView
+instance SendableToClient InitialInfoForClient where
+    wrap = InitialInfoForClient_
 
 instance FromJSONKey Player where
 

@@ -21,7 +21,7 @@ emptyServerIO =
 
 nonEmptyServerIO :: IO (ServerState FakeConnection)
 nonEmptyServerIO = do
-    conns <- sequenceA . fromList $ map (\num -> emptyConnection >>= \conn -> return (num, conn)) [1, 2]
+    conns <- sequenceA . fromList $ map (\num -> newFakeConnection >>= \conn -> return (num, conn)) [1, 2]
     return
         ServerState
             { gameState = GameNg.GameRunning_ $ GameNg.initialState Config.defaultConfig
@@ -42,7 +42,7 @@ test_setConnectionsToState :: IO ()
 test_setConnectionsToState = do
     emptyServer <- emptyServerIO
     assertEqual (length $ getConnections emptyServer) 0
-    conns <- sequenceA . fromList $ map (\num -> emptyConnection >>= \conn -> return (num, conn)) [1, 2]
+    conns <- sequenceA . fromList $ map (\num -> newFakeConnection >>= \conn -> return (num, conn)) [1, 2]
     let newState = setConnections conns emptyServer
     assertEqual (length $ getConnections newState) 2
 
@@ -52,15 +52,14 @@ test_connectClientToState = do
     stateRef <- newTVarIO emptyServer
     server <- readTVarIO stateRef
     assertEqual (length $ getConnections server) 0
-    newConn <- emptyConnection
+    newConn <- newFakeConnection
     _ <- connectClient newConn stateRef
     server' <- readTVarIO stateRef
     assertEqual (length $ getConnections server') 1
 
 test_disconnectClientFromState :: IO ()
 test_disconnectClientFromState = do
-    nonEmptyServer <- nonEmptyServerIO
-    stateRef <- newTVarIO nonEmptyServer
+    stateRef <- newTVarIO nonEmptyServerIO
     server <- readTVarIO stateRef
     assertEqual (length $ getConnections server) 2
     disconnectClient 1 stateRef
@@ -69,8 +68,7 @@ test_disconnectClientFromState = do
 
 test_disconnectUnknownClientFromState :: IO ()
 test_disconnectUnknownClientFromState = do
-    nonEmptyServer <- nonEmptyServerIO
-    stateRef <- newTVarIO nonEmptyServer
+    stateRef <- newTVarIO nonEmptyServerIO
     server <- readTVarIO stateRef
     assertEqual (length $ getConnections server) 2
     disconnectClient 3 stateRef
