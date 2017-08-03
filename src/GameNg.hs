@@ -6,10 +6,11 @@ module GameNg
     ( initialState
     , getViews
     , updateState
+    , actionForGameRunning
     , GameState(..)
     , GameRunning(..)
-    , gameRunningRogueHistory
     , GameOver(..)
+    , gameRunningRogueHistory
     , getGameOverView
     , gameNetwork
     ) where
@@ -54,11 +55,17 @@ initialState config =
         (initialPlayerPositions config)
         (initialPlayerEnergies config)
         (OpenRogueHistory [])
-        (Player 0)
+        (firstPlayer config)
 
--- |The game's update function.
-updateState :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
-updateState
+-- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
+updateState :: Action -> GameState -> Either GameError GameState
+updateState _ (GameOver_ _) = Left GameIsOver
+updateState action (GameRunning_ gameRunning) =
+    map (either GameOver_ GameRunning_) $ actionForGameRunning action gameRunning
+
+-- |Add an action for the running game.
+actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
+actionForGameRunning
     Move { actionPlayer, actionEnergy, actionNode }
     state@GameRunning
         { gameRunningGameConfig
@@ -150,7 +157,11 @@ canMoveBetween net from energy to =
 
 
 isBlocked :: PlayerPositions -> Node -> Maybe Player
-isBlocked pos node = map fst . find (\(p,n) -> p /= Player 0 && n == node) . mapToList $ pos
+isBlocked pos node =
+    map fst .
+    find (\(p,n) -> p /= Player 0 && n == node) .
+    mapToList $
+    pos
 
 nextPlayerEnergies ::
        PlayerEnergies -> Player -> Energy -> Either GameError PlayerEnergies
@@ -158,7 +169,7 @@ nextPlayerEnergies pEnergies player energy = do
     eMap <-
         maybeToEither (PlayerNotFound player) . lookup player $ pEnergies
     energyCount <-
-        maybeToEither EnergyNotFound . lookup energy $ eMap
+        maybeToEither (EnergyNotFound energy) . lookup energy $ eMap
     unless (energyCount >= 1) . Left $ NotEnoughEnergy
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
 
