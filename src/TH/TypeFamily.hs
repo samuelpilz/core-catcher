@@ -14,9 +14,7 @@ deriveNewtypedTypeFamily :: Name -> Name -> DecsQ
 deriveNewtypedTypeFamily typeFamily newtypeName = do
     decl <- getDeclaration
     instances <- getInstances decl
-    isInstance' <- isInstance typeFamily [decl]
-    newInstances <- sequenceA $ getTypeSynInstances decl instances
-    return newInstances
+    sequenceA $ getTypeSynInstances decl instances
     where
         getInstances :: Type -> Q [InstanceDec]
         getInstances newtypeName' = do
@@ -36,35 +34,38 @@ deriveNewtypedTypeFamily typeFamily newtypeName = do
                 _ ->
                     fail $ show newtypeName ++ "Not a newtype"
 
-
         getTypeSynInstances :: Type -> [InstanceDec] -> [DecQ]
         getTypeSynInstances dec inst =
             map
                 ( \(TySynInstD _ (TySynEqn c right)) -> do
-                    [newRight] <- sequenceA $ map (\f -> extractCorrectRightSide f dec right) c
+                    -- TODO: no pattern match
+                    [newRight] <- sequenceA $ map (\f -> extractRightSideWithDefault f dec right) c
                     return $ TySynInstD typeFamily (TySynEqn [ConT newtypeName] newRight)
                 )
                 inst
 
-extractCorrectRightSide :: Type -> Type -> Type -> Q Type
-extractCorrectRightSide (AppT a b) (AppT c d) right =
-  if right == a then
+extractRightSideWithDefault :: Type -> Type -> Type -> Q Type
+extractRightSideWithDefault a b r =
+    recover
+        (return r) -- handler in case of error
+        (extractRightSide a b r) -- normal computation
+
+extractRightSide :: Type -> Type -> Type -> Q Type
+extractRightSide (AppT a b) (AppT c d) r =
+  if r == a then
       return c
-  else if right == b then
+  else if r == b then
       return d
   else
       recover
-          (extractCorrectRightSide a c right)
-          (extractCorrectRightSide b d right)
+          (extractRightSide a c r) -- handler in case of error
+          (extractRightSide b d r) -- normal computation
 
-extractCorrectRightSide (ParensT a) (ParensT b) right =
-    if right == a then
-      return b
+extractRightSide (ParensT a) (ParensT b) r =
+    if r == a then
+        return b
     else
-      extractCorrectRightSide a b right
+        extractRightSide a b r
 
-extractCorrectRightSide ListT ListT ListT =
-    return ListT
-
-extractCorrectRightSide _ _ _ =
-    fail "Could not find a fitting type"
+extractRightSide _ _ _ =
+    fail "no matching pair found"

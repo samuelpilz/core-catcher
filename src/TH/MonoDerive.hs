@@ -4,6 +4,7 @@
 module TH.MonoDerive
   ( deriveMap
   , deriveSequence
+  , deriveSet
   , monoidTh
   , monoTraversableTh
   , monoFunctorTh
@@ -11,10 +12,11 @@ module TH.MonoDerive
   , semigroupTh
   , growingAppendTh
   , setContainerTh
-  , isMapTh
   , semiSequenceTh
   , monoPointedTh
+  , isMapTh
   , isSequenceTh
+  , isSetTh
   ) where
 
 import           ClassyPrelude
@@ -59,6 +61,24 @@ deriveSequence name = do
                 , semiSequenceTh
                 , monoPointedTh
                 , isSequenceTh
+                ]
+    return (elementInstance ++ instances)
+
+deriveSet :: Name -> DecsQ
+deriveSet name = do
+    -- Does not work for arbitrary types
+    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
+    instances <-
+        map concat
+            . sequenceA
+            $ map
+                (\f -> f name)
+                [ monoidTh
+                , monoFoldableTh
+                , semigroupTh
+                , growingAppendTh
+                , setContainerTh
+                , isSetTh
                 ]
     return (elementInstance ++ instances)
 
@@ -136,21 +156,6 @@ setContainerTh name = do
       intersectionTh = simpleBinOp 'intersection name
       keysTh = simplePattern 'keys name
 
-      createContainerFamily :: DecQ
-      createContainerFamily = do
-          TyConI mn <- reify name
-          keyType <- case mn of
-              (NewtypeD _ _ _ _ (RecC _ [(_,_, AppT (AppT _ keyType') _)]) _) ->
-                  return keyType'
-
-              (NewtypeD _ _ _ _ (NormalC _ [(_, AppT (AppT _ keyType') _)]) _) ->
-                  return keyType'
-
-              _ ->
-                  fail "Newtype must contain a map like data structure of the form `AppT (AppT (ConT c) key ) value `"
-
-          return $ TySynInstD (mkName "ContainerKey") (TySynEqn [ConT name] keyType)
-
 isMapTh :: Name -> DecsQ
 isMapTh name = do
     funcs <- sequenceA [lookupTh, insertMapTh, deleteMapTh, singletonMapTh, mapFromListTh, mapToListTh]
@@ -169,8 +174,8 @@ semiSequenceTh :: Name -> DecsQ
 semiSequenceTh name = do
     funcs <- sequenceA [intersperseTh, reverseTh, findTh, sortByTh, consTh, snocTh]
     let instanceType           = AppT (ConT ''SemiSequence) (ConT name)
-    let indexFamily = TySynInstD ''Index (TySynEqn [ConT name] (ConT ''Int))
-    return [InstanceD Nothing [] instanceType (indexFamily `cons` funcs)]
+    indexFamily <- Family.deriveNewtypedTypeFamily ''Index name
+    return [InstanceD Nothing [] instanceType (indexFamily ++ funcs)]
     where
       intersperseTh = simpleUnwrapWrap1 'intersperse name
       reverseTh = simpleUnwrapWrap 'reverse name
@@ -188,8 +193,6 @@ isSequenceTh name = do
       fromListTh :: DecQ
       fromListTh = simpleWrap1 'fromList name
 
-
-
 monoPointedTh :: Name -> DecsQ
 monoPointedTh name = do
     funcs <- sequenceA [opointTh]
@@ -199,6 +202,17 @@ monoPointedTh name = do
       opointTh :: DecQ
       opointTh = simpleWrap1 'opoint name
 
+isSetTh :: Name -> DecsQ
+isSetTh name = do
+    funcs <- sequenceA [insertSetTh, deleteSetTh, singletonSetTh, setFromListTh, setToListTh]
+    let instanceType           = AppT (ConT ''IsSet) (ConT name)
+    return [InstanceD Nothing [] instanceType funcs ]
+    where
+      insertSetTh = simpleUnwrapWrap1 'insertSet name
+      deleteSetTh = simpleUnwrapWrap1 'deleteSet name
+      singletonSetTh = simpleWrap1 'singletonSet name
+      setFromListTh = simpleWrap1 'setFromList name
+      setToListTh = simpleUnwrap1 'setToList name
 
 emptyDerive :: Name -> Name-> DecsQ
 emptyDerive typeclass name = do

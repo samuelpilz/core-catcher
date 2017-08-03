@@ -67,6 +67,7 @@ simpleUnwrap funcName typeName = do
             []
     funD funcName [cl]
 
+-- TODO: naming is fucked up
 simpleUnwrap1 :: Name -> Name -> DecQ
 simpleUnwrap1 funcName typeName = do
     con <- getNewTypeCon typeName
