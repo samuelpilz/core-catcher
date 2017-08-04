@@ -41,23 +41,17 @@ updateGameAtomically
     -> STM (ServerState conn, Either GameError GameState)
 updateGameAtomically stateVar action = do
     state <- readTVar stateVar
-    -- TODO: where to dispatch actions to different game-stages? for now: here
-    let updateResult = case gameState state of
-            GameRunning_ gameRunning -> Game.updateState action gameRunning
-            GameOver_ _ -> Left GameIsOver
 
-    -- the update wrapped up as a GameState instead of an Either
-    let gameStateAfterActionResult = map (either GameOver_ GameRunning_) updateResult
+    let updateResult = Game.updateState action $ gameState state
 
-    newState <- case gameStateAfterActionResult of
+    newState <- case updateResult of
         Right newGameState -> do
             let newState = state { gameState = newGameState }
             writeTVar stateVar newState
             return newState
         Left _ -> return state -- let state stay the same
 
-
-    return (newState, map (either GameOver_ GameRunning_) updateResult)
+    return (newState, updateResult)
 
 sendGameViews :: IsConnection conn => GameState -> ClientConnections conn -> IO ()
 sendGameViews (GameRunning_ game) conn = do

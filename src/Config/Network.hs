@@ -21,10 +21,8 @@ network =
 
 redOverlay :: NetworkOverlay
 redOverlay =
-    mkOverlay
-        [ ( 1, 6 )
-        , ( 6, 13 )
-        , ( 13, 9 )
+    mkOverlayCompact
+        [ [1, 6, 13, 9]
         ]
 
 
