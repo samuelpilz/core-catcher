@@ -43,7 +43,7 @@ recvMsgForServer :: IsConnection conn => ClientConnection conn -> IO (Maybe Mess
 recvMsgForServer (_,ws) = do
     wsData <- receiveData ws
     return $ Aeson.decode wsData
-
+    
 multicastCatcherView :: IsConnection conn => ClientConnections conn -> CatcherGameView -> IO ()
 multicastCatcherView conns view =
     mapM_ (`sendCatcherView` view) conns
@@ -59,5 +59,3 @@ broadcastGameOverView conns view =
 withoutClient :: ClientId -> ClientConnections conn -> ClientConnections conn
 withoutClient cid =
     filter ((cid /=) . fst)
-
-

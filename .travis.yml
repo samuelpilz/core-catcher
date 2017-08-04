@@ -18,6 +18,8 @@ notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
   email: false
 
+>>>>>>> revert-index-push
+
 # Caching so the next build will be fast too.
 cache:
   directories:
@@ -55,7 +57,6 @@ before_install:
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  #- travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:
