@@ -14,7 +14,7 @@ displayInfo =
     , edgeWidthMap = edgeWidthMap
     , nodeSizeMap = nodeSizeMap
     , nodeXyMap = nodeXyMap
-    , transportPriorityList =
+    , energyPriorityList =
         [ Red
         , Blue
         , Orange

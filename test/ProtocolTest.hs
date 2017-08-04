@@ -23,7 +23,7 @@ prop_decodeEncodePlayer p = Just p == decodeEncode p
 prop_decodeEncodeEdge :: Edge -> Bool
 prop_decodeEncodeEdge a = Just a == decodeEncode a
 
-prop_decodeEncodeTransport :: Transport -> Bool
+prop_decodeEncodeTransport :: Energy -> Bool
 prop_decodeEncodeTransport p = Just p == decodeEncode p
 
 prop_decodeEncodeEnergyMap :: EnergyMap -> Bool

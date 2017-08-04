@@ -39,7 +39,7 @@ initialState config =
 updateState :: Action -> GameState -> Either GameError GameState
 
 updateState
-    Move { actionPlayer, actionTransport, actionNode }
+    Move { actionPlayer, actionEnergy, actionNode }
     state@GameState
         { stateNetwork
         , statePlayerPositions
@@ -60,9 +60,9 @@ updateState
         statePlayerPositions
 
     newPlayerEnergies <-
-        nextPlayerEnergies statePlayerEnergies actionPlayer actionTransport
+        nextPlayerEnergies statePlayerEnergies actionPlayer actionEnergy
 
-    unless (canMoveBetween stateNetwork previousNode actionTransport actionNode) .
+    unless (canMoveBetween stateNetwork previousNode actionEnergy actionNode) .
         Left .
         GameError $ "Player is unable to reach this node"
 
@@ -71,7 +71,7 @@ updateState
     let newRogueHistory =
             if playerId actionPlayer == 0
                 then RogueHistory $
-                    (actionTransport
+                    (actionEnergy
                     , if
                         length stateRogueHistory `elem` rogueShowsAt stateGameConfig
                     then
@@ -88,7 +88,7 @@ updateState
             , stateNextPlayer = newNextPlayer
             }
 
-canMoveBetween :: Network -> Node -> Transport -> Node -> Bool
+canMoveBetween :: Network -> Node -> Energy -> Node -> Bool
 canMoveBetween net from energy to =
     isJust $ -- true, if the do bock returns Just ()
     do
@@ -103,7 +103,7 @@ canMoveBetween net from energy to =
             Nothing
 
 nextPlayerEnergies ::
-       PlayerEnergies -> Player -> Transport -> Either GameError PlayerEnergies
+       PlayerEnergies -> Player -> Energy -> Either GameError PlayerEnergies
 nextPlayerEnergies pEnergies player energy = do
     eMap <-
         maybeToEither (GameError "player not found") . lookup player $ pEnergies

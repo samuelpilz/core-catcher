@@ -171,7 +171,7 @@ test_gameRound =
 
 -- Utility functions for shortening tests
 
-utilGameMoves :: GameState -> [(Int, Transport)] -> Either GameError GameState
+utilGameMoves :: GameState -> [(Int, Energy)] -> Either GameError GameState
 utilGameMoves =
     foldM
         (\s (n, e) -> updateState (Move (stateNextPlayer s) e (Node n)) s)
