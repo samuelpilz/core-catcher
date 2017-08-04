@@ -291,4 +291,23 @@ Derive.deriveMap ''PlayerPositions
 -- IsMap implementation for EnergyMap
 Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
+
 Derive.deriveMap ''PlayerEnergies
+
+-- MonoFoldable and MonoTraversable for RogueHistory
+type instance Element RogueHistory = (Transport, Maybe Node)
+instance Monoid RogueHistory where
+    mempty = RogueHistory mempty
+    mappend pp1 pp2 = RogueHistory $ rogueHistory pp1 ++ rogueHistory pp2
+instance MonoFunctor RogueHistory where
+    omap f = RogueHistory . omap f . rogueHistory
+instance MonoFoldable RogueHistory where
+    ofoldMap f = ofoldMap f . rogueHistory
+    ofoldr f x = ofoldr f x . rogueHistory
+    ofoldl' f x = ofoldl' f x . rogueHistory
+    olength = olength . rogueHistory
+    olength64 = olength64 . rogueHistory
+    ofoldr1Ex f = ofoldr1Ex f . rogueHistory
+    ofoldl1Ex' f = ofoldl1Ex' f . rogueHistory
+instance MonoTraversable RogueHistory where
+    otraverse f = map RogueHistory . otraverse f . rogueHistory

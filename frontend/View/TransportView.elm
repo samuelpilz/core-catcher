@@ -23,7 +23,11 @@ transportView _ displayInfo clientState =
         , Html.style [ ( "border-size", "1" ) ]
         ]
     <|
-        energyView clientState.gameView displayInfo { playerId = 0 } clientState.selectedEnergy
+        energyView
+            clientState.gameView
+            displayInfo
+            clientState.player
+            clientState.selectedEnergy
             ++ historyView clientState.gameView displayInfo
 
 
@@ -47,8 +51,13 @@ energyView gameView displayInfo player selectedEnergy =
 historyView : GameView -> GameViewDisplayInfo -> List (Svg.Svg Msg)
 historyView gameView displayInfo =
     List.map2 historyRecord (range 0 100)
-        << List.map (Maybe.withDefault "black")
-        << List.map (\(t, _) -> AllDict.get t displayInfo.colorMap)
+        << List.map
+            (\( t, n ) ->
+                ( Maybe.withDefault "black" << AllDict.get t <| displayInfo.colorMap
+                , n
+                )
+            )
+        << List.reverse
     <|
         (rogueHistory gameView).rogueHistory
 
@@ -64,7 +73,13 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
             , Svg.Attributes.cursor "pointer"
             , fill color
             , stroke "#000000"
-            , strokeWidth << toString <| if selectedEnergy == transport then 3 else 1
+            , strokeWidth
+                << toString
+              <|
+                if selectedEnergy == transport then
+                    3
+                else
+                    1
             , onClick (SelectEnergy transport)
             ]
             []
@@ -80,16 +95,32 @@ energyRecord selectedEnergy ( pos, transport, color, count ) =
         ]
 
 
-historyRecord : Int -> Color -> Svg.Svg Msg
-historyRecord pos color =
-    rect
-        [ x << toString <| 50 + 50 * (pos % 5)
-        , y << toString <| 100 + 50 * (pos // 5)
-        , width "49"
-        , height "49"
-        , Svg.Attributes.cursor "pointer"
-        , fill color
-        , stroke "#000000"
-        , strokeWidth "1"
+historyRecord : Int -> ( Color, Maybe Node ) -> Svg.Svg Msg
+historyRecord pos ( color, nodeMay ) =
+    g []
+        [ rect
+            [ x << toString <| 50 + 50 * (pos % 5)
+            , y << toString <| 100 + 50 * (pos // 5)
+            , width "49"
+            , height "49"
+            , Svg.Attributes.cursor "pointer"
+            , fill color
+            , stroke "#000000"
+            , strokeWidth "1"
+            ]
+            []
+        , text_
+            [ x << toString <| 50 + 50 * (pos % 5) + 25
+            , y << toString <| 100 + 50 * (pos // 5) + 27
+            , fill "#ffffff"
+            , Svg.Attributes.cursor "pointer"
+            , textAnchor "middle"
+            ]
+            [ text
+                << Maybe.withDefault ""
+                << Maybe.map toString
+                << Maybe.map .nodeId
+              <|
+                nodeMay
+            ]
         ]
-        []
