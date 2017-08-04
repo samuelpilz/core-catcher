@@ -1,6 +1,29 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-|
+Automatically derives type instances based on the wrapped value of newtype.
+To illustrate this, assume the following type:
+@
+  newtype MyMap = MyMap (Map Int String)
+@
+Without a pattern match, it would be impossible to access the wrapped value.
+Therefor, someone might change the newtype to:
+@
+newtype MyMap = MyMap
+    { mymap :: Map Int String
+    }
+@
+And now one can access the wrapped value like so:
+> MyMap . insertMap 0 "important!" . mymap
+
+Now, one would either have to inline this or provide a wrapper instance for @IsMap@ to do this automatically.
+This is tearsome and therefore, this module exists.
+
+It provides the template haskell functions to automatically derive the typeclasses of a wrapped value.
+As an additional feature, the three most important type classes @IsSet@, @IsMap@ and @IsSequence@
+can be derived with corresponding @derive*@ functions.
+-}
 module TH.MonoDerive
   ( deriveMap
   , deriveSequence
@@ -24,70 +47,71 @@ import           Language.Haskell.TH
 import qualified TH.TypeFamily as Family
 import           TH.MonoFunctions
 
-deriveMap :: Name -> DecsQ
-deriveMap name = do
-    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
-    instances <-
-        map concat
-            . sequenceA
-            $ map
-                (\f -> f name)
-                [ monoidTh
-                , monoFunctorTh
-                , monoFoldableTh
-                , monoTraversableTh
-                , semigroupTh
-                , growingAppendTh
-                , setContainerTh
-                , isMapTh
-                ]
-    return (elementInstance ++ instances)
+-- |Derives the @IsMap@ type class for a newtype of a type that is an instance of @IsMap@
+deriveMap :: Name  -- ^ 'Name' of the newtype
+          -> DecsQ -- ^ Type instances required for @IsMap@
+deriveMap name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFunctorTh
+        , monoFoldableTh
+        , monoTraversableTh
+        , semigroupTh
+        , growingAppendTh
+        , setContainerTh
+        , isMapTh
+        ]
 
-deriveSequence :: Name -> DecsQ
-deriveSequence name = do
-    -- Does not work for arbitrary types
-    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
-    instances <-
-        map concat
-            . sequenceA
-            $ map
-                (\f -> f name)
-                [ monoidTh
-                , monoFunctorTh
-                , monoFoldableTh
-                , monoTraversableTh
-                , semigroupTh
-                , growingAppendTh
-                , semiSequenceTh
-                , monoPointedTh
-                , isSequenceTh
-                ]
-    return (elementInstance ++ instances)
+-- |Derives the @IsSequence@ type class for a newtype of a type that is an instance of @IsSequence@
+deriveSequence :: Name  -- ^ 'Name' of the newtype
+               -> DecsQ -- ^ Type instances required for @IsSequence@
+deriveSequence name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFunctorTh
+        , monoFoldableTh
+        , monoTraversableTh
+        , semigroupTh
+        , growingAppendTh
+        , semiSequenceTh
+        , monoPointedTh
+        , isSequenceTh
+        ]
 
-deriveSet :: Name -> DecsQ
-deriveSet name = do
-    -- Does not work for arbitrary types
+-- |Derives the @IsSet@ type class for a newtype of a type that is an instance of @IsSet@
+deriveSet :: Name -- ^ 'Name' of the newtype
+          -> DecsQ -- ^ Type instances required for @IsSet@
+deriveSet name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFoldableTh
+        , semigroupTh
+        , growingAppendTh
+        , setContainerTh
+        , isSetTh
+        ]
+
+
+monoDeriveHelper :: Name -> [Name -> DecsQ] -> DecsQ
+monoDeriveHelper name typeInsts = do
     elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
     instances <-
-        map concat
-            . sequenceA
-            $ map
-                (\f -> f name)
-                [ monoidTh
-                , monoFoldableTh
-                , semigroupTh
-                , growingAppendTh
-                , setContainerTh
-                , isSetTh
-                ]
-    return (elementInstance ++ instances)
+      map concat
+          . sequenceA
+          $ map
+              (\f -> f name)
+              typeInsts
+
+    return $ elementInstance ++ instances
 
 monoidTh :: Name -> DecsQ
 monoidTh name = do
-    mem <- memptyTh
-    man <- mappendTh
+    funcs <- sequenceA [memptyTh, mappendTh]
     let instanceType           = AppT (ConT ''Monoid) (ConT name)
-    return [InstanceD Nothing [] instanceType [mem, man] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       memptyTh :: DecQ
       memptyTh = simpleWrap 'mempty name
@@ -97,18 +121,18 @@ monoidTh name = do
 
 monoFunctorTh :: Name -> DecsQ
 monoFunctorTh name = do
-    omapTh' <- omapTh
+    funcs <- sequenceA [omapTh]
     let instanceType           = AppT (ConT ''MonoFunctor) (ConT name)
-    return [InstanceD Nothing [] instanceType [omapTh'] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       omapTh :: DecQ
       omapTh = simpleMap 'omap name
 
 monoTraversableTh :: Name -> DecsQ
 monoTraversableTh name = do
-    otraverse' <- otraverseTh
+    funcs <- sequenceA [otraverseTh]
     let instanceType           = AppT (ConT ''MonoTraversable) (ConT name)
-    return [InstanceD Nothing [] instanceType [otraverse'] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       otraverseTh :: DecQ
       otraverseTh = do
@@ -213,8 +237,3 @@ isSetTh name = do
       singletonSetTh = simpleWrap1 'singletonSet name
       setFromListTh = simpleWrap1 'setFromList name
       setToListTh = simpleUnwrap 'setToList name
-
-emptyDerive :: Name -> Name-> DecsQ
-emptyDerive typeclass name = do
-    let instanceType           = AppT (ConT typeclass) (ConT name)
-    return [InstanceD Nothing [] instanceType [] ]

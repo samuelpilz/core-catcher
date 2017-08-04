@@ -194,3 +194,9 @@ getNewTypeCon typeName = do
       (NewtypeD _ _ _ _ (RecC con _) _) -> return con
       (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
       _ -> fail "Only Newtype datastructures are allowed"
+
+
+emptyDerive :: Name -> Name-> DecsQ
+emptyDerive typeclass name = do
+    let instanceType           = AppT (ConT typeclass) (ConT name)
+    return [InstanceD Nothing [] instanceType [] ]
