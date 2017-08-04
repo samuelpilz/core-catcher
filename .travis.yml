@@ -18,8 +18,6 @@ notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
   email: false
 
->>>>>>> revert-index-push
-
 # Caching so the next build will be fast too.
 cache:
   directories:
