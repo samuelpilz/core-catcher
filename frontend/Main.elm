@@ -57,15 +57,16 @@ subscriptions state =
 
 receivedStringToMsg : String -> Msg
 receivedStringToMsg s =
-    case decodeString jsonDecMessageForClient s of
+    case decodeString jsonDecMessageForClient (log "received" s) of
         Ok msg ->
             MsgFromServer msg
 
         Err err ->
-            None
+            log2 "error" err None
 
 
 
+-- TODO: popup for that?
 -- TODO: handle json error?
 
 
@@ -73,7 +74,12 @@ update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case log "msg" msg of
         Clicked n ->
-            state ! [ WebSocket.send (wsUrl state.server) << log "send" <| jsonActionOfNode state n ]
+            { state | gameError = Nothing }
+                ! [ WebSocket.send (wsUrl state.server)
+                        << log "send"
+                    <|
+                        jsonActionOfNode state n
+                  ]
 
         MsgFromServer msg ->
             case msg of
@@ -87,8 +93,10 @@ update msg state =
                         , network = initInfo.networkForGame
                     }
                         ! []
-                GameError_ gameError ->
-                    state ! [] -- TODO: implement game-error
+
+                -- TODO: implement game-error
+                GameError_ err ->
+                    { state | gameError = Just err } ! []
 
         SelectEnergy energy ->
             { state | selectedEnergy = energy } ! []
@@ -108,7 +116,9 @@ initialState flags =
     , player = { playerId = 0 }
     , selectedEnergy = Orange
     , server = flags.server
+    , gameError = Nothing
     }
+
 
 displayInfo : GameViewDisplayInfo
 displayInfo =

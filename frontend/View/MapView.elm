@@ -12,6 +12,7 @@ import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
+import Debug exposing (..)
 
 
 -- TODO: css style with css-library?
@@ -37,6 +38,7 @@ mapView network displayInfo clientState =
                 (EveryDict.toList
                     (playerPositions clientState.gameView).playerPositions
                 )
+            ++ gameErrorText clientState.gameError
 
 
 mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
@@ -53,10 +55,29 @@ mapViewOfNetworkOverlay : NodeXyMap -> OverlayDisplayInfo -> NetworkOverlay -> L
 mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes, overlayEdges } =
     List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
+
+
+
 -- TODO: fix xymap
-
-
 -- svg create functions
+
+
+gameErrorText : Maybe GameError -> List (Svg Msg)
+gameErrorText errMay =
+    case log "error?" errMay of
+        Nothing ->
+            []
+
+        Just err ->
+            [ text_
+                [ x "15"
+                , y "15"
+                , fill "red"
+                ]
+                [ text << toString <| err ]
+
+            -- TODO: popup for that?
+            ]
 
 
 nodeCircleStop : NodeXyMap -> Color -> NodeSize -> Node -> Svg Msg

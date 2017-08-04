@@ -54,7 +54,8 @@ updateGameAtomically stateVar action = do
             let newState = state { gameState = newGameState }
             writeTVar stateVar newState
             return newState
-        Left _ -> return state
+        Left _ -> return state -- let state stay the same
+
 
     return (newState, map (either GameOver_ GameRunning_) updateResult)
 
@@ -77,4 +78,3 @@ initialInfoForClient config clientId =
         initialView = (if clientId == 0 then RogueView . fst else CatcherView . snd)
             (Game.getViews initialState)
         network = Game.network config
-
