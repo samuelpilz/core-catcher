@@ -1,9 +1,33 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-|
+Automatically derives type instances based on the wrapped value of newtype.
+To illustrate this, assume the following type:
+@
+  newtype MyMap = MyMap (Map Int String)
+@
+Without a pattern match, it would be impossible to access the wrapped value.
+Therefor, someone might change the newtype to:
+@
+newtype MyMap = MyMap
+    { mymap :: Map Int String
+    }
+@
+And now one can access the wrapped value like so:
+> MyMap . insertMap 0 "important!" . mymap
+
+Now, one would either have to inline this or provide a wrapper instance for @IsMap@ to do this automatically.
+This is tearsome and therefore, this module exists.
+
+It provides the template haskell functions to automatically derive the typeclasses of a wrapped value.
+As an additional feature, the three most important type classes @IsSet@, @IsMap@ and @IsSequence@
+can be derived with corresponding @derive*@ functions.
+-}
 module TH.MonoDerive
   ( deriveMap
   , deriveSequence
+  , deriveSet
   , monoidTh
   , monoTraversableTh
   , monoFunctorTh
@@ -11,10 +35,11 @@ module TH.MonoDerive
   , semigroupTh
   , growingAppendTh
   , setContainerTh
-  , isMapTh
   , semiSequenceTh
   , monoPointedTh
+  , isMapTh
   , isSequenceTh
+  , isSetTh
   ) where
 
 import           ClassyPrelude
@@ -22,52 +47,71 @@ import           Language.Haskell.TH
 import qualified TH.TypeFamily as Family
 import           TH.MonoFunctions
 
-deriveMap :: Name -> DecsQ
-deriveMap name = do
-    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
-    instances <-
-        map concat
-            . sequenceA
-            $ map
-                (\f -> f name)
-                [ monoidTh
-                , monoFunctorTh
-                , monoFoldableTh
-                , monoTraversableTh
-                , semigroupTh
-                , growingAppendTh
-                , setContainerTh
-                , isMapTh
-                ]
-    return (elementInstance ++ instances)
+-- |Derives the @IsMap@ type class for a newtype of a type that is an instance of @IsMap@
+deriveMap :: Name  -- ^ 'Name' of the newtype
+          -> DecsQ -- ^ Type instances required for @IsMap@
+deriveMap name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFunctorTh
+        , monoFoldableTh
+        , monoTraversableTh
+        , semigroupTh
+        , growingAppendTh
+        , setContainerTh
+        , isMapTh
+        ]
 
-deriveSequence :: Name -> DecsQ
-deriveSequence name = do
-    -- Does not work for arbitrary types
+-- |Derives the @IsSequence@ type class for a newtype of a type that is an instance of @IsSequence@
+deriveSequence :: Name  -- ^ 'Name' of the newtype
+               -> DecsQ -- ^ Type instances required for @IsSequence@
+deriveSequence name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFunctorTh
+        , monoFoldableTh
+        , monoTraversableTh
+        , semigroupTh
+        , growingAppendTh
+        , semiSequenceTh
+        , monoPointedTh
+        , isSequenceTh
+        ]
+
+-- |Derives the @IsSet@ type class for a newtype of a type that is an instance of @IsSet@
+deriveSet :: Name -- ^ 'Name' of the newtype
+          -> DecsQ -- ^ Type instances required for @IsSet@
+deriveSet name =
+    monoDeriveHelper
+        name
+        [ monoidTh
+        , monoFoldableTh
+        , semigroupTh
+        , growingAppendTh
+        , setContainerTh
+        , isSetTh
+        ]
+
+
+monoDeriveHelper :: Name -> [Name -> DecsQ] -> DecsQ
+monoDeriveHelper name typeInsts = do
     elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
     instances <-
-        map concat
-            . sequenceA
-            $ map
-                (\f -> f name)
-                [ monoidTh
-                , monoFunctorTh
-                , monoFoldableTh
-                , monoTraversableTh
-                , semigroupTh
-                , growingAppendTh
-                , semiSequenceTh
-                , monoPointedTh
-                , isSequenceTh
-                ]
-    return (elementInstance ++ instances)
+      map concat
+          . sequenceA
+          $ map
+              (\f -> f name)
+              typeInsts
+
+    return $ elementInstance ++ instances
 
 monoidTh :: Name -> DecsQ
 monoidTh name = do
-    mem <- memptyTh
-    man <- mappendTh
+    funcs <- sequenceA [memptyTh, mappendTh]
     let instanceType           = AppT (ConT ''Monoid) (ConT name)
-    return [InstanceD Nothing [] instanceType [mem, man] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       memptyTh :: DecQ
       memptyTh = simpleWrap 'mempty name
@@ -77,18 +121,18 @@ monoidTh name = do
 
 monoFunctorTh :: Name -> DecsQ
 monoFunctorTh name = do
-    omapTh' <- omapTh
+    funcs <- sequenceA [omapTh]
     let instanceType           = AppT (ConT ''MonoFunctor) (ConT name)
-    return [InstanceD Nothing [] instanceType [omapTh'] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       omapTh :: DecQ
       omapTh = simpleMap 'omap name
 
 monoTraversableTh :: Name -> DecsQ
 monoTraversableTh name = do
-    otraverse' <- otraverseTh
+    funcs <- sequenceA [otraverseTh]
     let instanceType           = AppT (ConT ''MonoTraversable) (ConT name)
-    return [InstanceD Nothing [] instanceType [otraverse'] ]
+    return [InstanceD Nothing [] instanceType funcs ]
     where
       otraverseTh :: DecQ
       otraverseTh = do
@@ -129,27 +173,12 @@ setContainerTh name = do
     containerKeyFamily <- Family.deriveNewtypedTypeFamily ''ContainerKey name
     return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
-      memberTh = simpleUnwrap 'member name
-      notMemberTh = simpleUnwrap 'notMember name
+      memberTh = simpleUnwrap1 'member name
+      notMemberTh = simpleUnwrap1 'notMember name
       unionTh = simpleBinOp 'union name
       differenceTh = simpleBinOp 'difference name
       intersectionTh = simpleBinOp 'intersection name
       keysTh = simplePattern 'keys name
-
-      createContainerFamily :: DecQ
-      createContainerFamily = do
-          TyConI mn <- reify name
-          keyType <- case mn of
-              (NewtypeD _ _ _ _ (RecC _ [(_,_, AppT (AppT _ keyType') _)]) _) ->
-                  return keyType'
-
-              (NewtypeD _ _ _ _ (NormalC _ [(_, AppT (AppT _ keyType') _)]) _) ->
-                  return keyType'
-
-              _ ->
-                  fail "Newtype must contain a map like data structure of the form `AppT (AppT (ConT c) key ) value `"
-
-          return $ TySynInstD (mkName "ContainerKey") (TySynEqn [ConT name] keyType)
 
 isMapTh :: Name -> DecsQ
 isMapTh name = do
@@ -158,23 +187,23 @@ isMapTh name = do
     containerKeyFamily <- Family.deriveNewtypedTypeFamily ''MapValue name
     return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
-      lookupTh = simpleUnwrap 'lookup name
+      lookupTh = simpleUnwrap1 'lookup name
       insertMapTh = simpleUnwrapWrap2 'insertMap name
       deleteMapTh = simpleUnwrapWrap1 'deleteMap name
       singletonMapTh = simpleWrap2 'singletonMap name
       mapFromListTh = simpleWrap1 'mapFromList name
-      mapToListTh = simpleUnwrap1 'mapToList name
+      mapToListTh = simpleUnwrap 'mapToList name
 
 semiSequenceTh :: Name -> DecsQ
 semiSequenceTh name = do
     funcs <- sequenceA [intersperseTh, reverseTh, findTh, sortByTh, consTh, snocTh]
     let instanceType           = AppT (ConT ''SemiSequence) (ConT name)
-    let indexFamily = TySynInstD ''Index (TySynEqn [ConT name] (ConT ''Int))
-    return [InstanceD Nothing [] instanceType (indexFamily `cons` funcs)]
+    indexFamily <- Family.deriveNewtypedTypeFamily ''Index name
+    return [InstanceD Nothing [] instanceType (indexFamily ++ funcs)]
     where
       intersperseTh = simpleUnwrapWrap1 'intersperse name
       reverseTh = simpleUnwrapWrap 'reverse name
-      findTh = simpleUnwrap 'find name
+      findTh = simpleUnwrap1 'find name
       sortByTh = simpleUnwrapWrap1 'sortBy name
       consTh = simpleUnwrapWrap1 'cons name
       snocTh = simpleUnwrapWrap1' 'snoc name
@@ -188,8 +217,6 @@ isSequenceTh name = do
       fromListTh :: DecQ
       fromListTh = simpleWrap1 'fromList name
 
-
-
 monoPointedTh :: Name -> DecsQ
 monoPointedTh name = do
     funcs <- sequenceA [opointTh]
@@ -199,8 +226,14 @@ monoPointedTh name = do
       opointTh :: DecQ
       opointTh = simpleWrap1 'opoint name
 
-
-emptyDerive :: Name -> Name-> DecsQ
-emptyDerive typeclass name = do
-    let instanceType           = AppT (ConT typeclass) (ConT name)
-    return [InstanceD Nothing [] instanceType [] ]
+isSetTh :: Name -> DecsQ
+isSetTh name = do
+    funcs <- sequenceA [insertSetTh, deleteSetTh, singletonSetTh, setFromListTh, setToListTh]
+    let instanceType           = AppT (ConT ''IsSet) (ConT name)
+    return [InstanceD Nothing [] instanceType funcs ]
+    where
+      insertSetTh = simpleUnwrapWrap1 'insertSet name
+      deleteSetTh = simpleUnwrapWrap1 'deleteSet name
+      singletonSetTh = simpleWrap1 'singletonSet name
+      setFromListTh = simpleWrap1 'setFromList name
+      setToListTh = simpleUnwrap 'setToList name
