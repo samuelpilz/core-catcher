@@ -23,7 +23,7 @@ energyView _ displayInfo clientState =
         , Html.style [ ( "border-size", "1" ) ]
         ]
     <|
-        energyView
+        availableEnergyView
             clientState.gameView
             displayInfo
             clientState.player
@@ -31,8 +31,8 @@ energyView _ displayInfo clientState =
             ++ historyView clientState.gameView displayInfo
 
 
-energyView : GameView -> GameViewDisplayInfo -> Player -> Transport -> List (Svg.Svg Msg)
-energyView gameView displayInfo player selectedEnergy =
+availableEnergyView : GameView -> GameViewDisplayInfo -> Player -> Energy -> List (Svg.Svg Msg)
+availableEnergyView gameView displayInfo player selectedEnergy =
     List.map (energyRecord selectedEnergy)
         << List.sortBy (\( priority, _, _, _ ) -> priority)
         << List.map
@@ -40,7 +40,7 @@ energyView gameView displayInfo player selectedEnergy =
                 ( getPriority displayInfo energy
                 , energy
                 , color
-                , getEnergyForTransportAndPlayer player energy gameView
+                , getEnergyForEnergyAndPlayer player energy gameView
                 )
             )
         << AllDict.toList
@@ -62,7 +62,7 @@ historyView gameView displayInfo =
         (rogueHistory gameView).rogueHistory
 
 
-energyRecord : Transport -> ( Int, Transport, Color, Int ) -> Svg.Svg Msg
+energyRecord : Energy -> ( Int, Energy, Color, Int ) -> Svg.Svg Msg
 energyRecord selectedEnergy ( pos, energy, color, count ) =
     g []
         [ rect

@@ -35,11 +35,11 @@ mapView network displayInfo clientState =
                 (playerPositions clientState.gameView).playerPositions
 
 
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay)
-            (displayInfoForTransport displayInfo overlayName)
+            (displayInfoForEnergy displayInfo overlayName)
      <|
         Just overlay
     )

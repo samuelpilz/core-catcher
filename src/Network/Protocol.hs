@@ -16,8 +16,11 @@ import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
+
 import qualified Test.QuickCheck.Gen       as Gen
 import qualified TH.MonoDerive             as Derive
+
+
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
 This class is a semantic protocol definition. The data-types are sent in json format.
@@ -40,7 +43,7 @@ newtype Edge =
 
 -- |Energy is a enum of possible energies.
 data Energy = Red | Blue | Orange
-    deriving (Show, Read, Eq, Ord, Generic)
+    deriving (Show, Read, Eq, Ord, Generic, Enum, Bounded)
 
 {- |A engergy-map is keeps track how much energy per energy a player has left.
 -}
@@ -50,11 +53,9 @@ newtype EnergyMap =
         }
         deriving (Show, Read, Eq, Generic)
 
-newtype GameError =
-    GameError
-        { myError :: Text
-        }
-        deriving (Show, Read, Eq, Generic)
+-- |A GameError is a enum of possible errors
+data GameError = NotTurn | PlayerNotFound | EnergyNotFound | NotReachable | NotEnoughEnergy
+        deriving (Show, Read, Eq, Generic, Enum, Bounded)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -66,7 +67,7 @@ newtype PlayerEnergies =
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
--} -- TODO: write into design document that an action is more than a move. Maybe change?
+-} -- TODO: write into design document that an action may be more than a move. Maybe change?
 data Action =
     Move
       { actionPlayer    :: Player
@@ -198,9 +199,6 @@ instance ToJSONKey Player where
 
 instance ToJSONKey Energy where
 
-instance Arbitrary Text where
-    arbitrary = pack <$> arbitrary
-
 instance Arbitrary Player  where
     arbitrary =
         Player <$> arbitrary
@@ -213,15 +211,8 @@ instance Arbitrary Edge  where
     arbitrary =
         Edge <$> ((,) <$> arbitrary <*> arbitrary)
 
--- TODO: how to define arbitrary for enums?
 instance Arbitrary Energy  where
-    arbitrary = do
-        x <- arbitrary
-        return $ case (x :: Int) `mod` 3 of
-            0 -> Red
-            1 -> Blue
-            2 -> Orange
-            _ -> error ""
+    arbitrary = arbitraryBoundedEnum
 
 instance Arbitrary Action where
     arbitrary =
@@ -244,8 +235,7 @@ instance Arbitrary RogueHistory where
         RogueHistory <$> arbitrary
 
 instance Arbitrary GameError where
-    arbitrary =
-        GameError <$> (arbitrary :: Gen.Gen Text)
+    arbitrary = arbitraryBoundedEnum
 
 instance Arbitrary CatcherGameView where
     arbitrary =

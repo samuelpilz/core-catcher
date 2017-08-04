@@ -10,22 +10,22 @@ import Set
 
 type alias Action  =
    { actionPlayer: Player
-   , actionTransport: Transport
+   , actionEnergy: Energy
    , actionNode: Node
    }
 
 jsonDecAction : Json.Decode.Decoder ( Action )
 jsonDecAction =
    ("actionPlayer" := jsonDecPlayer) >>= \pactionPlayer ->
-   ("actionTransport" := jsonDecTransport) >>= \pactionTransport ->
+   ("actionEnergy" := jsonDecEnergy) >>= \pactionEnergy ->
    ("actionNode" := jsonDecNode) >>= \pactionNode ->
-   Json.Decode.succeed {actionPlayer = pactionPlayer, actionTransport = pactionTransport, actionNode = pactionNode}
+   Json.Decode.succeed {actionPlayer = pactionPlayer, actionEnergy = pactionEnergy, actionNode = pactionNode}
 
 jsonEncAction : Action -> Value
 jsonEncAction  val =
    Json.Encode.object
    [ ("actionPlayer", jsonEncPlayer val.actionPlayer)
-   , ("actionTransport", jsonEncTransport val.actionTransport)
+   , ("actionEnergy", jsonEncEnergy val.actionEnergy)
    , ("actionNode", jsonEncNode val.actionNode)
    ]
 
@@ -139,38 +139,38 @@ jsonEncPlayerEnergies  val =
 
 
 type alias EnergyMap  =
-   { energyMap: (List (Transport, Int))
+   { energyMap: (List (Energy, Int))
    }
 
 jsonDecEnergyMap : Json.Decode.Decoder ( EnergyMap )
 jsonDecEnergyMap =
-   ("energyMap" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.int)))) >>= \penergyMap ->
+   ("energyMap" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.int)))) >>= \penergyMap ->
    Json.Decode.succeed {energyMap = penergyMap}
 
 jsonEncEnergyMap : EnergyMap -> Value
 jsonEncEnergyMap  val =
    Json.Encode.object
-   [ ("energyMap", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,(Json.Encode.int) v2])) val.energyMap)
+   [ ("energyMap", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,(Json.Encode.int) v2])) val.energyMap)
    ]
 
 
 
 type alias Network  =
    { nodes: (List Node)
-   , overlays: (List (Transport, NetworkOverlay))
+   , overlays: (List (Energy, NetworkOverlay))
    }
 
 jsonDecNetwork : Json.Decode.Decoder ( Network )
 jsonDecNetwork =
    ("nodes" := Json.Decode.list (jsonDecNode)) >>= \pnodes ->
-   ("overlays" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (jsonDecNetworkOverlay)))) >>= \poverlays ->
+   ("overlays" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (jsonDecNetworkOverlay)))) >>= \poverlays ->
    Json.Decode.succeed {nodes = pnodes, overlays = poverlays}
 
 jsonEncNetwork : Network -> Value
 jsonEncNetwork  val =
    Json.Encode.object
    [ ("nodes", (Json.Encode.list << List.map jsonEncNode) val.nodes)
-   , ("overlays", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,(jsonEncNetworkOverlay) v2])) val.overlays)
+   , ("overlays", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,(jsonEncNetworkOverlay) v2])) val.overlays)
    ]
 
 
@@ -246,18 +246,18 @@ jsonEncNode  val =
 
 
 
-type Transport  =
+type Energy  =
     Red 
     | Blue 
     | Orange 
 
-jsonDecTransport : Json.Decode.Decoder ( Transport )
-jsonDecTransport = 
-    let jsonDecDictTransport = Dict.fromList [("Red", Red), ("Blue", Blue), ("Orange", Orange)]
-    in  decodeSumUnaries "Transport" jsonDecDictTransport
+jsonDecEnergy : Json.Decode.Decoder ( Energy )
+jsonDecEnergy = 
+    let jsonDecDictEnergy = Dict.fromList [("Red", Red), ("Blue", Blue), ("Orange", Orange)]
+    in  decodeSumUnaries "Energy" jsonDecDictEnergy
 
-jsonEncTransport : Transport -> Value
-jsonEncTransport  val =
+jsonEncEnergy : Energy -> Value
+jsonEncEnergy  val =
     case val of
         Red -> Json.Encode.string "Red"
         Blue -> Json.Encode.string "Blue"
@@ -266,36 +266,42 @@ jsonEncTransport  val =
 
 
 type alias RogueHistory  =
-   { rogueHistory: (List (Transport, (Maybe Node)))
+   { rogueHistory: (List (Energy, (Maybe Node)))
    }
 
 jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
 jsonDecRogueHistory =
-   ("rogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory ->
+   ("rogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory ->
    Json.Decode.succeed {rogueHistory = progueHistory}
 
 jsonEncRogueHistory : RogueHistory -> Value
 jsonEncRogueHistory  val =
    Json.Encode.object
-   [ ("rogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory)
+   [ ("rogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory)
    ]
 
 
 
-type alias GameError  =
-   { myError: String
-   }
+type GameError  =
+    NotTurn 
+    | PlayerNotFound 
+    | EnergyNotFound 
+    | NotReachable 
+    | NotEnoughEnergy 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
-jsonDecGameError =
-   ("myError" := Json.Decode.string) >>= \pmyError ->
-   Json.Decode.succeed {myError = pmyError}
+jsonDecGameError = 
+    let jsonDecDictGameError = Dict.fromList [("NotTurn", NotTurn), ("PlayerNotFound", PlayerNotFound), ("EnergyNotFound", EnergyNotFound), ("NotReachable", NotReachable), ("NotEnoughEnergy", NotEnoughEnergy)]
+    in  decodeSumUnaries "GameError" jsonDecDictGameError
 
 jsonEncGameError : GameError -> Value
 jsonEncGameError  val =
-   Json.Encode.object
-   [ ("myError", Json.Encode.string val.myError)
-   ]
+    case val of
+        NotTurn -> Json.Encode.string "NotTurn"
+        PlayerNotFound -> Json.Encode.string "PlayerNotFound"
+        EnergyNotFound -> Json.Encode.string "EnergyNotFound"
+        NotReachable -> Json.Encode.string "NotReachable"
+        NotEnoughEnergy -> Json.Encode.string "NotEnoughEnergy"
 
 
 

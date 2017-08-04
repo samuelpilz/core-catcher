@@ -22,15 +22,15 @@ test_defaultInitialStateHasEmptyHistory =
 test_player0ValidMove_playerPositionUpdated :: IO ()
 test_player0ValidMove_playerPositionUpdated =
     case utilGameMoves defaultInitialState [(6,Red)] of
-        Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
+        Left err -> assertFailure $ "action failed: " ++ show err
         Right newState ->
             Just (Node 6) @?= (lookup (Player 0) . statePlayerPositions $ newState)
 
 test_player0ValidMove_energyDrained :: IO ()
 test_player0ValidMove_energyDrained =
     case utilGameMoves defaultInitialState [(6,Red)] of
-        Left (GameError err) ->
-            assertFailure . unpack $ "action failed: " ++ err
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
         Right newState ->
             Just 1 @?= remainingEnergy newState
     where
@@ -42,24 +42,24 @@ test_player0ValidMove_energyDrained =
 test_player0ValidMove_historyUpdated :: IO ()
 test_player0ValidMove_historyUpdated =
     case utilGameMoves defaultInitialState [(6,Red)] of
-        Left (GameError err) ->
-            assertFailure . unpack $ "action failed: " ++ err
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
         Right newState ->
             RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
 
 test_player0ValidMoveWithShow_historyUpdate :: IO ()
 test_player0ValidMoveWithShow_historyUpdate =
     case utilGameMoves defaultInitialState [(6,Red)] of
-        Left (GameError err) ->
-            assertFailure . unpack $ "action failed: " ++ err
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
         Right newState ->
             RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
 
 test_player1ValidMove_historyNotUpdated :: IO ()
 test_player1ValidMove_historyNotUpdated =
     case utilGameMoves defaultInitialState [(6,Red), (3,Blue)] of
-        Left (GameError err) ->
-            assertFailure . unpack $ "action failed: " ++ err
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
         Right newState ->
             RogueHistory [(Red, Nothing)] @?= stateRogueHistory newState
 
@@ -67,27 +67,24 @@ test_player1ValidMove_historyNotUpdated =
 test_notPlayer1Turn :: IO ()
 test_notPlayer1Turn =
     case updateState (Move (Player 1) Orange (Node 5)) defaultInitialState of
-        Left (GameError err) ->
-            unless ("turn" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err ->
+            NotTurn @?= err
         Right _              -> assertFailure "should not be player 1's turn"
 
 test_playerNotFoundInPositions :: IO ()
 test_playerNotFoundInPositions =
     case updateState (Move (Player 0) Red (Node 5)) $
         defaultInitialState { statePlayerPositions = mempty } of
-        Left (GameError err) ->
-            unless ("not found" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err ->
+            PlayerNotFound @?= err
         Right _              -> assertFailure "should not find player"
 
 test_playerNotFoundInEnergies :: IO ()
 test_playerNotFoundInEnergies =
     case updateState (Move (Player 0) Red (Node 5)) $
         defaultInitialState { statePlayerEnergies = mempty } of
-        Left (GameError err) ->
-            unless ("not found" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err ->
+            PlayerNotFound @?= err
         Right _              -> assertFailure "should not find player"
 
 
@@ -95,36 +92,29 @@ test_energyNotFound :: IO ()
 test_energyNotFound =
     case updateState (Move (Player 0) Red (Node 5)) $
         defaultInitialState { statePlayerEnergies = singletonMap (Player 0) mempty }of
-        Left (GameError err) ->
-            unless ("not found" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err ->
+            EnergyNotFound @?= err
         Right _              -> assertFailure "should not find energy"
 
 test_cannotMoveTo :: IO ()
 test_cannotMoveTo =
     case updateState (Move (Player 0) Orange (Node 1)) defaultInitialState of
-        Left (GameError err) ->
-            unless ("node" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err ->
+            NotReachable @?= err
         Right _              -> assertFailure "should not be allowed to move"
 
 test_noEnergyLeft :: IO ()
 test_noEnergyLeft =
     case updateState (Move (Player 0) Orange (Node 6)) noEnergyState of
-        Left (GameError err)  ->
-            unless ("not enough energy" `isInfixOf` err) $
-            assertFailure $ "wrong error msg: " ++ unpack err
+        Left err  ->
+            NotEnoughEnergy @?= err
         Right _ -> assertFailure "should not allow move with no energy"
     where
         noEnergyState =
             defaultInitialState
                 { statePlayerEnergies =
                     PlayerEnergies $
-                        singletonMap
-                            (Player 0)
-                            (EnergyMap $
-                                singletonMap Orange 0
-                            )
+                        singletonMap (Player 0) (EnergyMap $ singletonMap Orange 0 )
                 }
 test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 
@@ -160,7 +150,7 @@ test_gameRound =
                    , (13, Orange)
                    ]
         state <- case updated of
-            Left (GameError err) -> assertFailure $ unpack err
+            Left err -> assertFailure $ show err
             Right newState       -> return newState
 
         Just (Node 11) @?= (lookup (Player 0) . playerPositions . statePlayerPositions $ state)
