@@ -306,28 +306,79 @@ jsonEncRogueHistory  val =
 
 
 
+type alias OpenRogueHistory  =
+   { openRogueHistory: (List (Energy, Node, Bool))
+   }
+
+jsonDecOpenRogueHistory : Json.Decode.Decoder ( OpenRogueHistory )
+jsonDecOpenRogueHistory =
+   ("openRogueHistory" := Json.Decode.list (Json.Decode.map3 (,,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (jsonDecNode)) (Json.Decode.index 2 (Json.Decode.bool)))) >>= \popenRogueHistory ->
+   Json.Decode.succeed {openRogueHistory = popenRogueHistory}
+
+jsonEncOpenRogueHistory : OpenRogueHistory -> Value
+jsonEncOpenRogueHistory  val =
+   Json.Encode.object
+   [ ("openRogueHistory", (Json.Encode.list << List.map (\(v1,v2,v3) -> Json.Encode.list [(jsonEncEnergy) v1,(jsonEncNode) v2,(Json.Encode.bool) v3])) val.openRogueHistory)
+   ]
+
+
+
 type GameError  =
     NotTurn 
-    | PlayerNotFound 
+    | PlayerNotFound Player
     | EnergyNotFound 
     | NotReachable 
+    | NodeBlocked Player
     | NotEnoughEnergy 
     | GameIsOver 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
-jsonDecGameError = 
-    let jsonDecDictGameError = Dict.fromList [("NotTurn", NotTurn), ("PlayerNotFound", PlayerNotFound), ("EnergyNotFound", EnergyNotFound), ("NotReachable", NotReachable), ("NotEnoughEnergy", NotEnoughEnergy), ("GameIsOver", GameIsOver)]
-    in  decodeSumUnaries "GameError" jsonDecDictGameError
+jsonDecGameError =
+    let jsonDecDictGameError = Dict.fromList
+            [ ("NotTurn", Json.Decode.succeed NotTurn)
+            , ("PlayerNotFound", Json.Decode.map PlayerNotFound (jsonDecPlayer))
+            , ("EnergyNotFound", Json.Decode.succeed EnergyNotFound)
+            , ("NotReachable", Json.Decode.succeed NotReachable)
+            , ("NodeBlocked", Json.Decode.map NodeBlocked (jsonDecPlayer))
+            , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
+            , ("GameIsOver", Json.Decode.succeed GameIsOver)
+            ]
+    in  decodeSumObjectWithSingleField  "GameError" jsonDecDictGameError
 
 jsonEncGameError : GameError -> Value
 jsonEncGameError  val =
-    case val of
-        NotTurn -> Json.Encode.string "NotTurn"
-        PlayerNotFound -> Json.Encode.string "PlayerNotFound"
-        EnergyNotFound -> Json.Encode.string "EnergyNotFound"
-        NotReachable -> Json.Encode.string "NotReachable"
-        NotEnoughEnergy -> Json.Encode.string "NotEnoughEnergy"
-        GameIsOver -> Json.Encode.string "GameIsOver"
+    let keyval v = case v of
+                    NotTurn  -> ("NotTurn", encodeValue (Json.Encode.list []))
+                    PlayerNotFound v1 -> ("PlayerNotFound", encodeValue (jsonEncPlayer v1))
+                    EnergyNotFound  -> ("EnergyNotFound", encodeValue (Json.Encode.list []))
+                    NotReachable  -> ("NotReachable", encodeValue (Json.Encode.list []))
+                    NodeBlocked v1 -> ("NodeBlocked", encodeValue (jsonEncPlayer v1))
+                    NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
+                    GameIsOver  -> ("GameIsOver", encodeValue (Json.Encode.list []))
+    in encodeSumObjectWithSingleField keyval val
+
+
+
+type alias GameOverView  =
+   { gameOverViewPlayerPositions: PlayerPositions
+   , gameOverViewEnergies: PlayerEnergies
+   , gameOverViewRogueHistory: OpenRogueHistory
+   }
+
+jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
+jsonDecGameOverView =
+   ("gameOverViewPlayerPositions" := jsonDecPlayerPositions) >>= \pgameOverViewPlayerPositions ->
+   ("gameOverViewEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewEnergies ->
+   ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewEnergies = pgameOverViewEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory}
+
+jsonEncGameOverView : GameOverView -> Value
+jsonEncGameOverView  val =
+   Json.Encode.object
+   [ ("gameOverViewPlayerPositions", jsonEncPlayerPositions val.gameOverViewPlayerPositions)
+   , ("gameOverViewEnergies", jsonEncPlayerEnergies val.gameOverViewEnergies)
+   , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
+   ]
 
 
 
@@ -370,15 +421,17 @@ jsonEncMessageForServer (Action_ v1) =
 
 type MessageForClient  =
     GameView_ GameView
-    | InitialInfoForClient_ InitialInfoForClient
     | GameError_ GameError
+    | GameOverView_ GameOverView
+    | InitialInfoForClient_ InitialInfoForClient
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
             [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
-            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
+            , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
+            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
@@ -386,7 +439,8 @@ jsonEncMessageForClient : MessageForClient -> Value
 jsonEncMessageForClient  val =
     let keyval v = case v of
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
-                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
+                    GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
+                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
     in encodeSumObjectWithSingleField keyval val
 

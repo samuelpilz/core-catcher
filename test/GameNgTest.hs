@@ -48,6 +48,15 @@ test_player0ValidMove_historyUpdated =
         Right newState ->
             RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory newState
 
+test_player0ValidMove_historyUpdatedWithShow :: IO ()
+test_player0ValidMove_historyUpdatedWithShow =
+    case utilGameMoves (initialState $ defaultConfig { rogueShowsAt = [0] } ) [(6,Red)] of
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
+        Right newState ->
+            RogueHistory [(Red, Just $ Node 6)] @?= gameRunningRogueHistory newState
+
+
 test_player0ValidMoveWithShow_historyUpdate :: IO ()
 test_player0ValidMoveWithShow_historyUpdate =
     case utilGameMoves defaultInitialState [(6,Red)] of
@@ -56,9 +65,10 @@ test_player0ValidMoveWithShow_historyUpdate =
         Right newState ->
             RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory newState
 
+
 test_player1ValidMove_historyNotUpdated :: IO ()
 test_player1ValidMove_historyNotUpdated =
-    case utilGameMoves defaultInitialState [(6,Red), (3,Blue)] of
+    case utilGameMoves defaultInitialState [(6, Red), (3, Blue)] of
         Left err ->
             assertFailure $ "action failed: " ++ show err
         Right newState ->
@@ -72,12 +82,28 @@ test_notPlayer1Turn =
             NotTurn @?= err
         Right _              -> assertFailure "should not be player 1's turn"
 
+test_rogueCaught_gameOver :: IO ()
+test_rogueCaught_gameOver =
+    case updateState (Move (Player 1) Red (Node 1)) $ defaultInitialState
+        { gameRunningNextPlayer = Player 1
+        , gameRunningPlayerPositions =
+            insertMap (Player 1) (Node 6) $ gameRunningPlayerPositions defaultInitialState
+        } of
+        Left err -> assertFailure $ "action failed: " ++ show err
+        Right (Left gameOver) ->
+            Player 1 @?= gameOverWinningPlayer gameOver
+        Right (Right gameRunning) ->
+            assertFailure $ "game should be over, was: " ++
+                show (gameRunningPlayerPositions gameRunning)
+
+-- Test correct gameErrors
+
 test_playerNotFoundInPositions :: IO ()
 test_playerNotFoundInPositions =
     case updateState (Move (Player 0) Red (Node 5)) $
         defaultInitialState { gameRunningPlayerPositions = mempty } of
         Left err ->
-            PlayerNotFound @?= err
+            PlayerNotFound (Player 0) @?= err
         Right _              -> assertFailure "should not find player"
 
 test_playerNotFoundInEnergies :: IO ()
@@ -85,7 +111,7 @@ test_playerNotFoundInEnergies =
     case updateState (Move (Player 0) Red (Node 5)) $
         defaultInitialState { gameRunningPlayerEnergies = mempty } of
         Left err ->
-            PlayerNotFound @?= err
+            PlayerNotFound (Player 0) @?= err
         Right _              -> assertFailure "should not find player"
 
 
@@ -117,8 +143,33 @@ test_noEnergyLeft =
                     PlayerEnergies $
                         singletonMap (Player 0) (EnergyMap $ singletonMap Orange 0 )
                 }
-test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 
+test_nodeBlocked :: IO ()
+test_nodeBlocked =
+    case utilGameMoves (initialState $ defaultConfig
+        { initialPlayerPositions = insertMap (Player 3) (Node 15)
+            . initialPlayerPositions $ defaultConfig })
+        [ (6, Red)
+        , (15, Blue)
+        ] of
+        Left err ->
+            NodeBlocked (Player 3) @?= err
+        Right _ -> assertFailure "should not allow move to blocked node"
+
+test_nodeBlockedForRogue :: IO ()
+test_nodeBlockedForRogue =
+    case utilGameMoves (initialState $ defaultConfig
+        { initialPlayerPositions = insertMap (Player 1) (Node 6)
+            . initialPlayerPositions $ defaultConfig })
+        [ (6, Red) ] of
+        Left err ->
+            NodeBlocked (Player 1) @?= err
+        Right _ -> assertFailure "should not allow move to blocked node"
+
+
+-- Test getViews
+
+test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 test_getViews_rogueViewEqualToFieldInGameState = do
     let state = defaultInitialState
     let (rogueView, _) = getViews state
@@ -127,10 +178,12 @@ test_getViews_rogueViewEqualToFieldInGameState = do
     rogueOwnHistory rogueView @?= gameRunningRogueHistory state
     rogueNextPlayer rogueView @?= gameRunningNextPlayer state
 
+
 test_getViews_catcherViewDoesNotContainRogue :: IO ()
 test_getViews_catcherViewDoesNotContainRogue = do
     let (_, catcherView) = getViews defaultInitialState
     Nothing @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+
 
 test_getViews_someFieldsEqualToGameState :: IO ()
 test_getViews_someFieldsEqualToGameState = do
@@ -139,6 +192,43 @@ test_getViews_someFieldsEqualToGameState = do
     catcherRogueHistory catcherView @?= gameRunningRogueHistory defaultInitialState
     catcherNextPlayer catcherView @?= gameRunningNextPlayer defaultInitialState
 
+
+test_getViews_rogueHiddenInCatcherView :: IO ()
+test_getViews_rogueHiddenInCatcherView = do
+    let (_, catcherView) = getViews defaultInitialState
+    Nothing @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+
+
+test_getViews_rogueShownAtCurrentPositionInCatcherView :: IO ()
+test_getViews_rogueShownAtCurrentPositionInCatcherView =
+    case utilGameMoves (initialState $ defaultConfig { rogueShowsAt = [0] })
+        [ (6, Red) ] of
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
+        Right newState -> do
+            let (_, catcherView) = getViews newState
+            Just (Node 6) @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+
+test_getViews_rogueShownAtLastPositionInCatcherView :: IO ()
+test_getViews_rogueShownAtLastPositionInCatcherView =
+    case utilGameMoves (initialState $ defaultConfig { rogueShowsAt = [0] })
+        [ (6, Red)
+        , (3, Blue)
+        , (5, Orange)
+        , (13, Orange)
+        , (11, Orange)
+        ] of
+        Left err ->
+            assertFailure $ "action failed: " ++ show err
+        Right newState -> do
+            let (_, catcherView) = getViews newState
+            Just (Node 6) @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+
+
+test_getViews_rogueShownInRogueView :: IO ()
+test_getViews_rogueShownInRogueView = do
+    let (rogueView, _) = getViews defaultInitialState
+    Just (Node 1) @?= (lookup (Player 0) . roguePlayerPositions $ rogueView)
 
 
 test_gameRound :: IO ()

@@ -15,15 +15,11 @@ import View.GameViewDisplay exposing (..)
 import Debug exposing (..)
 
 
--- TODO: css style with css-library?
-
-
 mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
 mapView network displayInfo clientState =
     svg
         [ height << toString <| displayInfo.mapHeight
         , width << toString <| displayInfo.mapWidth
-        , Html.style [ ( "backgroundColor", "#cccccc" ) ]
         ]
     -- elements of svg now
     <|
@@ -39,9 +35,14 @@ mapView network displayInfo clientState =
                     (playerPositions clientState.gameView).playerPositions
                 )
             ++ gameErrorText clientState.gameError
+            ++ gameOverText clientState.gameOver
 
 
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Energy, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName :
+    GameViewDisplayInfo
+    -> Network
+    -> ( Energy, NetworkOverlay )
+    -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
         << Maybe.map2 (mapViewOfNetworkOverlay displayInfo.nodeXyMap)
@@ -64,7 +65,7 @@ mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes,
 
 gameErrorText : Maybe GameError -> List (Svg Msg)
 gameErrorText errMay =
-    case log "error?" errMay of
+    case errMay of
         Nothing ->
             []
 
@@ -76,7 +77,25 @@ gameErrorText errMay =
                 ]
                 [ text << toString <| err ]
 
-            -- TODO: popup for that?
+            -- TODO: popup notification for that?
+            ]
+
+
+gameOverText : Bool -> List (Svg Msg)
+gameOverText gameOverBool =
+    case gameOverBool of
+        False ->
+            []
+
+        True ->
+            [ text_
+                [ x "500"
+                , y "15"
+                , fill "red"
+                ]
+                [ text "Game Over" ]
+
+            -- TODO: visual design for that, and present more info
             ]
 
 

@@ -98,6 +98,9 @@ update msg state =
                 GameError_ err ->
                     { state | gameError = Just err } ! []
 
+                GameOverView_ gameOver ->
+                    { state | gameOver = True } ! []
+
         SelectEnergy energy ->
             { state | selectedEnergy = energy } ! []
 
@@ -117,6 +120,7 @@ initialState flags =
     , selectedEnergy = Orange
     , server = flags.server
     , gameError = Nothing
+    , gameOver = False
     }
 
 
