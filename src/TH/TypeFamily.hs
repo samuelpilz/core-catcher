@@ -10,7 +10,42 @@ module TH.TypeFamily
 import           ClassyPrelude
 import           Language.Haskell.TH
 
-deriveNewtypedTypeFamily :: Name -> Name -> DecsQ
+{-|
+Derive the type family instance of a given type family instance for a newtype instance,
+assuming that the newtype wraps a value that implements said type class.
+
+For example, suppose the type family instances
+> type Element (Seq a) = a
+from ClassyPrelude.
+
+For a newtype like:
+> newtype MySeq = MySeq (Set Int)
+
+the following line would be derived:
+> type Element MySeq = Int
+
+This function performs some kind of type inference based on the definition
+of the wrapped value.
+The rule works as follow: if the right hand side of the expression occurs
+in the definition of the type (e.g. `a` occurs in `Seq a`) then assume that
+the type found in the according posistion should be the right hand side of the
+type family instance.
+
+By this rule, we can also infer more complex types, like
+> newtype Mseq = MySeq (Set (String, Int, Double))
+and similar.
+
+If the right hand side does not occur in the type, then the function
+assumes that the right hand side was chosen arbitrarily.
+For example, take the following type instance:
+> type Index (Seq a) = Int
+The type `Int` does not occur in `Seq a`, therefore the derivation would result
+in the right hand side being unchanged.
+> type Index MySeq = Int
+-}
+deriveNewtypedTypeFamily :: Name -- ^ Name of the type family instance
+                         -> Name -- ^ Name of the newtype which shall derive the type instance
+                         -> DecsQ -- ^ Type family instance for use in other template haskell functions
 deriveNewtypedTypeFamily typeFamily newtypeName = do
     decl <- getDeclaration
     instances <- getInstances decl
