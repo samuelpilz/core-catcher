@@ -12,10 +12,7 @@ import           Elm.Module
 
 elmProtocolModule :: Text
 elmProtocolModule =
-    unlines
-    . filter (not . isInfixOf ("((:=))" :: Text) )
-    . lines
-    . pack
+    pack
         $ makeElmModule "Protocol"
             [ DefineElm (Proxy :: Proxy Action)
             , DefineElm (Proxy :: Proxy PlayerPositions)

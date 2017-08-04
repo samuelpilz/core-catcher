@@ -19,6 +19,8 @@ import           ClassyPrelude                  hiding (handle)
 import qualified Config.GameConfig              as GameConfig
 import qualified Control.Exception              as Exception
 import qualified GameNg
+import qualified Network.ElmDerive              as ElmDerive
+import qualified Network.HTTP.Types             as Http
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
@@ -33,6 +35,7 @@ main = do
         }
     putStrLn "Starting Core-Catcher server on port 8000"
     Warp.run 8000 $ WS.websocketsOr
+
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
@@ -63,6 +66,7 @@ wsListen client stateVar = forever $ do
             -- TODO: validation playerId==clientId
             handle client stateVar action
             return ()
+
         Nothing     ->
             putStrLn "ERROR: The message could not be decoded"
             -- TODO: send info back to client?

@@ -4,9 +4,33 @@ import Json.Decode
 import Json.Encode exposing (Value)
 -- The following module comes from bartavelle/json-helpers
 import Json.Helpers exposing (..)
+import EveryDict exposing (EveryDict)
 import Dict
 import Set
 
+
+arrayAsTuple2 : Json.Decode.Decoder a -> Json.Decode.Decoder b -> Json.Decode.Decoder ( a, b )
+arrayAsTuple2 a b =
+    Json.Decode.index 0 a
+        |> Json.Decode.andThen
+            (\aVal ->
+                Json.Decode.index 1 b
+                    |> Json.Decode.andThen (\bVal -> Json.Decode.succeed ( aVal, bVal ))
+            )
+
+
+{-| Helper function for decoding map-like objects. It takes a decoder for the key type and a decoder for the value type.
+-}
+decodeMap : Json.Decode.Decoder k -> Json.Decode.Decoder v -> Json.Decode.Decoder (EveryDict k v)
+decodeMap decKey decVal =
+    Json.Decode.map EveryDict.fromList (Json.Decode.list <| arrayAsTuple2 decKey decVal)
+
+
+{-| Helper function for encoding map-like objects. It takes an encoder for the key type and an encoder for the value type
+-}
+encodeMap : (k -> Json.Encode.Value) -> (v -> Json.Encode.Value) -> EveryDict k v -> Json.Encode.Value
+encodeMap encKey encVal =
+    Json.Encode.list << List.map (\( k, v ) -> Json.Encode.list [ encKey k, encVal v ]) << EveryDict.toList
 
 type alias Action  =
    { actionPlayer: Player
@@ -32,18 +56,18 @@ jsonEncAction  val =
 
 
 type alias PlayerPositions  =
-   { playerPositions: (List (Player, Node))
+   { playerPositions: (EveryDict Player Node)
    }
 
 jsonDecPlayerPositions : Json.Decode.Decoder ( PlayerPositions )
 jsonDecPlayerPositions =
-   ("playerPositions" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecNode)))) >>= \pplayerPositions ->
+   ("playerPositions" := decodeMap (jsonDecPlayer) (jsonDecNode)) >>= \pplayerPositions ->
    Json.Decode.succeed {playerPositions = pplayerPositions}
 
 jsonEncPlayerPositions : PlayerPositions -> Value
 jsonEncPlayerPositions  val =
    Json.Encode.object
-   [ ("playerPositions", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncNode) v2])) val.playerPositions)
+   [ ("playerPositions", (encodeMap (jsonEncPlayer) (jsonEncNode)) val.playerPositions)
    ]
 
 
@@ -122,55 +146,55 @@ jsonEncGameView  val =
 
 
 type alias PlayerEnergies  =
-   { playerEnergies: (List (Player, EnergyMap))
+   { playerEnergies: (EveryDict Player EnergyMap)
    }
 
 jsonDecPlayerEnergies : Json.Decode.Decoder ( PlayerEnergies )
 jsonDecPlayerEnergies =
-   ("playerEnergies" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecEnergyMap)))) >>= \pplayerEnergies ->
+   ("playerEnergies" := decodeMap (jsonDecPlayer) (jsonDecEnergyMap)) >>= \pplayerEnergies ->
    Json.Decode.succeed {playerEnergies = pplayerEnergies}
 
 jsonEncPlayerEnergies : PlayerEnergies -> Value
 jsonEncPlayerEnergies  val =
    Json.Encode.object
-   [ ("playerEnergies", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncPlayer) v1,(jsonEncEnergyMap) v2])) val.playerEnergies)
+   [ ("playerEnergies", (encodeMap (jsonEncPlayer) (jsonEncEnergyMap)) val.playerEnergies)
    ]
 
 
 
 type alias EnergyMap  =
-   { energyMap: (List (Energy, Int))
+   { energyMap: (EveryDict Energy Int)
    }
 
 jsonDecEnergyMap : Json.Decode.Decoder ( EnergyMap )
 jsonDecEnergyMap =
-   ("energyMap" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.int)))) >>= \penergyMap ->
+   ("energyMap" := decodeMap (jsonDecEnergy) (Json.Decode.int)) >>= \penergyMap ->
    Json.Decode.succeed {energyMap = penergyMap}
 
 jsonEncEnergyMap : EnergyMap -> Value
 jsonEncEnergyMap  val =
    Json.Encode.object
-   [ ("energyMap", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,(Json.Encode.int) v2])) val.energyMap)
+   [ ("energyMap", (encodeMap (jsonEncEnergy) (Json.Encode.int)) val.energyMap)
    ]
 
 
 
 type alias Network  =
    { nodes: (List Node)
-   , overlays: (List (Energy, NetworkOverlay))
+   , overlays: (EveryDict Energy NetworkOverlay)
    }
 
 jsonDecNetwork : Json.Decode.Decoder ( Network )
 jsonDecNetwork =
    ("nodes" := Json.Decode.list (jsonDecNode)) >>= \pnodes ->
-   ("overlays" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (jsonDecNetworkOverlay)))) >>= \poverlays ->
+   ("overlays" := decodeMap (jsonDecEnergy) (jsonDecNetworkOverlay)) >>= \poverlays ->
    Json.Decode.succeed {nodes = pnodes, overlays = poverlays}
 
 jsonEncNetwork : Network -> Value
 jsonEncNetwork  val =
    Json.Encode.object
    [ ("nodes", (Json.Encode.list << List.map jsonEncNode) val.nodes)
-   , ("overlays", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,(jsonEncNetworkOverlay) v2])) val.overlays)
+   , ("overlays", (encodeMap (jsonEncEnergy) (jsonEncNetworkOverlay)) val.overlays)
    ]
 
 
