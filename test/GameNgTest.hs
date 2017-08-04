@@ -10,59 +10,74 @@ import           GameNg
 import           Network.Protocol
 import           Test.Framework
 import           Test.HUnit.Base
+import Config.GameConfig
 
 -- (@?=) = assertEqual
-test_initialStateHasStartingPlayer0 :: IO ()
-test_initialStateHasStartingPlayer0 = Player 0 @?= stateNextPlayer initialState
+test_defaultInitialStateHasStartingPlayer0 :: IO ()
+test_defaultInitialStateHasStartingPlayer0 = Player 0 @?= stateNextPlayer defaultInitialState
 
-test_initialStateHasEmptyHistory :: IO ()
-test_initialStateHasEmptyHistory =
-    RogueHistory [] @?= stateRogueHistory initialState
+test_defaultInitialStateHasEmptyHistory :: IO ()
+test_defaultInitialStateHasEmptyHistory =
+    RogueHistory [] @?= stateRogueHistory defaultInitialState
 
+-- TODO: split in more test cases such that one test-case asserts one thing
 test_player0ValidMove :: IO ()
 test_player0ValidMove =
-    case updateState (Move (Player 0) (Transport "red") (Node 6)) initialState of
+    case updateState (Move (Player 0) (Transport "red") (Node 6)) defaultInitialState of
         Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
-        Right (newState, _, _) -> do
+        Right newState -> do
             (insert (Player 0) (Node 6) . playerPositions . statePlayerPositions $
-             initialState) @?=
+             defaultInitialState) @?=
                 (playerPositions . statePlayerPositions $ newState)
             -- test that energy has been used
-            let energyLeft = calculateRemainingEnergy newState
-
+            let energyLeft = remainingEnergy newState
             Just 1 @?= energyLeft
+
+            -- test that history has been appended
+            RogueHistory [(Transport "red", Just $ Node 6)] @?= stateRogueHistory newState
     where
-        calculateRemainingEnergy state = do
-            eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ state
-            lookup (Transport "red") . energyMap $ eMap
+        remainingEnergy state = do
+            eMap <- lookup (Player 0) . statePlayerEnergies $ state
+            lookup (Transport "red") eMap
 
+test_player1ValidMove_historyNotUpdated :: IO ()
+test_player1ValidMove_historyNotUpdated =
+    case utilGameMoves defaultInitialState [(6, "red"), (3, "blue")] of
+        Left (GameError err) -> assertFailure . unpack $ "action failed: " ++ err
+        Right newState ->
+            RogueHistory [(Transport "red", Just $ Node 6)] @?= stateRogueHistory newState
 
-asdf :: GameState -> Maybe Int
-asdf newState = do
-    eMap <- lookup (Player 0) . playerEnergies . statePlayerEnergies $ newState
-    lookup (Transport "red") . energyMap $ eMap
 
 test_notPlayer1Turn :: IO ()
 test_notPlayer1Turn =
-    case updateState (Move (Player 1) (Transport "orange") (Node 5)) initialState of
+    case updateState (Move (Player 1) (Transport "orange") (Node 5)) defaultInitialState of
         Left (GameError err) ->
             unless ("turn" `isInfixOf` err) $
             assertFailure $ "wrong error msg: " ++ unpack err
         Right _              -> assertFailure "should not be player 1's turn"
 
-{- error message is that its not player's turn and not 'player not found'
-test_playerNotFound :: IO ()
-test_playerNotFound =
-    case updateState (Move (Player (-1)) (Transport "yellow") (Node 5)) initialState of
+test_playerNotFoundInPositions :: IO ()
+test_playerNotFoundInPositions =
+    case updateState (Move (Player 0) (Transport "yellow") (Node 5)) $
+        defaultInitialState { statePlayerPositions = mempty } of
         Left (GameError err) ->
             unless ("not found" `isInfixOf` err) $
             assertFailure $ "wrong error msg: " ++ unpack err
         Right _              -> assertFailure "should not find player"
--}
+
+test_playerNotFoundInEnergies :: IO ()
+test_playerNotFoundInEnergies =
+    case updateState (Move (Player 0) (Transport "yellow") (Node 5)) $
+        defaultInitialState { statePlayerEnergies = mempty } of
+        Left (GameError err) ->
+            unless ("not found" `isInfixOf` err) $
+            assertFailure $ "wrong error msg: " ++ unpack err
+        Right _              -> assertFailure "should not find player"
+
 
 test_energyNotFound :: IO ()
 test_energyNotFound =
-    case updateState (Move (Player 0) (Transport "green") (Node 5)) initialState of
+    case updateState (Move (Player 0) (Transport "green") (Node 5)) defaultInitialState of
         Left (GameError err) ->
             unless ("not found" `isInfixOf` err) $
             assertFailure $ "wrong error msg: " ++ unpack err
@@ -70,7 +85,7 @@ test_energyNotFound =
 
 test_cannotMoveTo :: IO ()
 test_cannotMoveTo =
-    case updateState (Move (Player 0) (Transport "orange") (Node 1)) initialState of
+    case updateState (Move (Player 0) (Transport "orange") (Node 1)) defaultInitialState of
         Left (GameError err) ->
             unless ("node" `isInfixOf` err) $
             assertFailure $ "wrong error msg: " ++ unpack err
@@ -85,16 +100,31 @@ test_noEnergyLeft =
         Right _ -> assertFailure "should not allow move with no energy"
     where
         noEnergyState =
-            initialState
+            defaultInitialState
                 { statePlayerEnergies =
                     PlayerEnergies $
                         singletonMap (Player 0) (EnergyMap $ singletonMap (Transport "orange") 0)
                 }
 
+test_getViews_allViewsEqualToFieldInGameState :: IO ()
+test_getViews_allViewsEqualToFieldInGameState = do
+    let state = defaultInitialState
+    let (rogueView, catcherView) = getViews state
+    roguePlayerPositions rogueView @?= statePlayerPositions state
+    rogueEnergies rogueView @?= statePlayerEnergies state
+    rogueOwnHistory rogueView @?= stateRogueHistory state
+    rogueNextPlayer rogueView @?= stateNextPlayer state
+    catcherPlayerPositions catcherView @?= statePlayerPositions state
+    catcherEnergies catcherView @?= statePlayerEnergies state
+    catcherRogueHistory catcherView @?= stateRogueHistory state
+    catcherNextPlayer catcherView @?= stateNextPlayer state
+
+
+
 test_gameRound :: IO ()
 test_gameRound =
     do
-        let updated = utilGameMoves initialState
+        let updated = utilGameMoves defaultInitialState
                    [ (11, "orange")
                    , (3, "blue")
                    , (5, "orange")
@@ -115,10 +145,7 @@ test_gameRound =
 utilGameMoves :: GameState -> [(Int, Text)] -> Either GameError GameState
 utilGameMoves =
     foldM
-        (\s (n, e) -> utilUpdateState (Move (stateNextPlayer s) (Transport e) (Node n)) s)
+        (\s (n, e) -> updateState (Move (stateNextPlayer s) (Transport e) (Node n)) s)
 
-utilUpdateState :: Action -> GameState -> Either GameError GameState
-utilUpdateState action state =
-    case updateState action state of
-        Left err -> Left err
-        Right (newState, _, _) -> Right newState
+defaultInitialState :: GameState
+defaultInitialState = initialState defaultConfig
