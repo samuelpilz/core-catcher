@@ -32,7 +32,7 @@ mapView network displayInfo clientState =
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
             ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
                 (EveryDict.toList
-                    (playerPositions clientState.gameView).playerPositions
+                    clientState.playerPositions.playerPositions
                 )
             ++ gameErrorText clientState.gameError
             ++ gameOverText clientState.gameOver
