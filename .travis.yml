@@ -16,7 +16,10 @@ language: generic
 
 notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
+<<<<<<< HEAD
   email: false
+=======
+>>>>>>> a85e04c... fix travis build
 
 # Caching so the next build will be fast too.
 cache:
@@ -49,13 +52,16 @@ before_install:
   - stack build
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
+  - npm install elm
+  - elm-package install -y
 
 
 
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  #- travis_wait elm-make frontend/Main.elm --output=web/elm.js
+  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
+
 
 
 script:
