@@ -328,7 +328,5 @@ Derive.deriveMap ''EnergyMap
 Derive.deriveMap ''PlayerEnergies
 -- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
 Derive.deriveSequence ''RogueHistory
-type instance Element RogueHistory = (Energy, Maybe Node)
-
+-- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
 Derive.deriveSequence ''OpenRogueHistory
-type instance Element OpenRogueHistory = (Energy, Node, Bool)

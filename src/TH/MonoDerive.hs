@@ -19,10 +19,12 @@ module TH.MonoDerive
 
 import           ClassyPrelude
 import           Language.Haskell.TH
+import qualified TH.TypeFamily as Family
+import           TH.MonoFunctions
 
 deriveMap :: Name -> DecsQ
 deriveMap name = do
-    elementInstance <- createMapValueFamily ''Element name
+    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
     instances <-
         map concat
             . sequenceA
@@ -37,12 +39,12 @@ deriveMap name = do
                 , setContainerTh
                 , isMapTh
                 ]
-    return (elementInstance `cons` instances)
+    return (elementInstance ++ instances)
 
 deriveSequence :: Name -> DecsQ
 deriveSequence name = do
     -- Does not work for arbitrary types
-    -- elementInstance <- deriveNewtypedTypeFamily ''Element name
+    elementInstance <- Family.deriveNewtypedTypeFamily ''Element name
     instances <-
         map concat
             . sequenceA
@@ -58,7 +60,7 @@ deriveSequence name = do
                 , monoPointedTh
                 , isSequenceTh
                 ]
-    return instances
+    return (elementInstance ++ instances)
 
 monoidTh :: Name -> DecsQ
 monoidTh name = do
@@ -124,8 +126,8 @@ setContainerTh :: Name -> DecsQ
 setContainerTh name = do
     funcs <- sequenceA [memberTh, notMemberTh, unionTh, differenceTh, intersectionTh, keysTh]
     let instanceType           = AppT (ConT ''SetContainer) (ConT name)
-    containerKeyFamily <- createContainerFamily
-    return [InstanceD Nothing [] instanceType (containerKeyFamily `cons` funcs)]
+    containerKeyFamily <- Family.deriveNewtypedTypeFamily ''ContainerKey name
+    return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
       memberTh = simpleUnwrap 'member name
       notMemberTh = simpleUnwrap 'notMember name
@@ -153,8 +155,8 @@ isMapTh :: Name -> DecsQ
 isMapTh name = do
     funcs <- sequenceA [lookupTh, insertMapTh, deleteMapTh, singletonMapTh, mapFromListTh, mapToListTh]
     let instanceType           = AppT (ConT ''IsMap) (ConT name)
-    containerKeyFamily <- createMapValueFamily ''MapValue name
-    return [InstanceD Nothing [] instanceType (containerKeyFamily `cons` funcs)]
+    containerKeyFamily <- Family.deriveNewtypedTypeFamily ''MapValue name
+    return [InstanceD Nothing [] instanceType (containerKeyFamily ++ funcs)]
     where
       lookupTh = simpleUnwrap 'lookup name
       insertMapTh = simpleUnwrapWrap2 'insertMap name
@@ -186,6 +188,8 @@ isSequenceTh name = do
       fromListTh :: DecQ
       fromListTh = simpleWrap1 'fromList name
 
+
+
 monoPointedTh :: Name -> DecsQ
 monoPointedTh name = do
     funcs <- sequenceA [opointTh]
@@ -195,251 +199,8 @@ monoPointedTh name = do
       opointTh :: DecQ
       opointTh = simpleWrap1 'opoint name
 
-simpleWrap :: Name -> Name -> DecQ
-simpleWrap funcName typeName = do
-    con <- getNewTypeCon typeName
-    let bodyExpr = [e| $(conE con) $(varE funcName) |]
-    let cl = clause
-            []
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleWrap1 :: Name -> Name -> DecQ
-simpleWrap1 funcName typeName = do
-    con <- getNewTypeCon typeName
-    let bodyExpr = [e| $(conE con) . $(varE funcName) |]
-    let cl = clause
-            []
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleWrap2 :: Name -> Name -> DecQ
-simpleWrap2 funcName typeName = do
-    con <- getNewTypeCon typeName
-    keyVar <- newName "k"
-    valueVar <- newName "v"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE keyVar) $(varE valueVar) |]
-    let cl = clause
-            [ varP keyVar
-            , varP valueVar
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simplePattern :: Name -> Name -> DecQ
-simplePattern funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
-    let cl = clause
-            [ conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrap :: Name -> Name -> DecQ
-simpleUnwrap funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    otherVar <- newName "p"
-    let bodyExpr = [e| $(varE funcName) $(varE otherVar) $(varE conVar) |]
-    let cl = clause
-            [ varP otherVar
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrap1 :: Name -> Name -> DecQ
-simpleUnwrap1 funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
-    let cl = clause
-            [ conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-
-simpleUnwrapWrap :: Name -> Name -> DecQ
-simpleUnwrapWrap funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE conVar) |]
-    let cl = clause
-            [ conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrapWrap1' :: Name -> Name -> DecQ
-simpleUnwrapWrap1' funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    keyVar <- newName "k"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE conVar) $(varE keyVar) |]
-    let cl = clause
-            [ conP con [varP conVar]
-            , varP keyVar
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrapWrap1 :: Name -> Name -> DecQ
-simpleUnwrapWrap1 funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    keyVar <- newName "k"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE keyVar) $(varE conVar) |]
-    let cl = clause
-            [ varP keyVar
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleUnwrapWrap2 :: Name -> Name -> DecQ
-simpleUnwrapWrap2 funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    keyVar <- newName "k"
-    valueVar <- newName "v"
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE keyVar) $(varE valueVar) $(varE conVar) |]
-    let cl = clause
-            [ varP keyVar
-            , varP valueVar
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleFold :: Name -> Name -> DecQ
-simpleFold funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    funName <- newName "f"
-    accName <- newName "acc"
-    let bodyExpr = [e| $(varE funcName) $(varE funName) $(varE accName) $(varE conVar) |]
-    let cl = clause
-            [ varP funName
-            , varP accName
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleFold1 :: Name -> Name -> DecQ
-simpleFold1 funcName typeName = do
-    con <- getNewTypeCon typeName
-    conVar <- newName "a"
-    funName <- newName "f"
-    let bodyExpr = [e| $(varE funcName) $(varE funName) $(varE conVar) |]
-    let cl = clause
-            [ varP funName
-            , conP con [varP conVar]
-            ]
-            (normalB bodyExpr)
-            []
-    funD funcName [cl]
-
-simpleMap :: Name -> Name -> DecQ
-simpleMap funcName name = do
-    con <- getNewTypeCon name
-    conVar <- newName "a"
-    funName <- newName "f"
-    let typePat = conP con [varP conVar]
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE funName) $(varE conVar) |]
-    let cl = clause [varP funName, typePat] (normalB bodyExpr) []
-    funD funcName [cl]
-
-simpleBinOp :: Name -> Name -> DecQ
-simpleBinOp funcName name = do
-    con <- getNewTypeCon name
-    firstName <- newName "a"
-    secondName <- newName "b"
-    let firstPat = conP con [varP firstName]
-    let secondPat = conP con [varP secondName]
-    let bodyExpr = [e| $(conE con) $ $(varE funcName) $(varE firstName) $(varE secondName) |]
-    let cl = clause [firstPat, secondPat] (normalB bodyExpr) []
-    funD funcName [cl]
-
 
 emptyDerive :: Name -> Name-> DecsQ
 emptyDerive typeclass name = do
     let instanceType           = AppT (ConT typeclass) (ConT name)
     return [InstanceD Nothing [] instanceType [] ]
-
-getNewTypeCon :: Name -> Q Name
-getNewTypeCon typeName = do
-    TyConI mn <- reify typeName
-    case mn of
-      (NewtypeD _ _ _ _ (RecC con _) _) -> return con
-      (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
-      _ -> fail "Only Newtype datastructures are allowed"
-
-deriveNewtypedTypeFamily :: Name -> Name -> DecsQ
-deriveNewtypedTypeFamily typeFamily newtypeName = do
-    decl <- getDeclaration
-    instances <- getInstances decl
-    isInstance' <- isInstance typeFamily [decl]
-    reportWarning $ show isInstance'
-    let newInstances = getTypeSynInstance decl instances
-    reportWarning $ "New type family instances: " ++ show newInstances
-    return newInstances
-    where
-        getInstances :: Type -> Q [InstanceDec]
-        getInstances newtypeName' = do
-            inst <- reifyInstances typeFamily [newtypeName']
-            reportWarning $ "Instances: " ++ show inst
-            return inst
-
-        getDeclaration :: Q Type
-        getDeclaration = do
-            TyConI mn <- reify newtypeName
-            case mn of
-                (NewtypeD _ _ _ _ (RecC _ [(_,_, typeD)]) _) -> do
-                    reportWarning $ "Investigated Type: " ++ show typeD
-                    return typeD
-
-                (NewtypeD _ _ _ _ (NormalC _ [(_, typeD)]) _) -> do
-                    reportWarning $ "Investigated Type: " ++ show typeD
-                    return typeD
-
-                _ ->
-                    fail $ show newtypeName ++ "Not a newtype"
-
-
-        getTypeSynInstance :: Type -> [InstanceDec] -> [Dec]
-        getTypeSynInstance dec inst =
-            map
-                ( \(TySynInstD _ (TySynEqn _ right)) ->
-                    TySynInstD typeFamily (TySynEqn [ConT newtypeName] right)
-                )
-                inst
-
-createMapValueFamily :: Name -> Name -> DecQ
-createMapValueFamily typeInstance name = do
-    TyConI mn <- reify name
-    valueType <- case mn of
-        (NewtypeD _ _ _ _ (RecC _ [(_,_, AppT (AppT _ _) valueType')]) _) ->
-            return valueType'
-
-        (NewtypeD _ _ _ _ (NormalC _ [(_, AppT (AppT _ _) valueType')]) _) ->
-            return valueType'
-
-        _ ->
-            fail "Newtype must contain a map like data structure of the form `AppT (AppT (ConT c) key ) value `"
-
-    return $ TySynInstD typeInstance (TySynEqn [ConT name] valueType)
