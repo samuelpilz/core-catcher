@@ -17,6 +17,7 @@ import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
 
+
 import qualified Test.QuickCheck.Gen       as Gen
 import qualified TH.MonoDerive             as Derive
 
