@@ -48,23 +48,23 @@ wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
     let wsConn = WsConnection conn
     WS.forkPingThread conn 30
-    clientId <- connectClient wsConn stateVar -- call to ConnectionMgnt
-    let clientConn = ClientConnection (clientId, wsConn)
+    cId <- connectClient wsConn stateVar -- call to ConnectionMgnt
+    let clientConn = ClientConnection cId wsConn
     -- TODO: handshake first
     sendSendableMsg clientConn $
-        initialInfoForClient GameConfig.defaultConfig clientId
+        initialInfoForClient GameConfig.defaultConfig cId
     Exception.finally
         (wsListen clientConn stateVar)
-        (disconnectClient clientId stateVar) -- call to ConnectionMgnt
+        (disconnectClient cId stateVar) -- call to ConnectionMgnt
 
 wsListen :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> IO ()
 wsListen client stateVar = forever $ do
-    maybeAction <- recvMsg client
-    case maybeAction of
-        Just action -> do
+    maybeMsg <- recvMsg client
+    case maybeMsg of
+        Just msg -> do
             -- TODO: what about request forging? (send game-token to client using player-mgnt)
             -- TODO: validation playerId==clientId
-            handle client stateVar action
+            handle client stateVar msg
             return ()
 
         Nothing     ->

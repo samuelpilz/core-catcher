@@ -61,7 +61,7 @@ sendGameViews (GameOver_ game) conn =
     multicastMsg conn $ Game.getGameOverView game
 
 
-initialInfoForClient :: GameConfig -> ClientId -> InitialInfoForClient
+initialInfoForClient :: GameConfig -> ConnectionId -> InitialInfoForClient
 initialInfoForClient config clientId =
     InitialInfoForClient
         { initialPlayer = Player clientId

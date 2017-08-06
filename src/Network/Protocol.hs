@@ -316,6 +316,13 @@ instance Arbitrary GameView where
         else
             CatcherView <$> arbitrary
 
+instance Arbitrary MessageForServer where
+    arbitrary = Action_ <$> arbitrary
+
+instance Arbitrary MessageForClient where
+    arbitrary = GameView_ <$> arbitrary
+    -- TODO: implement arbitrary with more constructors
+
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
 deriveBoth Elm.Derive.defaultOptions ''GameView

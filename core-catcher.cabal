@@ -83,8 +83,7 @@ test-suite core-catcher-test
   hs-source-dirs:      test
   main-is:             TestMain.hs
   other-modules:       ProtocolTest
-                     , StateTest
-                     , WsAppUtilsTest
+                     , ConnectionMgntTest
                      , Mock.Connection
                      , GameNgTest
   build-depends:       base
@@ -97,6 +96,7 @@ test-suite core-catcher-test
                      , aeson
                      , websockets
                      , data-easy
+                     , extra
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

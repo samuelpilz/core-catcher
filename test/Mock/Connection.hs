@@ -6,26 +6,26 @@ module Mock.Connection (
     FakeConnection,
     newFakeConnection,
     prepareMsgToRead,
-    getSentMsg
+    getSentMsg,
+    FakeConnections(..),
+    sendBuffer,
+    recvBuffer
     ) where
 
 import           App.ConnectionMgnt
 import           ClassyPrelude
-import           Network.WebSockets
-
-import           Data.Maybe         (fromJust)
+import           Control.Monad.Extra (whenJust)
+import           Network.Protocol
 import           Test.Framework
 
 data FakeConnection =
     FakeConnection
-        { sendBuffer :: TVar (Maybe Msg)
-        , recvBuffer :: TVar (Maybe Msg)
+        { sendBuffer :: TVar (Maybe MessageForClient)
+        , recvBuffer :: TVar (Maybe MessageForServer)
         }
 
-type Msg = LByteString
-
-data PendingConn = PendingConn
-
+newtype FakeConnections =
+    FakeConnections (ClientConnections FakeConnection)
 
 newFakeConnection :: IO FakeConnection
 newFakeConnection = do
@@ -33,22 +33,31 @@ newFakeConnection = do
     rb <- newTVarIO Nothing
     return $ FakeConnection sb rb
 
-prepareMsgToRead :: Msg -> FakeConnection -> IO ()
-prepareMsgToRead msg conn =
-    atomically $ writeTVar (recvBuffer conn) $ Just msg
+prepareMsgToRead :: FakeConnection -> MessageForServer -> IO ()
+prepareMsgToRead conn =
+    atomically . writeTVar (recvBuffer conn) . Just
 
-getSentMsg :: FakeConnection -> IO (Maybe Msg)
+getSentMsg :: FakeConnection -> IO (Maybe MessageForClient)
 getSentMsg = readTVarIO . sendBuffer
 
 instance IsConnection FakeConnection where
-    type Pending FakeConnection = PendingConn
+    type Pending FakeConnection = Maybe MessageForServer
 
-    sendData conn =
-        atomically . writeTVar (sendBuffer conn) . Just . toLazyByteString
+    sendMsg conn =
+        atomically . writeTVar (sendBuffer conn) . Just
 
-    receiveData (FakeConnection _ rb) = do
-        msg <- atomically $ swapTVar rb Nothing
-        return . fromLazyByteString $ fromJust msg
+    recvMsg (FakeConnection _ rb) =
+        atomically $ swapTVar rb Nothing
 
-    acceptRequest PendingConn =
-        newFakeConnection
+    acceptRequest msgForServer = do
+        conn <- newFakeConnection
+        whenJust msgForServer (prepareMsgToRead conn)
+        return conn
+
+
+-- |ClientConnections themselves can be viewed as clientConnections
+instance HasConnections FakeConnections where
+    type Conn FakeConnections = FakeConnection
+    getConnections (FakeConnections cs) = cs
+    setConnections cs _ = FakeConnections cs
+
