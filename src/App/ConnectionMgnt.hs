@@ -101,9 +101,14 @@ class HasConnections state where
         atomically $ removeClient clientId stateVar
         putStrLn $ "disconnect " ++ tshow clientId
 
+-- extra functions
+
 findConnectionById :: ConnectionId -> ClientConnections conn -> Maybe (ClientConnection conn)
 findConnectionById cId =
     find ((==cId) . connectionId)
+
+withoutClient :: ConnectionId -> ClientConnections conn -> ClientConnections conn
+withoutClient cId = filter ((/=cId) . connectionId)
 
 -- helper functions (not exported)
 
@@ -125,6 +130,3 @@ removeClient cId stateVar = do
 
 nextId :: ClientConnections conn -> ConnectionId
 nextId = fromMaybe 0 . map (+1) . maximumMay . map connectionId
-
-withoutClient :: ConnectionId -> ClientConnections conn -> ClientConnections conn
-withoutClient cId = filter ((/=cId) . connectionId)
