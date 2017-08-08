@@ -14,16 +14,16 @@ import           GameNg             (GameState)
 
 data ServerState conn =
     ServerState
-        { connections :: Seq (ClientConnection conn)
-        , gameState   :: GameState
+        { stateConnections :: ClientConnections conn
+        , gameState        :: GameState
         }
 
 instance IsConnection conn => HasConnections (ServerState conn) where
     type Conn (ServerState conn) = conn
     getConnections =
-        connections
+        stateConnections
 
-    setConnections conn state =
+    setConnections conns state =
         state
-            { connections = conn
+            { stateConnections = conns
             }

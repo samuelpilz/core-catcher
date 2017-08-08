@@ -28,7 +28,7 @@ import           WsConnection
 main :: IO ()
 main = do
     stateVar <- newTVarIO ServerState
-        { connections = empty
+        { stateConnections = ClientConnections empty 0
         -- TODO: improve game-state creation
         , gameState = GameNg.GameRunning_ $ GameNg.initialState GameConfig.defaultConfig
         }

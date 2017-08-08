@@ -7,7 +7,7 @@ module Mock.Connection (
     newFakeConnection,
     prepareMsgToRead,
     getSentMsg,
-    FakeConnections(..),
+    FakeConnections,
     sendBuffer,
     recvBuffer
     ) where
@@ -24,8 +24,7 @@ data FakeConnection =
         , recvBuffer :: TVar (Maybe MessageForServer)
         }
 
-newtype FakeConnections =
-    FakeConnections (ClientConnections FakeConnection)
+type FakeConnections = ClientConnections FakeConnection
 
 newFakeConnection :: IO FakeConnection
 newFakeConnection = do
@@ -53,11 +52,3 @@ instance IsConnection FakeConnection where
         conn <- newFakeConnection
         whenJust msgForServer (prepareMsgToRead conn)
         return conn
-
-
--- |ClientConnections themselves can be viewed as clientConnections
-instance HasConnections FakeConnections where
-    type Conn FakeConnections = FakeConnection
-    getConnections (FakeConnections cs) = cs
-    setConnections cs _ = FakeConnections cs
-

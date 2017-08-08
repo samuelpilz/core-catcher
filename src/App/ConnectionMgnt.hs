@@ -21,7 +21,7 @@ TODO: write about what is exported and how to use this module
 module App.ConnectionMgnt (
     ConnectionId,
     ClientConnection(..),
-    ClientConnections,
+    ClientConnections(..),
     HasConnections,
     Conn,
     connectClient,
@@ -49,8 +49,11 @@ data ClientConnection conn =
         , connection   :: conn
         }
 
--- TODO: newtype for that (and then remove wrap in mock)
-type ClientConnections conn = (Seq (ClientConnection conn))
+data ClientConnections conn =
+    ClientConnections
+        { connections :: Seq (ClientConnection conn)
+        , nextId :: ConnectionId
+        }
 
 class IsConnection c where
     type Pending c :: *
@@ -64,10 +67,12 @@ class IsConnection c where
 
     acceptRequest ::  Pending c -> IO c
 
-    multicastMsg ::
-        (SendableToClient msg, MonoFoldable f, IsConnection c, c ~ Element f)
-        => f -> msg -> IO ()
-    multicastMsg cs msg = omapM_ (`sendSendableMsg` msg) cs
+    -- TODO: optimal multicast signature if ClientConnections was MonoFoldable
+--     multicastMsg ::
+--         (SendableToClient msg, MonoFoldable f, IsConnection c, c ~ Element f)
+--         => f -> msg -> IO ()
+    multicastMsg :: (SendableToClient msg) => ClientConnections c -> msg -> IO ()
+    multicastMsg cs msg = omapM_ (`sendSendableMsg` msg) $ connections cs
 
 -- instance for the ClientConnection type which is just clientId together with
 instance IsConnection conn => IsConnection (ClientConnection conn) where
@@ -101,14 +106,23 @@ class HasConnections state where
         atomically $ removeClient clientId stateVar
         putStrLn $ "disconnect " ++ tshow clientId
 
+-- implement HasConnections for ClientConnections themselves
+instance IsConnection conn => HasConnections (ClientConnections conn) where
+    type Conn (ClientConnections conn) = conn
+    getConnections = id
+    setConnections = const
+
 -- extra functions
 
 findConnectionById :: ConnectionId -> ClientConnections conn -> Maybe (ClientConnection conn)
 findConnectionById cId =
-    find ((==cId) . connectionId)
+    find ((==cId) . connectionId) . connections
 
 withoutClient :: ConnectionId -> ClientConnections conn -> ClientConnections conn
-withoutClient cId = filter ((/=cId) . connectionId)
+withoutClient cId conns =
+    conns
+        { connections = filter ((/=cId) . connectionId) . connections $ conns
+        }
 
 -- helper functions (not exported)
 
@@ -116,11 +130,18 @@ withoutClient cId = filter ((/=cId) . connectionId)
 addClient :: HasConnections state => Conn state -> TVar state -> STM ConnectionId
 addClient conn stateVar = do -- update connection list
     state <- readTVar stateVar
-    let connections = getConnections state
-    let newConnectionId = nextId connections
-    let newConnections = ClientConnection newConnectionId conn `cons` getConnections state
+    let conns = getConnections state
+    let newConnections =
+            conns
+                { connections =
+                    ClientConnection (nextId conns) conn
+                    `cons`
+                    connections conns
+                , nextId = 1 + nextId conns
+                }
+
     writeTVar stateVar (setConnections newConnections state)
-    return newConnectionId
+    return $ nextId conns
 
 removeClient :: HasConnections state => ConnectionId -> TVar state -> STM ()
 removeClient cId stateVar = do
@@ -128,5 +149,5 @@ removeClient cId stateVar = do
     let connections = getConnections state
     writeTVar stateVar (setConnections (withoutClient cId connections) state)
 
-nextId :: ClientConnections conn -> ConnectionId
-nextId = fromMaybe 0 . map (+1) . maximumMay . map connectionId
+
+-- TODO: instance MonoFoldable & MonoTraversable for ClientConnections

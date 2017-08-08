@@ -27,7 +27,7 @@ handle client stateVar msg = do
         Action_ action -> do
             (newState, updateResult) <- atomically $ updateGameAtomically stateVar action
             case updateResult of
-                Right newGameState -> sendGameViews newGameState (connections newState)
+                Right newGameState -> sendGameViews newGameState $ stateConnections newState
                 Left gameError -> do
                     sendSendableMsg client gameError
                     putStrLn $ "invalid action " ++ tshow gameError
@@ -56,9 +56,11 @@ sendGameViews :: IsConnection conn => GameState -> ClientConnections conn -> IO 
 sendGameViews (GameRunning_ game) conn = do
     let (rogueGameView, catcherGameView) = Game.getViews game
     multicastMsg (withoutClient 0 conn) catcherGameView
+    -- TODO: implement MonoTraversable for ClientConnections
     whenJust (findConnectionById 0 conn) (`sendSendableMsg` rogueGameView)
 sendGameViews (GameOver_ game) conn =
     multicastMsg conn $ Game.getGameOverView game
+    -- TODO: implement MonoTraversable for ClientConnections
 
 
 initialInfoForClient :: GameConfig -> ConnectionId -> InitialInfoForClient
