@@ -220,18 +220,18 @@ jsonEncNetworkOverlay  val =
 
 
 type alias Player  =
-   { playerId: Int
+   { playerName: String
    }
 
 jsonDecPlayer : Json.Decode.Decoder ( Player )
 jsonDecPlayer =
-   ("playerId" := Json.Decode.int) >>= \pplayerId ->
-   Json.Decode.succeed {playerId = pplayerId}
+   ("playerName" := Json.Decode.string) >>= \pplayerName ->
+   Json.Decode.succeed {playerName = pplayerName}
 
 jsonEncPlayer : Player -> Value
 jsonEncPlayer  val =
    Json.Encode.object
-   [ ("playerId", Json.Encode.int val.playerId)
+   [ ("playerName", Json.Encode.string val.playerName)
    ]
 
 
@@ -324,10 +324,10 @@ jsonEncOpenRogueHistory  val =
 
 
 type GameError  =
-    NotTurn 
+    NotTurn Player
     | PlayerNotFound Player
     | EnergyNotFound Energy
-    | NotReachable 
+    | NotReachable Node Energy Node
     | NodeBlocked Player
     | NotEnoughEnergy 
     | GameIsOver 
@@ -335,10 +335,10 @@ type GameError  =
 jsonDecGameError : Json.Decode.Decoder ( GameError )
 jsonDecGameError =
     let jsonDecDictGameError = Dict.fromList
-            [ ("NotTurn", Json.Decode.succeed NotTurn)
+            [ ("NotTurn", Json.Decode.map NotTurn (jsonDecPlayer))
             , ("PlayerNotFound", Json.Decode.map PlayerNotFound (jsonDecPlayer))
             , ("EnergyNotFound", Json.Decode.map EnergyNotFound (jsonDecEnergy))
-            , ("NotReachable", Json.Decode.succeed NotReachable)
+            , ("NotReachable", Json.Decode.map3 NotReachable (Json.Decode.index 0 (jsonDecNode)) (Json.Decode.index 1 (jsonDecEnergy)) (Json.Decode.index 2 (jsonDecNode)))
             , ("NodeBlocked", Json.Decode.map NodeBlocked (jsonDecPlayer))
             , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
             , ("GameIsOver", Json.Decode.succeed GameIsOver)
@@ -348,10 +348,10 @@ jsonDecGameError =
 jsonEncGameError : GameError -> Value
 jsonEncGameError  val =
     let keyval v = case v of
-                    NotTurn  -> ("NotTurn", encodeValue (Json.Encode.list []))
+                    NotTurn v1 -> ("NotTurn", encodeValue (jsonEncPlayer v1))
                     PlayerNotFound v1 -> ("PlayerNotFound", encodeValue (jsonEncPlayer v1))
                     EnergyNotFound v1 -> ("EnergyNotFound", encodeValue (jsonEncEnergy v1))
-                    NotReachable  -> ("NotReachable", encodeValue (Json.Encode.list []))
+                    NotReachable v1 v2 v3 -> ("NotReachable", encodeValue (Json.Encode.list [jsonEncNode v1, jsonEncEnergy v2, jsonEncNode v3]))
                     NodeBlocked v1 -> ("NodeBlocked", encodeValue (jsonEncPlayer v1))
                     NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
                     GameIsOver  -> ("GameIsOver", encodeValue (Json.Encode.list []))
@@ -383,64 +383,91 @@ jsonEncGameOverView  val =
 
 
 type alias InitialInfoForClient  =
-   { initialPlayer: Player
-   , networkForGame: Network
+   { networkForGame: Network
    , initialGameView: GameView
+   , initialPlayer: Player
    }
 
 jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
 jsonDecInitialInfoForClient =
-   ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
    ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
-   Json.Decode.succeed {initialPlayer = pinitialPlayer, networkForGame = pnetworkForGame, initialGameView = pinitialGameView}
+   ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
+   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer}
 
 jsonEncInitialInfoForClient : InitialInfoForClient -> Value
 jsonEncInitialInfoForClient  val =
    Json.Encode.object
-   [ ("initialPlayer", jsonEncPlayer val.initialPlayer)
-   , ("networkForGame", jsonEncNetwork val.networkForGame)
+   [ ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
+   , ("initialPlayer", jsonEncPlayer val.initialPlayer)
    ]
 
 
 
 type MessageForServer  =
     Action_ Action
+    | Login_ Login
 
 jsonDecMessageForServer : Json.Decode.Decoder ( MessageForServer )
 jsonDecMessageForServer =
-    Json.Decode.map Action_ (jsonDecAction)
-
+    let jsonDecDictMessageForServer = Dict.fromList
+            [ ("Action_", Json.Decode.map Action_ (jsonDecAction))
+            , ("Login_", Json.Decode.map Login_ (jsonDecLogin))
+            ]
+    in  decodeSumObjectWithSingleField  "MessageForServer" jsonDecDictMessageForServer
 
 jsonEncMessageForServer : MessageForServer -> Value
-jsonEncMessageForServer (Action_ v1) =
-    jsonEncAction v1
+jsonEncMessageForServer  val =
+    let keyval v = case v of
+                    Action_ v1 -> ("Action_", encodeValue (jsonEncAction v1))
+                    Login_ v1 -> ("Login_", encodeValue (jsonEncLogin v1))
+    in encodeSumObjectWithSingleField keyval val
 
 
 
 type MessageForClient  =
-    GameView_ GameView
+    ServerHello 
+    | InitialInfoForClient_ InitialInfoForClient
+    | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
-    | InitialInfoForClient_ InitialInfoForClient
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
-            [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
+            [ ("ServerHello", Json.Decode.succeed ServerHello)
+            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
+            , ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
-            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
 jsonEncMessageForClient : MessageForClient -> Value
 jsonEncMessageForClient  val =
     let keyval v = case v of
+                    ServerHello  -> ("ServerHello", encodeValue (Json.Encode.list []))
+                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
                     GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
-                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
     in encodeSumObjectWithSingleField keyval val
+
+
+
+type alias Login  =
+   { loginPlayer: Player
+   }
+
+jsonDecLogin : Json.Decode.Decoder ( Login )
+jsonDecLogin =
+   ("loginPlayer" := jsonDecPlayer) >>= \ploginPlayer ->
+   Json.Decode.succeed {loginPlayer = ploginPlayer}
+
+jsonEncLogin : Login -> Value
+jsonEncLogin  val =
+   Json.Encode.object
+   [ ("loginPlayer", jsonEncPlayer val.loginPlayer)
+   ]
 

@@ -20,7 +20,7 @@ library
                      , Network.ElmDerive
                      , Config.Network
                      , Config.GameConfig
-                     , App.WsApp
+                     , App.App
                      , App.State
                      , App.ConnectionMgnt
                      , TH.MonoDerive

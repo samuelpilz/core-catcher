@@ -34,8 +34,29 @@ init flags =
 
 view : ClientState -> Html Msg
 view state =
+    case state of
+        PreGame_ preGame ->
+            preGameView preGame
+
+        GameState_ gameState ->
+            gameView gameState
+
+
+preGameView : PreGame -> Html Msg
+preGameView state =
     div []
-        [ h1 [] [ text <| "Core catcher (Player " ++ toString state.player.playerId ++ ")" ]
+        [ h1 [] [ text <| "Core catcher" ]
+        , Html.form [ onSubmit (DoLogin { loginPlayer = { playerName = state.playerNameField } }) ]
+            [ input [ placeholder "Username", onInput PlayerNameChange ] []
+            , button [ type_ "submit" ] [ text "Login" ]
+            ]
+        ]
+
+
+gameView : GameState -> Html Msg
+gameView state =
+    div []
+        [ h1 [] [ text <| "Core catcher " ++ state.player.playerName ++ "" ]
         , mapView state.network displayInfo state
         , energyView state.network displayInfo state
         ]
@@ -48,11 +69,7 @@ wsUrl server =
 
 subscriptions : ClientState -> Sub Msg
 subscriptions state =
-    WebSocket.listen (wsUrl state.server) receivedStringToMsg
-
-
-
---|
+    WebSocket.listen (wsUrl <| getServer state) receivedStringToMsg
 
 
 receivedStringToMsg : String -> Msg
@@ -62,64 +79,100 @@ receivedStringToMsg s =
             MsgFromServer msg
 
         Err err ->
+            -- TODO: popup for that?
+            -- TODO: handle json error?
             log2 "error" err None
-
-
-
--- TODO: popup for that?
--- TODO: handle json error?
 
 
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
-    case log "msg" msg of
-        Clicked n ->
-            { state | gameError = Nothing }
-                ! [ WebSocket.send (wsUrl state.server)
-                        << log "send"
-                    <|
-                        jsonActionOfNode state n
+    case ( log "msg" msg, state ) of
+        ( Clicked n, GameState_ state ) ->
+            GameState_ { state | gameError = Nothing }
+                ! [ send state.server <| msgForActionOfNode state n
                   ]
 
-        MsgFromServer msg ->
+        ( MsgFromServer msg, GameState_ state ) ->
             case msg of
                 GameView_ gameView ->
-                    { state
-                        | playerPositions = playerPositions gameView
-                        , playerEnergies = playerEnergies gameView
-                        , rogueHistory = rogueHistory gameView
-                    }
+                    GameState_
+                        { state
+                            | playerPositions = playerPositions gameView
+                            , playerEnergies = playerEnergies gameView
+                            , rogueHistory = rogueHistory gameView
+                        }
                         ! []
 
                 InitialInfoForClient_ initInfo ->
-                    { state
-                        | playerPositions = playerPositions initInfo.initialGameView
-                        , playerEnergies = playerEnergies <| initInfo.initialGameView
-                        , rogueHistory = rogueHistory <| initInfo.initialGameView
-                        , player = initInfo.initialPlayer
-                        , network = initInfo.networkForGame
-                        , gameOver = False
-                    }
+                    GameState_
+                        { state
+                            | playerPositions = playerPositions initInfo.initialGameView
+                            , playerEnergies = playerEnergies <| initInfo.initialGameView
+                            , rogueHistory = rogueHistory <| initInfo.initialGameView
+                            , network = initInfo.networkForGame
+                            , gameOver = False
+                        }
                         ! []
 
                 GameError_ err ->
-                    { state | gameError = Just err } ! []
+                    GameState_ { state | gameError = Just err } ! []
 
                 GameOverView_ gameOver ->
-                    { state
-                        | gameOver = True
-                        , playerPositions = gameOver.gameOverViewPlayerPositions
-                        , playerEnergies = gameOver.gameOverViewPlayerEnergies
+                    GameState_
+                        { state
+                            | gameOver = True
+                            , playerPositions = gameOver.gameOverViewPlayerPositions
+                            , playerEnergies = gameOver.gameOverViewPlayerEnergies
 
-                        --, rogueHistory = gameOver.gameOverViewRogueHistory
-                        -- TODO: openRougeHistory
-                    }
+                            --, rogueHistory = gameOver.gameOverViewRogueHistory
+                            -- TODO: openRougeHistory
+                        }
                         ! []
 
-        SelectEnergy energy ->
-            { state | selectedEnergy = energy } ! []
+                ServerHello ->
+                    -- reconnect upon ServerHello
+                    -- TODO: implement, also for other state-objects
+                    GameState_ state
+                        ! [ send state.server <|
+                                Login_
+                                    { loginPlayer =
+                                        { playerName = state.player.playerName }
+                                    }
+                          ]
 
-        None ->
+        ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
+            GameState_
+                { playerPositions = playerPositions initInfo.initialGameView
+                , playerEnergies = playerEnergies <| initInfo.initialGameView
+                , rogueHistory = rogueHistory <| initInfo.initialGameView
+                , network = initInfo.networkForGame
+                , selectedEnergy = Orange
+                , gameError = Nothing
+                , gameOver = False
+                , server = preGame.server
+                , player = initInfo.initialPlayer
+                }
+                ! []
+
+        ( SelectEnergy energy, GameState_ state ) ->
+            GameState_ { state | selectedEnergy = energy } ! []
+
+        ( None, state ) ->
+            state ! []
+
+        ( PlayerNameChange newPlayerName, PreGame_ state ) ->
+            PreGame_ { state | playerNameField = newPlayerName } ! []
+
+        ( DoLogin login, PreGame_ state ) ->
+            PreGame_ state
+                ! [ send state.server <|
+                        Login_
+                            { loginPlayer =
+                                { playerName = state.playerNameField }
+                            }
+                  ]
+
+        ( _, state ) ->
             state ! []
 
 
@@ -129,16 +182,23 @@ update msg state =
 
 initialState : Flags -> ClientState
 initialState flags =
-    { playerPositions = { playerPositions = EveryDict.empty }
-    , playerEnergies = { playerEnergies = EveryDict.empty }
-    , rogueHistory = { rogueHistory = [] }
-    , network = emptyNetwork
-    , player = { playerId = 0 }
-    , selectedEnergy = Orange
-    , server = flags.server
-    , gameError = Nothing
-    , gameOver = False
-    }
+    PreGame_
+        { server = flags.server
+        , playerNameField = ""
+        }
+
+
+
+--    { playerPositions = { playerPositions = EveryDict.empty }
+--    , playerEnergies = { playerEnergies = EveryDict.empty }
+--    , rogueHistory = { rogueHistory = [] }
+--    , network = emptyNetwork
+--    , player = { playerName = "Alice" }
+--    , selectedEnergy = Orange
+--    , server = flags.server
+--    , gameError = Nothing
+--    , gameOver = False
+--    }
 
 
 displayInfo : GameViewDisplayInfo
@@ -146,11 +206,18 @@ displayInfo =
     Example.displayInfo
 
 
-jsonActionOfNode : ClientState -> Node -> String
-jsonActionOfNode state n =
-    encode 0
-        << jsonEncAction
+send : String -> MessageForServer -> Cmd a
+send server msg =
+    WebSocket.send (wsUrl server)
+        << encode 0
+        << jsonEncMessageForServer
     <|
+        log "ws-send" msg
+
+
+msgForActionOfNode : GameState -> Node -> MessageForServer
+msgForActionOfNode state n =
+    Action_
         { actionPlayer = state.player
         , actionEnergy = state.selectedEnergy
         , actionNode = n

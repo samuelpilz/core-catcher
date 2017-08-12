@@ -62,7 +62,7 @@ type alias NodeXyMap =
 
 
 type alias PlayerColorMap =
-    AllDict Player Color Int
+    AllDict Player Color String
 
 
 {-| An object that contains all information needed to display a network.

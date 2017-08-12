@@ -18,7 +18,7 @@ import Debug exposing (log)
 -- TODO: css style with css-library?
 
 
-mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
+mapView : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
 mapView network displayInfo clientState =
     svg
         [ height << toString <| displayInfo.mapHeight

@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-{- |Implementation of a connection using Websockets.
+{- |Implementation of a connection using WebSockets.
 -}
 module WsConnection (WsConnection(..)) where
 
@@ -23,5 +23,5 @@ instance IsConnection WsConnection where
         wsData <- WS.receiveData conn
         return $ Aeson.decode wsData
 
-    acceptRequest pending =
-        WsConnection `map` WS.acceptRequest pending
+    acceptRequest =
+        map WsConnection . WS.acceptRequest

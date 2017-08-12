@@ -23,12 +23,12 @@ This module provides data-types that are sent to game-clients and bots as messag
 This class is a semantic protocol definition. The data-types are sent in json format.
 -}
 
--- |Players and Nodes are Ints (=Ids). The rouge-player has id 0
+-- |Players have names
 newtype Player =
-    Player { playerId :: Int }
+    Player { playerName :: Text }
     deriving (Show, Read, Eq, Ord, Generic)
 
--- |Node representation
+-- |Nodes are ints (ids) representation
 newtype Node =
     Node { nodeId :: Int }
     deriving (Show, Read, Eq, Ord, Generic)
@@ -42,7 +42,7 @@ newtype Edge =
 data Energy = Red | Blue | Orange
     deriving (Show, Read, Eq, Ord, Generic, Enum, Bounded)
 
-{- |A engergy-map is keeps track how much energy per energy a player has left.
+{- |An energy-map keeps track how much energy per energy a player has left.
 -}
 newtype EnergyMap =
     EnergyMap
@@ -52,10 +52,10 @@ newtype EnergyMap =
 
 -- |A GameError is a enum of possible errors
 data GameError
-    = NotTurn
+    = NotTurn Player
     | PlayerNotFound Player
     | EnergyNotFound Energy
-    | NotReachable
+    | NotReachable Node Energy Node
     | NodeBlocked Player
     | NotEnoughEnergy
     | GameIsOver
@@ -199,26 +199,34 @@ data NetworkOverlay =
         }
         deriving (Show, Read, Eq, Generic)
 
-{- | InitialDataForClient the initial info the client gets
+{- | InitialDataForClient the initial info the client gets after login
 
--}
+-}-- TODO: support login when game-over
 data InitialInfoForClient =
     InitialInfoForClient
-        { initialPlayer   :: Player
-        , networkForGame  :: Network
+        { networkForGame  :: Network
         , initialGameView :: GameView
+        , initialPlayer   :: Player
         }
         deriving (Show, Read, Eq, Generic)
 
-data MessageForServer =
-    Action_ Action
+newtype Login =
+    Login
+        { loginPlayer :: Player
+        }
+    deriving (Show, Read, Eq, Generic)
+
+data MessageForServer
+    = Action_ Action
+    | Login_ Login
     deriving (Show, Read, Eq, Generic)
 
 data MessageForClient
-    = GameView_ GameView
+    = ServerHello
+    | InitialInfoForClient_ InitialInfoForClient
+    | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
-    | InitialInfoForClient_ InitialInfoForClient
     deriving (Show, Read, Eq, Generic)
 
 class SendableToClient msg where
@@ -250,7 +258,10 @@ instance ToJSONKey Player where
 
 instance ToJSONKey Energy where
 
-instance Arbitrary Player  where
+instance Arbitrary Text where
+    arbitrary = pack <$> arbitrary
+
+instance Arbitrary Player where
     arbitrary =
         Player <$> arbitrary
 
@@ -341,6 +352,7 @@ deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''GameOverView
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
+deriveBoth Elm.Derive.defaultOptions ''Login
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 

@@ -15,7 +15,7 @@ import Maybe exposing (..)
 import Tuple as Tuple
 
 
-energyView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
+energyView : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
 energyView _ displayInfo clientState =
     svg
         [ height (toString displayInfo.mapHeight)

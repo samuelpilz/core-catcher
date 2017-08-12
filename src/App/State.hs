@@ -11,11 +11,13 @@ module App.State
 import           App.ConnectionMgnt
 import           ClassyPrelude
 import           GameNg             (GameState)
+import           Network.Protocol   (Player)
 
 data ServerState conn =
     ServerState
         { stateConnections :: ClientConnections conn
         , gameState        :: GameState
+        , playerMap        :: Map Player ConnectionId
         }
 
 instance IsConnection conn => HasConnections (ServerState conn) where

@@ -34,4 +34,5 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy InitialInfoForClient)
             , DefineElm (Proxy :: Proxy MessageForServer)
             , DefineElm (Proxy :: Proxy MessageForClient)
+            , DefineElm (Proxy :: Proxy Login)
             ]

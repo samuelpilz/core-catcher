@@ -63,16 +63,6 @@ emptyNetwork : Network
 emptyNetwork =
     { nodes = [], overlays = EveryDict.empty }
 
-
-emptyRogueView : RogueGameView
-emptyRogueView =
-    { roguePlayerPositions = { playerPositions = EveryDict.empty }
-    , rogueEnergies = { playerEnergies = EveryDict.empty }
-    , rogueOwnHistory = { rogueHistory = [] }
-    , rogueNextPlayer = { playerId = 0 }
-    }
-
-
 energyId : Energy -> Int
 energyId e =
     case e of

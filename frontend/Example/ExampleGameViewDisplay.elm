@@ -83,9 +83,9 @@ nodeXyMap =
 playerColorMap : PlayerColorMap
 playerColorMap =
     AllDict.fromList
-        .playerId
-        [ ( { playerId = 0 }, "#4444ff" )
-        , ( { playerId = 1 }, "red" )
-        , ( { playerId = 2 }, "green" )
-        , ( { playerId = 3 }, "yellow" )
+        .playerName
+        [ ( { playerName = "Alice" }, "#4444ff" )
+        , ( { playerName = "Bob" }, "red" )
+        , ( { playerName = "Charlie" }, "green" )
+--        , ( { playerId = 3 }, "yellow" )
         ]

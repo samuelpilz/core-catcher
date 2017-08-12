@@ -20,7 +20,7 @@ import           Test.HUnit.Base
 -- (@?=) = assertEqual
 test_defaultInitialStateHasStartingPlayer0 :: IO ()
 test_defaultInitialStateHasStartingPlayer0 =
-    Player 0 @?= (gameRunningNextPlayer . initialState $ defaultConfig)
+    alice @?= (headEx . gameRunningNextPlayers . initialState $ defaultConfig)
 
 test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory = do
@@ -35,14 +35,14 @@ test_player0ValidMove_playerPositionUpdated =
         assertions
     where
         moves =
-            [ Move (Player 0) Red (Node 6)
+            [ Move alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
-            Just (Node 6) @?= lookup (Player 0) gameRunningPlayerPositions
+            Just (Node 6) @?= lookup alice gameRunningPlayerPositions
 
 test_player0ValidMove_energyDrained :: IO ()
 test_player0ValidMove_energyDrained =
@@ -52,7 +52,7 @@ test_player0ValidMove_energyDrained =
         assertions
     where
         moves =
-            [ Move (Player 0) Red (Node 6)
+            [ Move alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -62,7 +62,7 @@ test_player0ValidMove_energyDrained =
             Just 1 @?= remainingEnergy game
 
         remainingEnergy GameRunning {gameRunningPlayerEnergies} = do -- maybe monad
-            eMap <- lookup (Player 0) gameRunningPlayerEnergies
+            eMap <- lookup alice gameRunningPlayerEnergies
             lookup Red eMap
 
 
@@ -74,7 +74,7 @@ test_player0ValidMove_historyUpdated =
         assertions
     where
         moves =
-            [ Move (Player 0) Red (Node 6)
+            [ Move alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -93,7 +93,7 @@ test_player0ValidMove_historyUpdatedWithShow =
     where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move (Player 0) Red (Node 6)
+            [ Move alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -112,7 +112,7 @@ test_player0ValidMove_historyUpdate =
             assertions
     where
         moves =
-            [ Move (Player 0) Red (Node 6) ]
+            [ Move alice Red (Node 6) ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
@@ -129,8 +129,8 @@ test_player1ValidMove_historyNotUpdated =
             assertions
     where
         moves =
-            [ Move (Player 0) Red (Node 6)
-            , Move (Player 1) Blue (Node 3)
+            [ Move alice Red (Node 6)
+            , Move bob Blue (Node 3)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -148,8 +148,8 @@ test_notPlayer1Turn =
         moves
         assertions
     where
-        moves = [ Move (Player 1) Orange (Node 5) ]
-        assertions (Left err) = NotTurn @?= err
+        moves = [ Move bob Orange (Node 5) ]
+        assertions (Left err) = NotTurn alice @?= err
         assertions (Right _) = assertFailure "should not be player 1's turn"
 
 -- game over tests
@@ -163,16 +163,16 @@ test_rogueCaught_gameOverWinningPlayer1 =
     where
         config = defaultConfig
             { initialPlayerPositions =
-                insertMap (Player 1) (Node 3) $ initialPlayerPositions defaultConfig
+                insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move (Player 0) Red (Node 6)
-            , Move (Player 1) Orange (Node 6)
+            [ Move alice Red (Node 6)
+            , Move bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
-            Player 1 @?= gameOverWinningPlayer
+            bob @?= gameOverWinningPlayer
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -184,11 +184,11 @@ test_rogueWins_gameOverWinningPlayer0 =
         assertions
     where
         config = defaultConfig { maxRounds = 0 }
-        moves = [ Move (Player 0) Red (Node 6) ]
+        moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
-            Player 0 @?= gameOverWinningPlayer
+            alice @?= gameOverWinningPlayer
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -201,19 +201,19 @@ test_getGameOverView_sameConfigAndSamePositionsAndEnergies =
     where
         config = defaultConfig
             { initialPlayerPositions =
-                insertMap (Player 1) (Node 3) $ initialPlayerPositions defaultConfig
+                insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move (Player 0) Red (Node 6)
-            , Move (Player 1) Orange (Node 6)
+            [ Move alice Red (Node 6)
+            , Move bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver
             {gameOverGameConfig, gameOverPlayerPositions, gameOverPlayerEnergies})) = do
-            Just (Node 6) @?= lookup (Player 0) gameOverPlayerPositions
-            Just (Node 6) @?= lookup (Player 1) gameOverPlayerPositions
-            Just 1 @?= (join . map (lookup Red) . lookup (Player 0) $ gameOverPlayerEnergies)
+            Just (Node 6) @?= lookup alice gameOverPlayerPositions
+            Just (Node 6) @?= lookup bob gameOverPlayerPositions
+            Just 1 @?= (join . map (lookup Red) . lookup alice $ gameOverPlayerEnergies)
             config @?= gameOverGameConfig
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
@@ -227,11 +227,11 @@ test_getGameOverView_openRogueHistory =
     where
         config = defaultConfig
             { initialPlayerPositions =
-                insertMap (Player 1) (Node 3) $ initialPlayerPositions defaultConfig
+                insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move (Player 0) Red (Node 6)
-            , Move (Player 1) Orange (Node 6)
+            [ Move alice Red (Node 6)
+            , Move bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -251,9 +251,9 @@ test_playerNotFoundInPositions =
     where
         config = defaultConfig
             { initialPlayerPositions = mempty }
-        moves = [ Move (Player 0) Red (Node 6) ]
+        moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            PlayerNotFound (Player 0) @?= err
+            PlayerNotFound alice @?= err
         assertions (Right _) =
             assertFailure "should not find player"
 
@@ -266,9 +266,9 @@ test_playerNotFoundInEnergies =
     where
         config = defaultConfig
             { initialPlayerEnergies = mempty }
-        moves = [ Move (Player 0) Red (Node 6) ]
+        moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            PlayerNotFound (Player 0) @?= err
+            PlayerNotFound alice @?= err
         assertions (Right _) =
             assertFailure "should not find player"
 
@@ -281,8 +281,8 @@ test_energyNotFound =
         assertions
     where
         config = defaultConfig
-            { initialPlayerEnergies = singletonMap (Player 0) mempty }
-        moves = [ Move (Player 0) Red (Node 6) ]
+            { initialPlayerEnergies = singletonMap alice mempty }
+        moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
             EnergyNotFound Red @?= err
         assertions (Right _) =
@@ -295,9 +295,9 @@ test_cannotMoveTo =
         moves
         assertions
     where
-        moves = [ Move (Player 0) Orange (Node 1) ]
+        moves = [ Move alice Orange (Node 13) ]
         assertions (Left err) =
-            NotReachable @?= err
+            NotReachable (Node 1) Orange (Node 13) @?= err
         assertions (Right _) =
             assertFailure "should not be allowed to move"
 
@@ -311,11 +311,11 @@ test_noEnergyLeft =
         config =
             defaultConfig
                 { initialPlayerEnergies =
-                    updateMap (Just . insertMap Red 0) (Player 0) .
+                    updateMap (Just . insertMap Red 0) alice .
                     initialPlayerEnergies $ defaultConfig
                 }
         moves =
-            [ Move (Player 0) Red (Node 6) ]
+            [ Move alice Red (Node 6) ]
         assertions (Left err) =
             NotEnoughEnergy @?= err
         assertions (Right _) =
@@ -331,13 +331,13 @@ test_nodeBlocked =
         config =
             defaultConfig
                 { initialPlayerPositions =
-                    insertMap (Player 3) (Node 15) . initialPlayerPositions $ defaultConfig
-                , firstPlayer = Player 1
+                    insertMap charlie (Node 15) . initialPlayerPositions $ defaultConfig
                 }
         moves =
-            [ Move (Player 1) Blue (Node 15) ]
+            [ Move alice Red (Node 6) -- mandatory first move from rogue
+            , Move bob Blue (Node 15) ]
         assertions (Left err) =
-            NodeBlocked (Player 3) @?= err
+            NodeBlocked charlie @?= err
         assertions (Right _) =
             assertFailure "should not allow move to blocked node"
 
@@ -351,12 +351,12 @@ test_nodeBlockedForRogue =
         config =
             defaultConfig
                 { initialPlayerPositions =
-                    insertMap (Player 1) (Node 6) . initialPlayerPositions $ defaultConfig
+                    insertMap bob (Node 6) . initialPlayerPositions $ defaultConfig
                 }
         moves =
-            [ Move (Player 0) Red (Node 6) ]
+            [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            NodeBlocked (Player 1) @?= err
+            NodeBlocked bob @?= err
         assertions (Right _) =
             assertFailure "should not allow move to blocked node"
 
@@ -369,13 +369,13 @@ test_getViews_rogueViewEqualToFieldInGameState = do
     roguePlayerPositions rogueView @?= gameRunningPlayerPositions game
     rogueEnergies rogueView @?= gameRunningPlayerEnergies game
     rogueOwnHistory rogueView @?= gameRunningRogueHistory game
-    rogueNextPlayer rogueView @?= gameRunningNextPlayer game
+    rogueNextPlayer rogueView @?= headEx (gameRunningNextPlayers game)
 
 
 test_getViews_catcherViewDoesNotContainRogue :: IO ()
 test_getViews_catcherViewDoesNotContainRogue = do
     let (_, catcherView) = getViews $ initialState defaultConfig
-    Nothing @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+    Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
 
 test_getViews_someFieldsEqualToGameState :: IO ()
@@ -384,13 +384,13 @@ test_getViews_someFieldsEqualToGameState = do
     let (_, catcherView) = getViews game
     catcherEnergies catcherView @?= gameRunningPlayerEnergies game
     catcherRogueHistory catcherView @?= gameRunningRogueHistory game
-    catcherNextPlayer catcherView @?= gameRunningNextPlayer game
+    catcherNextPlayer catcherView @?= headEx (gameRunningNextPlayers game)
 
 
 test_getViews_rogueHiddenInCatcherView :: IO ()
 test_getViews_rogueHiddenInCatcherView = do
     let (_, catcherView) = getViews $ initialState defaultConfig
-    Nothing @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+    Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
 
 test_getViews_rogueShownAtCurrentPositionInCatcherView :: IO ()
@@ -402,7 +402,7 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
     where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move (Player 0) Red (Node 6)
+            [ Move alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -410,7 +410,7 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
-            Just (Node 6) @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+            Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
 test_getViews_rogueShownAtLastPositionInCatcherView :: IO ()
 test_getViews_rogueShownAtLastPositionInCatcherView =
@@ -421,11 +421,10 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
    where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move (Player 0) Red (Node 6)
-            , Move (Player 1) Blue (Node 3)
-            , Move (Player 2) Orange (Node 5)
-            , Move (Player 3) Orange (Node 13)
-            , Move (Player 0) Orange (Node 11)
+            [ Move alice Red (Node 6)
+            , Move bob Blue (Node 3)
+            , Move charlie Orange (Node 13)
+            , Move alice Orange (Node 11)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -433,9 +432,8 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
-            Just (Node 6) @?= (lookup (Player 0) . catcherPlayerPositions $ catcherView)
+            Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
--- TODO: move above views
 test_gameRound :: IO ()
 test_gameRound =
     gameNgTestCase
@@ -444,10 +442,9 @@ test_gameRound =
         assertions
     where
         moves =
-            [ Move (Player 0) Orange (Node 11)
-            , Move (Player 1) Blue (Node 3)
-            , Move (Player 2) Orange (Node 5)
-            , Move (Player 3) Orange (Node 13)
+            [ Move alice Orange (Node 11)
+            , Move bob Blue (Node 3)
+            , Move charlie Orange (Node 13)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -456,18 +453,16 @@ test_gameRound =
         assertions (Right
             (GameRunning_ GameRunning
                 { gameRunningPlayerPositions
-                , gameRunningNextPlayer
+                , gameRunningNextPlayers
                 }))
             = do
             Just (Node 11) @?=
-                (lookup (Player 0) . playerPositions $ gameRunningPlayerPositions)
+                (lookup alice . playerPositions $ gameRunningPlayerPositions)
             Just (Node 3) @?=
-                (lookup (Player 1) . playerPositions $ gameRunningPlayerPositions)
-            Just (Node 5) @?=
-                (lookup (Player 2) . playerPositions $ gameRunningPlayerPositions)
+                (lookup bob . playerPositions $ gameRunningPlayerPositions)
             Just (Node 13) @?=
-                (lookup (Player 3) . playerPositions $ gameRunningPlayerPositions)
-            Player 0 @?= gameRunningNextPlayer
+                (lookup charlie . playerPositions $ gameRunningPlayerPositions)
+            alice @?= headEx gameRunningNextPlayers
 
 {- |Function for testing the gameNg.
 
@@ -483,3 +478,12 @@ gameNgTestCase config  moves assertions =
             (flip updateState)
             (GameRunning_ $ initialState config)
             moves
+
+alice :: Player
+alice = Player "Alice"
+
+bob :: Player
+bob = Player "Bob"
+
+charlie :: Player
+charlie = Player "Charlie"

@@ -13,12 +13,14 @@ module GameNg
     , gameRunningRogueHistory
     , getGameOverView
     , gameNetwork
+    , gameConfig
     ) where
 
 import           ClassyPrelude
 import           Config.GameConfig
 import           Control.Monad.Extra (whenJust)
 import           Data.Easy           (ifToMaybe, maybeToEither)
+import           Data.List           (cycle)
 import           Network.Protocol
 
 data GameState = GameRunning_ GameRunning | GameOver_ GameOver
@@ -28,7 +30,7 @@ data GameRunning = GameRunning
         , gameRunningPlayerPositions  :: PlayerPositions
         , gameRunningPlayerEnergies   :: PlayerEnergies
         , gameRunningOpenRogueHistory :: OpenRogueHistory
-        , gameRunningNextPlayer       :: Player
+        , gameRunningNextPlayers      :: [Player]
         }
     deriving (Eq, Show, Read)
 
@@ -55,7 +57,7 @@ initialState config =
         (initialPlayerPositions config)
         (initialPlayerEnergies config)
         (OpenRogueHistory [])
-        (firstPlayer config)
+        (cycle . toList . players $ config)
 
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
 updateState :: Action -> GameState -> Either GameError GameState
@@ -68,37 +70,48 @@ actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOv
 actionForGameRunning
     Move { actionPlayer, actionEnergy, actionNode }
     state@GameRunning
-        { gameRunningGameConfig
+        { gameRunningGameConfig =
+            gameRunningGameConfig@GameConfig
+                { network
+                , rogueShowsAt
+                , maxRounds
+                }
         , gameRunningPlayerPositions
         , gameRunningPlayerEnergies
         , gameRunningOpenRogueHistory
-        , gameRunningNextPlayer
+        , gameRunningNextPlayers
         }
     = do
-    unless (actionPlayer == gameRunningNextPlayer) $ Left NotTurn
+    let roguePlayer = getRogue gameRunningGameConfig
+    let nextPlayer = headEx gameRunningNextPlayers
+    let otherNextPlayers = tailEx gameRunningNextPlayers
+
+    unless (actionPlayer == nextPlayer) . Left $ NotTurn nextPlayer
 
     previousNode <-
         maybeToEither (PlayerNotFound actionPlayer) .
         lookup actionPlayer $
         gameRunningPlayerPositions
 
+    unless (canMoveBetween network previousNode actionEnergy actionNode) .
+        Left $ NotReachable previousNode actionEnergy actionNode
+
     newPlayerEnergies <-
         nextPlayerEnergies gameRunningPlayerEnergies actionPlayer actionEnergy
 
-    unless (canMoveBetween (network gameRunningGameConfig) previousNode actionEnergy actionNode) .
-        Left $ NotReachable
 
-    whenJust (isBlocked gameRunningPlayerPositions actionNode) $ Left . NodeBlocked
+    whenJust
+        (isBlocked gameRunningPlayerPositions roguePlayer actionNode)
+        $ Left . NodeBlocked
 
-    let newNextPlayer = Player $
-            (playerId actionPlayer + 1) `mod` length (players gameRunningGameConfig)
+    let newNextPlayers = otherNextPlayers -- TODO: implement skipping
 
     let newRogueHistory =
-            if playerId actionPlayer == 0
+            if actionPlayer == roguePlayer
                 then
                     (actionEnergy
                     , actionNode
-                    , length gameRunningOpenRogueHistory `elem` rogueShowsAt gameRunningGameConfig
+                    , length gameRunningOpenRogueHistory `elem` rogueShowsAt
                     ) `cons`
                     gameRunningOpenRogueHistory
                 else gameRunningOpenRogueHistory
@@ -107,19 +120,19 @@ actionForGameRunning
 
     -- game over checking
     roguePosition <-
-        maybeToEither (PlayerNotFound $ Player 0) .
-        lookup (Player 0) $
+        maybeToEither (PlayerNotFound roguePlayer) .
+        lookup roguePlayer $
         newPlayerPositions
     let rogueWonMay = do -- maybe monad
-            unless (actionPlayer == Player 0) Nothing
+            unless (actionPlayer == roguePlayer) Nothing
             -- TODO: not necessary because checked implicitly
-            unless (length gameRunningOpenRogueHistory == maxRounds gameRunningGameConfig) Nothing
-            return $ Player 0
+            unless (length gameRunningOpenRogueHistory == maxRounds) Nothing
+            return roguePlayer
     let playerCaughtMay = do -- maybe monad
-            when (actionPlayer == Player 0) Nothing
+            when (actionPlayer == roguePlayer) Nothing
             -- TODO: not necessary because checked implicitly
             map fst .
-                find (\(p,n) -> p /= Player 0 && n == roguePosition) .
+                find (\(p,n) -> p /= roguePlayer && n == roguePosition) .
                 mapToList $
                 newPlayerPositions
     let winningPlayerMay = rogueWonMay <|> playerCaughtMay
@@ -138,7 +151,7 @@ actionForGameRunning
                 { gameRunningPlayerPositions = newPlayerPositions
                 , gameRunningPlayerEnergies = newPlayerEnergies
                 , gameRunningOpenRogueHistory = newRogueHistory
-                , gameRunningNextPlayer = newNextPlayer
+                , gameRunningNextPlayers = newNextPlayers
                 }
 
 canMoveBetween :: Network -> Node -> Energy -> Node -> Bool
@@ -156,10 +169,10 @@ canMoveBetween net from energy to =
             Nothing
 
 
-isBlocked :: PlayerPositions -> Node -> Maybe Player
-isBlocked pos node =
+isBlocked :: PlayerPositions -> Player -> Node -> Maybe Player
+isBlocked pos roguePlayer node =
     map fst .
-    find (\(p,n) -> p /= Player 0 && n == node) .
+    find (\(p,n) -> p /= roguePlayer && n == node) .
     mapToList $
     pos
 
@@ -177,28 +190,32 @@ nextPlayerEnergies pEnergies player energy = do
 getViews :: GameRunning -> (RogueGameView, CatcherGameView)
 getViews
     GameRunning
-    { gameRunningPlayerPositions
+    { gameRunningGameConfig = GameConfig {players}
+    , gameRunningPlayerPositions
     , gameRunningPlayerEnergies
     , gameRunningOpenRogueHistory
-    , gameRunningNextPlayer
+    , gameRunningNextPlayers
     } =
     ( RogueGameView
         { roguePlayerPositions = gameRunningPlayerPositions
         , rogueEnergies = gameRunningPlayerEnergies
         , rogueOwnHistory = shadowRogueHistory
-        , rogueNextPlayer = gameRunningNextPlayer
+        , rogueNextPlayer = nextPlayer
         }
     , CatcherGameView
         { catcherPlayerPositions = catcherPlayerPositions -- filtered player positions
         , catcherEnergies = gameRunningPlayerEnergies
         , catcherRogueHistory = shadowRogueHistory
-        , catcherNextPlayer = gameRunningNextPlayer
+        , catcherNextPlayer = nextPlayer
         }
     )
     where
+        roguePlayer = head players
+        nextPlayer = headEx gameRunningNextPlayers
+
         shadowRogueHistory = toShadowRogueHistory gameRunningOpenRogueHistory
         catcherPlayerPositions =
-            updateMap (const rogueShowsPosition) (Player 0) gameRunningPlayerPositions
+            updateMap (const rogueShowsPosition) roguePlayer gameRunningPlayerPositions
         rogueShowsPosition =
             join .
             map snd .

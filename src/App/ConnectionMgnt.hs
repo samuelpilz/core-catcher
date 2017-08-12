@@ -20,7 +20,6 @@ TODO: write about what is exported and how to use this module
 
 module App.ConnectionMgnt (
     ConnectionId,
-    ClientConnection(..),
     ClientConnections(..),
     HasConnections,
     Conn,
@@ -43,16 +42,12 @@ import           ClassyPrelude
 import           Network.Protocol
 
 type ConnectionId = Int
-data ClientConnection conn =
-    ClientConnection
-        { connectionId :: ConnectionId
-        , connection   :: conn
-        }
 
+-- TODO: instance MonoFoldable & MonoTraversable for ClientConnections
 data ClientConnections conn =
     ClientConnections
-        { connections :: Seq (ClientConnection conn)
-        , nextId :: ConnectionId
+        { connections :: Map ConnectionId conn
+        , nextId      :: ConnectionId
         }
 
 class IsConnection c where
@@ -73,19 +68,6 @@ class IsConnection c where
 --         => f -> msg -> IO ()
     multicastMsg :: (SendableToClient msg) => ClientConnections c -> msg -> IO ()
     multicastMsg cs msg = omapM_ (`sendSendableMsg` msg) $ connections cs
-
--- instance for the ClientConnection type which is just clientId together with
-instance IsConnection conn => IsConnection (ClientConnection conn) where
-    type Pending (ClientConnection conn) = (ConnectionId, Pending conn)
-
-    sendMsg ClientConnection {connection} = sendMsg connection
-
-    recvMsg ClientConnection {connection} = recvMsg connection
-
-    acceptRequest (cId, pending) = do
-        c <- acceptRequest pending
-        return $ ClientConnection cId c
-
 
 
 class HasConnections state where
@@ -114,19 +96,18 @@ instance IsConnection conn => HasConnections (ClientConnections conn) where
 
 -- extra functions
 
-findConnectionById :: ConnectionId -> ClientConnections conn -> Maybe (ClientConnection conn)
+findConnectionById :: ConnectionId -> ClientConnections conn -> Maybe conn
 findConnectionById cId =
-    find ((==cId) . connectionId) . connections
+    lookup cId . connections
 
 withoutClient :: ConnectionId -> ClientConnections conn -> ClientConnections conn
 withoutClient cId conns =
     conns
-        { connections = filter ((/=cId) . connectionId) . connections $ conns
+        { connections = deleteMap cId . connections $ conns
         }
 
 -- helper functions (not exported)
 
--- TODO: maybe acceptClient instead of addClient??
 addClient :: HasConnections state => Conn state -> TVar state -> STM ConnectionId
 addClient conn stateVar = do -- update connection list
     state <- readTVar stateVar
@@ -134,8 +115,7 @@ addClient conn stateVar = do -- update connection list
     let newConnections =
             conns
                 { connections =
-                    ClientConnection (nextId conns) conn
-                    `cons`
+                    insertMap (nextId conns) conn $
                     connections conns
                 , nextId = 1 + nextId conns
                 }
@@ -149,5 +129,3 @@ removeClient cId stateVar = do
     let connections = getConnections state
     writeTVar stateVar (setConnections (withoutClient cId connections) state)
 
-
--- TODO: instance MonoFoldable & MonoTraversable for ClientConnections

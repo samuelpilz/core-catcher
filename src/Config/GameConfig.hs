@@ -1,7 +1,8 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Config.GameConfig (GameConfig(..), defaultConfig) where
+module Config.GameConfig (GameConfig(..), defaultConfig, getRogue) where
 
 import           ClassyPrelude
 import qualified Config.Network   as Network
@@ -9,34 +10,35 @@ import           Network.Protocol
 
 data GameConfig =
     GameConfig
-        { players                :: [Player]
+        { players                :: NonNull (Seq Player)
         , initialPlayerEnergies  :: PlayerEnergies
         , initialPlayerPositions :: PlayerPositions
         , maxRounds              :: Int
         , rogueShowsAt           :: [Int]
         , network                :: Network
-        , firstPlayer :: Player
         }
     deriving (Eq, Show, Read)
+
+getRogue :: GameConfig -> Player
+getRogue = head . players
 
 -- | The default GameConfig
 defaultConfig :: GameConfig
 defaultConfig = GameConfig
-    { players = defaultPlayers
+    { players = impureNonNull $ fromList defaultPlayers
     , initialPlayerEnergies = defaultInitialPlayerEnergies
     , initialPlayerPositions = defaultInitialPlayerPositions
     , maxRounds = 10
     , rogueShowsAt = [2,5,8,10]
     , network = Network.network
-    , firstPlayer = Player 0
     }
 
 defaultPlayers :: [Player]
-defaultPlayers = fromList . map Player $ [0..3]
+defaultPlayers = map Player ["Alice", "Bob", "Charlie"]
 
 defaultInitialPlayerPositions :: PlayerPositions
 defaultInitialPlayerPositions =
-    mapFromList . zip defaultPlayers . map Node $ [1, 4, 2, 14]
+    mapFromList . zip defaultPlayers . map Node $ [1, 4, 12]
 
 
 defaultInitialPlayerEnergies :: PlayerEnergies
@@ -46,7 +48,7 @@ defaultInitialPlayerEnergies =
 initialEnergiesPerPlayer :: EnergyMap
 initialEnergiesPerPlayer =
     mapFromList
-        [ ( Orange, 5 )
-        , ( Blue, 3 )
+        [ ( Orange, 7 )
+        , ( Blue, 4 )
         , ( Red, 2 )
         ]
