@@ -75,4 +75,3 @@ initialInfoForClient config clientId =
         initialView = (if clientId == 0 then RogueView . fst else CatcherView . snd)
             (Game.getViews initialState)
         network = Game.network config
-

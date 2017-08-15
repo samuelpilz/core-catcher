@@ -55,7 +55,6 @@ before_install:
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  #- travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:

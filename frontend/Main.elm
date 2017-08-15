@@ -14,6 +14,7 @@ import ProtocolUtils exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
+import AllDict exposing (..)
 import EveryDict
 
 
