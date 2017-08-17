@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
-module App.App (handle, initialInfoForClient) where
+module App.App (handle) where
 
 import           App.ConnectionMgnt
 import           App.State
@@ -46,6 +46,7 @@ handle (cId, client) stateVar msg = do
 
 -- TODO: validation playerId matches connection-origin
 -- TODO: draw  transition diagrams
+
 
 updateGameAtomically
     :: IsConnection conn

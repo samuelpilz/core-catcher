@@ -15,11 +15,12 @@ import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
 import EveryDict
+import Navigation exposing (..)
 
 
-main : Program Flags ClientState Msg
+main : Program Never ClientState Msg
 main =
-    programWithFlags
+    Navigation.program (const None)
         { init = init
         , update = update
         , view = view
@@ -27,9 +28,9 @@ main =
         }
 
 
-init : Flags -> ( ClientState, Cmd Msg )
-init flags =
-    initialState flags ! []
+init : Location -> ( ClientState, Cmd Msg )
+init location =
+    initialState location ! []
 
 
 view : ClientState -> Html Msg
@@ -180,25 +181,12 @@ update msg state =
 -- random dev helper functions
 
 
-initialState : Flags -> ClientState
-initialState flags =
+initialState : Location -> ClientState
+initialState location =
     PreGame_
-        { server = flags.server
+        { server = location.hostname
         , playerNameField = ""
         }
-
-
-
---    { playerPositions = { playerPositions = EveryDict.empty }
---    , playerEnergies = { playerEnergies = EveryDict.empty }
---    , rogueHistory = { rogueHistory = [] }
---    , network = emptyNetwork
---    , player = { playerName = "Alice" }
---    , selectedEnergy = Orange
---    , server = flags.server
---    , gameError = Nothing
---    , gameOver = False
---    }
 
 
 displayInfo : GameViewDisplayInfo
@@ -224,11 +212,11 @@ msgForActionOfNode state n =
         }
 
 
-cons : a -> b -> a
-cons a b =
+const : a -> b -> a
+const a b =
     a
 
 
 log2 : String -> a -> b -> b
 log2 s a b =
-    cons b (log s a)
+    const b (log s a)

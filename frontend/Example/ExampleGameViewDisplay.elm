@@ -63,7 +63,7 @@ nodeXyMap =
         .nodeId
         [ ( { nodeId = 1 }, ( 0, 0 ) )
         , ( { nodeId = 2 }, ( 3, 0 ) )
-        , ( { nodeId = 3 }, ( 2, 2 ) )
+        , ( { nodeId = 3 }, ( 3, 2 ) )
         , ( { nodeId = 4 }, ( 2, 5 ) )
         , ( { nodeId = 5 }, ( 4, 1 ) )
         , ( { nodeId = 6 }, ( 1, 3 ) )
@@ -77,6 +77,7 @@ nodeXyMap =
         , ( { nodeId = 14 }, ( 7, 5 ) )
         , ( { nodeId = 15 }, ( 6, 5 ) )
         , ( { nodeId = 16 }, ( 5, 4 ) )
+        , ( { nodeId = 17 }, ( 1, 1 ) )
         ]
 
 
@@ -87,5 +88,4 @@ playerColorMap =
         [ ( { playerName = "Alice" }, "#4444ff" )
         , ( { playerName = "Bob" }, "red" )
         , ( { playerName = "Charlie" }, "green" )
---        , ( { playerId = 3 }, "yellow" )
         ]

@@ -6,11 +6,13 @@ module App.State
   , HasConnections
   , GameState
   , IsConnection(..)
+  , defaultInitialState
   ) where
 
 import           App.ConnectionMgnt
 import           ClassyPrelude
-import           GameNg             (GameState)
+import           Config.GameConfig  (defaultConfig)
+import           GameNg             (GameState (..), initialState)
 import           Network.Protocol   (Player)
 
 data ServerState conn =
@@ -29,3 +31,11 @@ instance IsConnection conn => HasConnections (ServerState conn) where
         state
             { stateConnections = conns
             }
+
+defaultInitialState :: ServerState conn
+defaultInitialState =
+    ServerState
+        { stateConnections = ClientConnections mempty 0
+        , gameState = GameRunning_ $ initialState defaultConfig
+        , playerMap = mempty
+        }

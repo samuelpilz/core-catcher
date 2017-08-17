@@ -15,9 +15,7 @@ import           App.App
 import           App.ConnectionMgnt
 import           App.State
 import           ClassyPrelude                  hiding (handle)
-import qualified Config.GameConfig              as GameConfig
 import qualified Control.Exception              as Exception
-import qualified GameNg
 import qualified Network.Protocol               as Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Application.Static as WaiStatic
@@ -28,12 +26,7 @@ import           WsConnection
 
 main :: IO ()
 main = do
-    stateVar <- newTVarIO ServerState
-        { stateConnections = ClientConnections mempty 0
-        -- TODO: improve game-state creation (proxy by App.App)
-        , gameState = GameNg.GameRunning_ $ GameNg.initialState GameConfig.defaultConfig
-        , playerMap = mempty
-        }
+    stateVar <- newTVarIO defaultInitialState
     putStrLn "Starting Core-Catcher server on port 8000"
 
     Warp.run 8000 $ WS.websocketsOr

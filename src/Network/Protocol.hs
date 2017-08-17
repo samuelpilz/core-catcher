@@ -201,7 +201,7 @@ data NetworkOverlay =
 
 {- | InitialDataForClient the initial info the client gets after login
 
--}-- TODO: support login when game-over
+-}-- TODO: support login when game-over?
 data InitialInfoForClient =
     InitialInfoForClient
         { networkForGame  :: Network

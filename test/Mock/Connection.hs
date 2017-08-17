@@ -1,7 +1,9 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+
 module Mock.Connection (
     FakeConnection,
     newFakeConnection,
@@ -9,7 +11,8 @@ module Mock.Connection (
     getSentMsg,
     FakeConnections,
     sendBuffer,
-    recvBuffer
+    recvBuffer,
+    resetSendBuffer
     ) where
 
 import           App.ConnectionMgnt
@@ -38,6 +41,9 @@ prepareMsgToRead conn =
 
 getSentMsg :: FakeConnection -> IO (Maybe MessageForClient)
 getSentMsg = readTVarIO . sendBuffer
+
+resetSendBuffer :: FakeConnection -> IO ()
+resetSendBuffer FakeConnection{sendBuffer} = atomically $ writeTVar sendBuffer Nothing
 
 instance IsConnection FakeConnection where
     type Pending FakeConnection = Maybe MessageForServer
