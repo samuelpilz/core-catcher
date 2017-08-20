@@ -29,7 +29,7 @@ defaultConfig = GameConfig
     , initialPlayerEnergies = defaultInitialPlayerEnergies
     , initialPlayerPositions = defaultInitialPlayerPositions
     , maxRounds = 10
-    , rogueShowsAt = [2,5,8,10]
+    , rogueShowsAt = [1,4,7,10]
     , network = Network.network
     }
 

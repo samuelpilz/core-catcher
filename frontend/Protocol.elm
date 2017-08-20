@@ -386,6 +386,8 @@ type alias InitialInfoForClient  =
    { networkForGame: Network
    , initialGameView: GameView
    , initialPlayer: Player
+   , allPlayers: (List Player)
+   , allEnergies: (List Energy)
    }
 
 jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
@@ -393,7 +395,9 @@ jsonDecInitialInfoForClient =
    ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
    ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
-   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer}
+   ("allPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pallPlayers ->
+   ("allEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pallEnergies ->
+   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer, allPlayers = pallPlayers, allEnergies = pallEnergies}
 
 jsonEncInitialInfoForClient : InitialInfoForClient -> Value
 jsonEncInitialInfoForClient  val =
@@ -401,6 +405,8 @@ jsonEncInitialInfoForClient  val =
    [ ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
    , ("initialPlayer", jsonEncPlayer val.initialPlayer)
+   , ("allPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.allPlayers)
+   , ("allEnergies", (Json.Encode.list << List.map jsonEncEnergy) val.allEnergies)
    ]
 
 

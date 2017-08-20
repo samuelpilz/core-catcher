@@ -25,10 +25,13 @@ type alias PreGame =
 
 
 type alias GameState =
-    { playerPositions : PlayerPositions
+    { network : Network
+    , players : List Player
+    , energies : List Energy
+    , playerPositions : PlayerPositions
     , playerEnergies : PlayerEnergies
     , rogueHistory : RogueHistory -- TODO: possibility for open history
-    , network : Network
+    , nextPlayer : Maybe Player
     , player : Player
     , selectedEnergy : Energy
     , server : String

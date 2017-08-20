@@ -15,9 +15,6 @@ import View.GameViewDisplay exposing (..)
 import Debug exposing (log)
 
 
--- TODO: css style with css-library?
-
-
 mapView : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
 mapView network displayInfo clientState =
     svg

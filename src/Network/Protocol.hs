@@ -207,6 +207,8 @@ data InitialInfoForClient =
         { networkForGame  :: Network
         , initialGameView :: GameView
         , initialPlayer   :: Player
+        , allPlayers      :: [Player]
+        , allEnergies     :: [Energy]
         }
         deriving (Show, Read, Eq, Generic)
 

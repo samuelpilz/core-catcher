@@ -92,6 +92,8 @@ initialInfoForClient (GameRunning_ gameRunning) player =
         { networkForGame = network
         , initialGameView = initialView
         , initialPlayer = player
+        , allPlayers = toList $ players config
+        , allEnergies = [Red, Blue, Orange]
         }
     where
         config = gameRunningGameConfig gameRunning

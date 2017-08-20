@@ -16,6 +16,7 @@ import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
 import EveryDict
 import Navigation exposing (..)
+import Navigation
 
 
 main : Program Never ClientState Msg
@@ -31,6 +32,12 @@ main =
 init : Location -> ( ClientState, Cmd Msg )
 init location =
     initialState location ! []
+--        ! [ send location.hostname <|
+--                Login_
+--                    { loginPlayer =
+--                        { playerName = "Alice" }
+--                    }
+--          ]
 
 
 view : ClientState -> Html Msg
@@ -48,7 +55,7 @@ preGameView state =
     div []
         [ h1 [] [ text <| "Core catcher" ]
         , Html.form [ onSubmit (DoLogin { loginPlayer = { playerName = state.playerNameField } }) ]
-            [ input [ placeholder "Username", onInput PlayerNameChange ] []
+            [ input [ placeholder "Username", onInput PlayerNameChange, autofocus True ] []
             , button [ type_ "submit" ] [ text "Login" ]
             ]
         ]
@@ -57,15 +64,14 @@ preGameView state =
 gameView : GameState -> Html Msg
 gameView state =
     div []
-        [ h1 [] [ text <| "Core catcher " ++ state.player.playerName ++ "" ]
-        , mapView state.network displayInfo state
-        , energyView state.network displayInfo state
+        [ mapView state.network displayInfo state
+        , energyOverview state.network displayInfo state
         ]
 
 
 wsUrl : String -> String
 wsUrl server =
-    "ws://" ++ server ++ ":8000"
+    "ws://" ++ server ++ ":7999"
 
 
 subscriptions : ClientState -> Sub Msg
@@ -81,7 +87,7 @@ receivedStringToMsg s =
 
         Err err ->
             -- TODO: popup for that?
-            -- TODO: handle json error?
+            -- how to handle json error?
             log2 "error" err None
 
 
@@ -101,17 +107,7 @@ update msg state =
                             | playerPositions = playerPositions gameView
                             , playerEnergies = playerEnergies gameView
                             , rogueHistory = rogueHistory gameView
-                        }
-                        ! []
-
-                InitialInfoForClient_ initInfo ->
-                    GameState_
-                        { state
-                            | playerPositions = playerPositions initInfo.initialGameView
-                            , playerEnergies = playerEnergies <| initInfo.initialGameView
-                            , rogueHistory = rogueHistory <| initInfo.initialGameView
-                            , network = initInfo.networkForGame
-                            , gameOver = False
+                            , nextPlayer = Just <| nextPlayer gameView
                         }
                         ! []
 
@@ -124,6 +120,7 @@ update msg state =
                             | gameOver = True
                             , playerPositions = gameOver.gameOverViewPlayerPositions
                             , playerEnergies = gameOver.gameOverViewPlayerEnergies
+                            , nextPlayer = Nothing
 
                             --, rogueHistory = gameOver.gameOverViewRogueHistory
                             -- TODO: openRougeHistory
@@ -140,13 +137,17 @@ update msg state =
                                         { playerName = state.player.playerName }
                                     }
                           ]
+                _ -> GameState_ state ! []
 
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
             GameState_
-                { playerPositions = playerPositions initInfo.initialGameView
+                { network = initInfo.networkForGame
+                , players = initInfo.allPlayers
+                , energies = initInfo.allEnergies
+                , playerPositions = playerPositions initInfo.initialGameView
                 , playerEnergies = playerEnergies <| initInfo.initialGameView
                 , rogueHistory = rogueHistory <| initInfo.initialGameView
-                , network = initInfo.networkForGame
+                , nextPlayer = Just <| nextPlayer initInfo.initialGameView
                 , selectedEnergy = Orange
                 , gameError = Nothing
                 , gameOver = False
@@ -175,10 +176,6 @@ update msg state =
 
         ( _, state ) ->
             state ! []
-
-
-
--- random dev helper functions
 
 
 initialState : Location -> ClientState

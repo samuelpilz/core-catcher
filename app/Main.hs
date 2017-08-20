@@ -29,7 +29,7 @@ main = do
     stateVar <- newTVarIO defaultInitialState
     putStrLn "Starting Core-Catcher server on port 8000"
 
-    Warp.run 8000 $ WS.websocketsOr
+    Warp.run 7999 $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
