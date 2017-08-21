@@ -46,7 +46,7 @@ before_install:
     # git clone https://github.com/fendor/stack-hpc-coveralls.git
 
   - travis_retry curl -OL https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
-  - tar -xf shc-linux-x64-8.0.2.tar.bz2
+  - tar -xvf shc-linux-x64-8.0.2.tar.bz2
     # cd stack-hpc-coveralls
     # stack --no-terminal --install-ghc test --only-dependencies
     # stack build
@@ -73,8 +73,8 @@ after_script:
   
   # ignore coverage in module Network.Protocol
   - ls -A .
-  - ls -A `stack path --local-hpc-root`
-  - ls -A `stack path --local-hpc-root`/*
+  - ls -A `stack path --local-hpc-root`/core-catcher/core-catcher-test
+  - ls -A `stack path --local-hpc-root`/core-catcher/core-catcher-test/*
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher/core-catcher-test/core-catcher-test.tix
   - grep Protocol $TIX_FILE
   - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
