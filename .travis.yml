@@ -67,7 +67,7 @@ after_script:
   - ls -A .
   - pwd
   - ls -A `stack path --local-hpc-root`/core-catcher/core-catcher-test
-  - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher/core-catcher-test/core-catcher-test.tix
+  - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
   - cat $TIX_FILE
   - grep Protocol $TIX_FILE
   - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
