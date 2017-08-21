@@ -72,7 +72,9 @@ after_script:
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
   
   # ignore coverage in module Network.Protocol
-  - tree `stack path --local-hpc-root`
+  - ls -A .
+  - ls -A `stack path --local-hpc-root`
+  - ls -A `stack path --local-hpc-root`/*
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher/core-catcher-test/core-catcher-test.tix
   - grep Protocol $TIX_FILE
   - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
