@@ -34,18 +34,31 @@ energyOverview _ displayInfo gameState =
 
 playersView : GameViewDisplayInfo -> GameState -> List (Svg.Svg Msg)
 playersView displayInfo gameState =
-    List.concat
-        << List.map2
-            (playerView displayInfo gameState)
-            (range 0 <| List.length gameState.players)
+    List.map2
+        (playerView displayInfo gameState)
+        (range 0 <| List.length gameState.players)
     <|
         gameState.players
 
 
-playerView : GameViewDisplayInfo -> GameState -> Int -> Player -> List (Svg.Svg Msg)
+playerView : GameViewDisplayInfo -> GameState -> Int -> Player -> Svg.Svg Msg
 playerView displayInfo gameState pos player =
-    energyForPlayerView displayInfo gameState pos player
-        ++ turnIcon displayInfo gameState pos player
+    g [] <|
+        (if player == gameState.player then
+            [ rect
+                [ x << toString <| 45
+                , y << toString <| 5 + pos * 60
+                , height "60"
+                , width "350"
+                , fill "#d0d0d0"
+                ]
+                []
+            ]
+         else
+            []
+        )
+            ++ energyForPlayerView displayInfo gameState pos player
+            ++ turnIcon displayInfo gameState pos player
 
 
 energyForPlayerView : GameViewDisplayInfo -> GameState -> Int -> Player -> List (Svg.Svg Msg)
@@ -241,7 +254,7 @@ historyRecord pos ( color, nodeMay ) =
             []
         , text_
             [ x << toString <| 50 + 50 * (pos % 5) + 25
-            , y << toString <| 100 + 50 * (pos // 5) + 27
+            , y << toString <| 250 + 50 * (pos // 5) + 27
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
             , textAnchor "middle"

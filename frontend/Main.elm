@@ -32,6 +32,9 @@ main =
 init : Location -> ( ClientState, Cmd Msg )
 init location =
     initialState location ! []
+
+
+-- enable this instead of "! []" for automiatic login
 --        ! [ send location.hostname <|
 --                Login_
 --                    { loginPlayer =
@@ -137,7 +140,9 @@ update msg state =
                                         { playerName = state.player.playerName }
                                     }
                           ]
-                _ -> GameState_ state ! []
+
+                _ ->
+                    GameState_ state ! []
 
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
             GameState_
