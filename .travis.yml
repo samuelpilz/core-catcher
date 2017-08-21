@@ -42,13 +42,16 @@ before_install:
   - export TRAVIS=travis-ci
   - export TRAVIS_JOB_ID=1234 # random number
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - cd ..
-  - git clone https://github.com/fendor/stack-hpc-coveralls.git
-  - cd stack-hpc-coveralls
-  - stack --no-terminal --install-ghc test --only-dependencies
-  - stack build
-  - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
-  - cd ../core-catcher
+    # cd ..
+    # git clone https://github.com/fendor/stack-hpc-coveralls.git
+
+  - travis_retry curl -L https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
+  - tar -xf shc-linux-x64-8.0.2.tar.bz2
+    # cd stack-hpc-coveralls
+    # stack --no-terminal --install-ghc test --only-dependencies
+    # stack build
+    # cp `stack path --local-install-root`/bin/shc ~/.local/bin/
+    # cd ../core-catcher
 
 
 
@@ -69,9 +72,11 @@ after_script:
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
   
   # ignore coverage in module Network.Protocol
+  - tree `stack path --local-hpc-root`
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher/core-catcher-test/core-catcher-test.tix
   - grep Protocol $TIX_FILE
   - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
   - mv $TIX_FILE~ $TIX_FILE
   - grep Protocol $TIX_FILE
+  - ./shc --repo-token=${repo_token} core-catcher core-catcher-test
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
