@@ -45,7 +45,7 @@ before_install:
     # cd ..
     # git clone https://github.com/fendor/stack-hpc-coveralls.git
 
-  - travis_retry curl -L https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
+  - travis_retry curl -OL https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
   - tar -xf shc-linux-x64-8.0.2.tar.bz2
     # cd stack-hpc-coveralls
     # stack --no-terminal --install-ghc test --only-dependencies
