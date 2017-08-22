@@ -8,11 +8,10 @@
 # Copy these contents into the root directory of your Github project in a file
 # named .travis.yml
 
-# Use new container infrastructure to enable caching
 sudo: false
 
 # Do not choose a language; we provide our own build tools.
-language: generic
+language: haskell
 
 notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
@@ -44,7 +43,6 @@ before_install:
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   - travis_retry curl -OL https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
   - tar -xvf shc-linux-x64-8.0.2.tar.bz2
-  - stack install hpc
 
 
 install:
@@ -62,16 +60,12 @@ after_script:
   # publish coverage results coveralls.io
   # after_script might clean some things
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
-  
+  - which ghc
   # ignore coverage in module Network.Protocol
-  - ls -A .
-  - pwd
-  - ls -A `stack path --local-hpc-root`/core-catcher/core-catcher-test
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
-  - cat $TIX_FILE
-  - grep Protocol $TIX_FILE
-  - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
+  - ~/.local/bin/hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
   - mv $TIX_FILE~ $TIX_FILE
-  - grep Protocol $TIX_FILE
   - ./shc --repo-token=${repo_token} core-catcher core-catcher-test
   # ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
+
+
