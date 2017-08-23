@@ -60,10 +60,10 @@ after_script:
   # publish coverage results coveralls.io
   # after_script might clean some things
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
-  - which ghc
+  - which hpc
   # ignore coverage in module Network.Protocol
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
-  - ~/.local/bin/hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
+  - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
   - mv $TIX_FILE~ $TIX_FILE
   - ./shc --repo-token=${repo_token} core-catcher core-catcher-test
   # ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
