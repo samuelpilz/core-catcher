@@ -68,7 +68,7 @@ after_script:
   - mv $TIX_FILE~ $TIX_FILE
   - ls
   - pwd
-  - ./shc --repo-token=${repo_token} core-catcher core-catcher-test
+  - `pwd`/shc --repo-token=${repo_token} core-catcher core-catcher-test
   # ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
 
 
