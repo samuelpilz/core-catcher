@@ -12,6 +12,8 @@ sudo: false
 
 # Do not choose a language; we provide our own build tools.
 language: haskell
+ghc:
+  - "8.0.2"
 
 notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
@@ -45,8 +47,6 @@ before_install:
   - tar -xvf shc-linux-x64-8.0.2.tar.bz2
   - ./shc
   - mv shc ~/.local/bin/shc
-  - ~/.local/bin/shc
-  - ls ~/.local/bin
 
 
 install:
@@ -59,7 +59,6 @@ script:
   # Build the package, its tests, and its docs and run the tests
   - stack --no-terminal test :core-catcher-test --coverage --haddock --no-haddock-deps
   # test elm frontend TODO
-  - ls ~/.local/bin
 
 after_script:
   # publish coverage results coveralls.io
@@ -69,7 +68,6 @@ after_script:
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
   - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
   - mv $TIX_FILE~ $TIX_FILE
-  - ls -l ~/.local/bin
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
 
 
