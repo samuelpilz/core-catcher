@@ -43,10 +43,13 @@ before_install:
   - export TRAVIS=travis-ci
   - export TRAVIS_JOB_ID=1234 # random number
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - travis_retry curl -OL https://github.com/fendor/stack-hpc-coveralls/releases/download/v0.0.4.1/shc-linux-x64-8.0.2.tar.bz2
-  - tar -xvf shc-linux-x64-8.0.2.tar.bz2
-  - ./shc
-  - mv shc ~/.local/bin/shc
+  - cd ..
+  - git clone https://github.com/fendor/stack-hpc-coveralls.git
+  - cd stack-hpc-coveralls
+  - stack --no-terminal --install-ghc test --only-dependencies
+  - stack build
+  - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
+  - cd ../core-catcher
 
 
 install:
