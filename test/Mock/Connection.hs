@@ -2,45 +2,53 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Mock.Connection where
+module Mock.Connection (
+    FakeConnection,
+    newFakeConnection,
+    prepareMsgToRead,
+    getSentMsg,
+    FakeConnections,
+    sendBuffer,
+    recvBuffer
+    ) where
 
-import           App.Connection
+import           App.ConnectionMgnt
 import           ClassyPrelude
-import           Network.WebSockets
-
+import           Control.Monad.Extra (whenJust)
+import           Network.Protocol
 import           Test.Framework
 
-newtype FakeConnection =
+data FakeConnection =
     FakeConnection
-        { contentMsg    :: MVar Msg
+        { sendBuffer :: TVar (Maybe MessageForClient)
+        , recvBuffer :: TVar (Maybe MessageForServer)
         }
 
-newtype Msg =
-    Msg LByteString
+type FakeConnections = ClientConnections FakeConnection
 
-data PendingConn = PendingConn
+newFakeConnection :: IO FakeConnection
+newFakeConnection = do
+    sb <- newTVarIO Nothing
+    rb <- newTVarIO Nothing
+    return $ FakeConnection sb rb
 
-emptyConnection :: IO FakeConnection
-emptyConnection = do
-    mvar <- newMVar (Msg "")
-    return (FakeConnection mvar)
+prepareMsgToRead :: FakeConnection -> MessageForServer -> IO ()
+prepareMsgToRead conn =
+    atomically . writeTVar (recvBuffer conn) . Just
 
-connectionWith :: LByteString -> IO FakeConnection
-connectionWith msg = do
-    mvar <- newMVar (Msg msg)
-    return (FakeConnection mvar)
+getSentMsg :: FakeConnection -> IO (Maybe MessageForClient)
+getSentMsg = readTVarIO . sendBuffer
 
 instance IsConnection FakeConnection where
-    type Pending FakeConnection = PendingConn
+    type Pending FakeConnection = Maybe MessageForServer
 
-    sendData conn msg = do
-        _ <- takeMVar (contentMsg conn)
-        putMVar (contentMsg conn) (Msg $ toLazyByteString msg)
-        return ()
+    sendMsg conn =
+        atomically . writeTVar (sendBuffer conn) . Just
 
-    receiveData (FakeConnection content) = do
-        (Msg msg') <- readMVar content
-        return $ fromLazyByteString msg'
+    recvMsg (FakeConnection _ rb) =
+        atomically $ swapTVar rb Nothing
 
-    acceptRequest PendingConn =
-        emptyConnection
+    acceptRequest msgForServer = do
+        conn <- newFakeConnection
+        whenJust msgForServer (prepareMsgToRead conn)
+        return conn
