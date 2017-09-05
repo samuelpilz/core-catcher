@@ -27,9 +27,10 @@ import           WsConnection
 main :: IO ()
 main = do
     stateVar <- newTVarIO defaultInitialState
-    putStrLn "Starting Core-Catcher server on port 8000"
+    let port = 7999
+    putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
 
-    Warp.run 7999 $ WS.websocketsOr
+    Warp.run port $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp

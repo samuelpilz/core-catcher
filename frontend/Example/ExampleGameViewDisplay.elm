@@ -6,6 +6,7 @@ import View.GameViewDisplay exposing (..)
 import List exposing (..)
 import AllDict exposing (..)
 import Maybe exposing (..)
+import Time
 
 
 displayInfo : GameViewDisplayInfo
@@ -24,6 +25,7 @@ displayInfo =
     , mapHeight = 600
     , gridWidth = 7
     , gridHeight = 5
+    , movementAnimationDuration = 0.5 * Time.second
     }
 
 

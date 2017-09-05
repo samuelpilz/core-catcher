@@ -15,9 +15,9 @@ import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
 import EveryDict
+import AllDict exposing (AllDict)
 import Navigation exposing (..)
-import Navigation
-
+import AnimationFrame exposing (diffs)
 
 main : Program Never ClientState Msg
 main =
@@ -32,6 +32,7 @@ main =
 init : Location -> ( ClientState, Cmd Msg )
 init location =
     initialState location ! []
+
 
 
 -- enable this instead of "! []" for automiatic login
@@ -67,8 +68,8 @@ preGameView state =
 gameView : GameState -> Html Msg
 gameView state =
     div []
-        [ mapView state.network displayInfo state
-        , energyOverview state.network displayInfo state
+        [ mapView state.network state.displayInfo state
+        , energyOverview state.network state.displayInfo state
         ]
 
 
@@ -79,12 +80,23 @@ wsUrl server =
 
 subscriptions : ClientState -> Sub Msg
 subscriptions state =
-    WebSocket.listen (wsUrl <| getServer state) receivedStringToMsg
+    Sub.batch
+        [ WebSocket.listen (wsUrl <| getServer state) receivedStringToMsg
+        , case state of
+            PreGame_ _ ->
+                Sub.none
+
+            GameState_ state ->
+                if (AllDict.toList state.activeAnimations == []) then
+                    Sub.none
+                else
+                    diffs Tick
+        ]
 
 
 receivedStringToMsg : String -> Msg
 receivedStringToMsg s =
-    case decodeString jsonDecMessageForClient (log "received" s) of
+    case decodeString jsonDecMessageForClient s of
         Ok msg ->
             MsgFromServer msg
 
@@ -97,53 +109,50 @@ receivedStringToMsg s =
 update : Msg -> ClientState -> ( ClientState, Cmd Msg )
 update msg state =
     case ( log "msg" msg, state ) of
-        ( Clicked n, GameState_ state ) ->
+        ( Movement n, GameState_ state ) ->
             GameState_ { state | gameError = Nothing }
                 ! [ send state.server <| msgForActionOfNode state n
                   ]
 
-        ( MsgFromServer msg, GameState_ state ) ->
-            case msg of
-                GameView_ gameView ->
-                    GameState_
-                        { state
-                            | playerPositions = playerPositions gameView
-                            , playerEnergies = playerEnergies gameView
-                            , rogueHistory = rogueHistory gameView
-                            , nextPlayer = Just <| nextPlayer gameView
-                        }
-                        ! []
+        ( MsgFromServer (GameView_ gameView), GameState_ state ) ->
+            GameState_
+                { state
+                    | playerPositions = playerPositions gameView
+                    , playerEnergies = playerEnergies gameView
+                    , rogueHistory = rogueHistory gameView
+                    , nextPlayer = Just <| nextPlayer gameView
+                    , activeAnimations = updateActiveAnimations state gameView
+                }
+                ! []
 
-                GameError_ err ->
-                    GameState_ { state | gameError = Just err } ! []
+        ( MsgFromServer (GameError_ err), GameState_ state ) ->
+            GameState_ { state | gameError = Just err } ! []
 
-                GameOverView_ gameOver ->
-                    GameState_
-                        { state
-                            | gameOver = True
-                            , playerPositions = gameOver.gameOverViewPlayerPositions
-                            , playerEnergies = gameOver.gameOverViewPlayerEnergies
-                            , nextPlayer = Nothing
+        ( MsgFromServer (GameOverView_ gameOver), GameState_ state ) ->
+            GameState_
+                { state
+                    | gameOver = True
+                    , playerPositions = gameOver.gameOverViewPlayerPositions
+                    , playerEnergies = gameOver.gameOverViewPlayerEnergies
+                    , nextPlayer = Nothing
 
-                            --, rogueHistory = gameOver.gameOverViewRogueHistory
-                            -- TODO: openRougeHistory
-                        }
-                        ! []
+                    --, rogueHistory = gameOver.gameOverViewRogueHistory
+                    -- TODO: openRougeHistory
+                }
+                ! []
 
-                ServerHello ->
-                    -- reconnect upon ServerHello
-                    -- TODO: implement, also for other state-objects
-                    GameState_ state
-                        ! [ send state.server <|
-                                Login_
-                                    { loginPlayer =
-                                        { playerName = state.player.playerName }
-                                    }
-                          ]
+        ( MsgFromServer ServerHello, GameState_ state ) ->
+            -- reconnect upon ServerHello
+            -- TODO: implement, also for other state-objects
+            GameState_ state
+                ! [ send state.server <|
+                        Login_
+                            { loginPlayer =
+                                { playerName = state.player.playerName }
+                            }
+                  ]
 
-                _ ->
-                    GameState_ state ! []
-
+-- TODO: implement that if already in game (i.e. reconnect)
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
             GameState_
                 { network = initInfo.networkForGame
@@ -158,6 +167,30 @@ update msg state =
                 , gameOver = False
                 , server = preGame.server
                 , player = initInfo.initialPlayer
+                , animationTime = 0
+                , activeAnimations = AllDict.empty .playerName
+                , displayInfo = Example.displayInfo
+                }
+                ! []
+
+        -- other message that is not recognized
+        ( MsgFromServer _, GameState_ state ) ->
+            -- TODO: error for that
+            GameState_ state ! []
+
+        ( Tick dt, GameState_ state ) ->
+            GameState_
+                { state
+                    | animationTime = dt + state.animationTime
+                    , activeAnimations =
+                        -- filter done animations
+                        log "filtered" <| AllDict.filter
+                            (\_ a ->
+                                a.startTime
+                                    + state.displayInfo.movementAnimationDuration
+                                    > state.animationTime
+                            )
+                            state.activeAnimations
                 }
                 ! []
 
@@ -180,6 +213,7 @@ update msg state =
                   ]
 
         ( _, state ) ->
+            -- TODO: error for that
             state ! []
 
 
@@ -189,11 +223,6 @@ initialState location =
         { server = location.hostname
         , playerNameField = ""
         }
-
-
-displayInfo : GameViewDisplayInfo
-displayInfo =
-    Example.displayInfo
 
 
 send : String -> MessageForServer -> Cmd a
@@ -212,6 +241,48 @@ msgForActionOfNode state n =
         , actionEnergy = state.selectedEnergy
         , actionNode = n
         }
+
+
+updateActiveAnimations : GameState -> GameView -> AllDict Player PlayerMovementAnimation String
+updateActiveAnimations gameState gameView =
+    let
+        movingPlayer =
+            gameState.nextPlayer
+
+        newAnimation =
+            Maybe.map2
+                (\fromNode toNode ->
+                    { fromNode = fromNode
+                    , toNode = toNode
+                    , startTime = gameState.animationTime
+                    }
+                )
+                -- fromNode
+                (Maybe.andThen
+                    (\p ->
+                        EveryDict.get p
+                            gameState.playerPositions.playerPositions
+                    )
+                    movingPlayer
+                )
+                -- toNode
+                (Maybe.andThen
+                    (\p ->
+                        EveryDict.get p
+                            << .playerPositions
+                            << playerPositions
+                        <|
+                            gameView
+                    )
+                    movingPlayer
+                )
+    in
+        log "active animations" <| case ( newAnimation, movingPlayer ) of
+            ( Just a, Just p ) ->
+                AllDict.insert p a gameState.activeAnimations
+
+            _ ->
+                gameState.activeAnimations
 
 
 const : a -> b -> a

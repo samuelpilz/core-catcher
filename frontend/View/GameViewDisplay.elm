@@ -6,6 +6,8 @@ module View.GameViewDisplay exposing (..)
 import Protocol exposing (..)
 import AllDict exposing (..)
 import Maybe exposing (..)
+import Time exposing (Time)
+
 
 
 {-| Types of colors possible for overlays. For now: a string
@@ -91,6 +93,7 @@ type alias GameViewDisplayInfo =
     , mapHeight : Int
     , gridWidth : Int
     , gridHeight : Int
+    , movementAnimationDuration : Time
     }
 
 
@@ -130,7 +133,8 @@ displayInfoForEnergy { colorMap, edgeWidthMap, nodeSizeMap } energy =
 
 
 
--- TODO: nodeXy : NodeXyMap -> Node -> (Int,Int) to use with let?
+-- TODO: nodeXy : NodeXyMap -> Node -> Maybe (Int,Int) to use with let?
+-- TODO: less Maybe.withDefault in general?? -> Fail in code and not visually
 
 
 {-| get the X coordinates of the node within the svg, given the map of coordinates

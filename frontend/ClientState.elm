@@ -2,14 +2,18 @@ module ClientState exposing (..)
 
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
+import Time exposing (..)
+import AllDict exposing (..)
+import View.GameViewDisplay exposing (GameViewDisplayInfo)
 
 
 type Msg
     = PlayerNameChange String
     | DoLogin Login
-    | Clicked Node
+    | Movement Node
     | SelectEnergy Energy
     | MsgFromServer MessageForClient
+    | Tick Time
     | None
 
 
@@ -37,6 +41,9 @@ type alias GameState =
     , server : String
     , gameError : Maybe GameError
     , gameOver : Bool
+    , displayInfo : GameViewDisplayInfo
+    , animationTime : Time
+    , activeAnimations : AllDict Player PlayerMovementAnimation String
     }
 
 
@@ -50,5 +57,8 @@ getServer state =
             g.server
 
 
-type alias Flags =
-    { server : String }
+type alias PlayerMovementAnimation =
+    { fromNode : Node
+    , toNode : Node
+    , startTime : Time
+    }
