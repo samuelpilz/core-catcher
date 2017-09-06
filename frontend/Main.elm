@@ -14,10 +14,12 @@ import ProtocolUtils exposing (..)
 import ClientState exposing (..)
 import Json.Encode exposing (encode)
 import Json.Decode exposing (decodeString)
+import AllDict exposing (..)
 import EveryDict
 import AllDict exposing (AllDict)
 import Navigation exposing (..)
 import AnimationFrame exposing (diffs)
+
 
 main : Program Never ClientState Msg
 main =
@@ -121,7 +123,7 @@ update msg state =
                     , playerEnergies = playerEnergies gameView
                     , rogueHistory = rogueHistory gameView
                     , nextPlayer = Just <| nextPlayer gameView
-                    , activeAnimations = updateActiveAnimations state gameView
+                    , activeAnimations = updateActiveAnimations state <| playerPositions gameView
                 }
                 ! []
 
@@ -135,6 +137,7 @@ update msg state =
                     , playerPositions = gameOver.gameOverViewPlayerPositions
                     , playerEnergies = gameOver.gameOverViewPlayerEnergies
                     , nextPlayer = Nothing
+                    , activeAnimations = updateActiveAnimations state gameOver.gameOverViewPlayerPositions
 
                     --, rogueHistory = gameOver.gameOverViewRogueHistory
                     -- TODO: openRougeHistory
@@ -152,7 +155,7 @@ update msg state =
                             }
                   ]
 
--- TODO: implement that if already in game (i.e. reconnect)
+        -- TODO: implement that if already in game (i.e. reconnect)
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
             GameState_
                 { network = initInfo.networkForGame
@@ -184,7 +187,7 @@ update msg state =
                     | animationTime = dt + state.animationTime
                     , activeAnimations =
                         -- filter done animations
-                        log "filtered" <| AllDict.filter
+                        AllDict.filter
                             (\_ a ->
                                 a.startTime
                                     + state.displayInfo.movementAnimationDuration
@@ -243,8 +246,8 @@ msgForActionOfNode state n =
         }
 
 
-updateActiveAnimations : GameState -> GameView -> AllDict Player PlayerMovementAnimation String
-updateActiveAnimations gameState gameView =
+updateActiveAnimations : GameState -> PlayerPositions -> AllDict Player PlayerMovementAnimation String
+updateActiveAnimations gameState playerPositions =
     let
         movingPlayer =
             gameState.nextPlayer
@@ -267,22 +270,17 @@ updateActiveAnimations gameState gameView =
                 )
                 -- toNode
                 (Maybe.andThen
-                    (\p ->
-                        EveryDict.get p
-                            << .playerPositions
-                            << playerPositions
-                        <|
-                            gameView
-                    )
+                    (\p -> EveryDict.get p playerPositions.playerPositions )
                     movingPlayer
                 )
     in
-        log "active animations" <| case ( newAnimation, movingPlayer ) of
-            ( Just a, Just p ) ->
-                AllDict.insert p a gameState.activeAnimations
+        log "active animations" <|
+            case ( newAnimation, movingPlayer ) of
+                ( Just a, Just p ) ->
+                    AllDict.insert p a gameState.activeAnimations
 
-            _ ->
-                gameState.activeAnimations
+                _ ->
+                    gameState.activeAnimations
 
 
 const : a -> b -> a

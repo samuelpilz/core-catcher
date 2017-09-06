@@ -6,7 +6,7 @@ module ProtocolUtils exposing (..)
 
 import Protocol exposing (..)
 import Maybe exposing (..)
-import EveryDict
+import EveryDict exposing (EveryDict)
 
 
 playerPositions : GameView -> PlayerPositions

@@ -57,11 +57,9 @@ simpleUnwrap :: Name -> Name -> DecQ
 simpleUnwrap funcName typeName = do
     con <- getNewTypeCon typeName
     conVar <- newName "a"
-    otherVar <- newName "p"
-    let bodyExpr = [e| $(varE funcName) $(varE otherVar) $(varE conVar) |]
+    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
     let cl = clause
-            [ varP otherVar
-            , conP con [varP conVar]
+            [ conP con [varP conVar]
             ]
             (normalB bodyExpr)
             []
@@ -71,14 +69,15 @@ simpleUnwrap1 :: Name -> Name -> DecQ
 simpleUnwrap1 funcName typeName = do
     con <- getNewTypeCon typeName
     conVar <- newName "a"
-    let bodyExpr = [e| $(varE funcName) $(varE conVar) |]
+    otherVar <- newName "p"
+    let bodyExpr = [e| $(varE funcName) $(varE otherVar) $(varE conVar) |]
     let cl = clause
-            [ conP con [varP conVar]
+            [ varP otherVar
+            , conP con [varP conVar]
             ]
             (normalB bodyExpr)
             []
     funD funcName [cl]
-
 
 simpleUnwrapWrap :: Name -> Name -> DecQ
 simpleUnwrapWrap funcName typeName = do
@@ -195,3 +194,9 @@ getNewTypeCon typeName = do
       (NewtypeD _ _ _ _ (RecC con _) _) -> return con
       (NewtypeD _ _ _ _ (NormalC con _) _) -> return con
       _ -> fail "Only Newtype datastructures are allowed"
+
+
+emptyDerive :: Name -> Name-> DecsQ
+emptyDerive typeclass name = do
+    let instanceType           = AppT (ConT typeclass) (ConT name)
+    return [InstanceD Nothing [] instanceType [] ]

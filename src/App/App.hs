@@ -16,8 +16,6 @@ import           GameNg              (GameRunning (..), GameState (..),
 import qualified GameNg              as Game
 import           Network.Protocol
 
--- TODO: tests for this module
-
 handle
     :: IsConnection conn
     => (ConnectionId, conn)
@@ -45,7 +43,7 @@ handle (cId, client) stateVar msg = do
                 loginPlayer
 
 -- TODO: validation playerId matches connection-origin
--- TODO: draw  transition diagrams
+-- TODO: draw transition diagrams
 
 
 updateGameAtomically

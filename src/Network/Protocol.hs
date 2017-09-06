@@ -17,6 +17,7 @@ import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
 import qualified TH.MonoDerive             as Derive
+import qualified Test.QuickCheck.Gen       as Gen
 
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
@@ -78,7 +79,6 @@ data Action =
         , actionEnergy :: Energy
         , actionNode   :: Node
         }
-
     deriving (Show, Read, Eq, Generic)
 
 {- |The playerPositions map keeps track of the current nodes each player is on.
@@ -364,7 +364,7 @@ Derive.deriveMap ''PlayerPositions
 Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
 Derive.deriveMap ''PlayerEnergies
--- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+-- IsSequence for RogueHistory
 Derive.deriveSequence ''RogueHistory
--- MonoFoldable and MonoTraversable and IsSequence for RogueHistory
+-- IsSequence for RogueHistory
 Derive.deriveSequence ''OpenRogueHistory

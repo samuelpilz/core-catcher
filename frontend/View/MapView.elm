@@ -70,6 +70,7 @@ mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes,
 
 
 
+-- TODO: fix xymap
 -- svg create functions
 
 

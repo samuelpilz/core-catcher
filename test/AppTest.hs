@@ -67,15 +67,23 @@ test_playerMoved_responseToAllWithCorrectGameView = do
         [(0, Action_ $ Move alice Red (Node 6))]
         assertions
     where
-        assertions state = mapM_
-            (\cId -> do
-                msgSent <- getSentMsg $ getConnectionById cId state
-                case msgSent of
-                    Nothing -> assertFailure $ "should have sent to " ++ show cId
-                    Just (GameView_ _) -> return ()
-                    Just msg -> assertFailure $ "expected gameView, got " ++ show msg
-            )-- TODO: assertion that correct game-view kind for correct
-            [0,1,2]
+        assertions state = do
+            -- assertion for rogue
+            msgSentToRogue <- getSentMsg $ getConnectionById 0 state
+            case msgSentToRogue of
+                Nothing -> assertFailure "should have sent to rogue"
+                Just (GameView_ (RogueView _)) -> return ()
+                Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+            -- assertions for catcher
+            mapM_
+                (\cId -> do
+                    msgSent <- getSentMsg $ getConnectionById cId state
+                    case msgSent of
+                        Nothing -> assertFailure $ "should have sent to " ++ show cId
+                        Just (GameView_ (CatcherView _)) -> return ()
+                        Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+                )
+                [1,2]
 
 test_playerMovedIncorrectly_gameErrorToOnlyOne :: IO ()
 test_playerMovedIncorrectly_gameErrorToOnlyOne = do
