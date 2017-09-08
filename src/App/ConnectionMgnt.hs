@@ -58,7 +58,7 @@ class IsConnection c where
     recvMsg :: c -> IO (Maybe MessageForServer)
 
     sendSendableMsg :: SendableToClient msg => c -> msg -> IO ()
-    sendSendableMsg c msg = sendMsg c $ wrap msg
+    sendSendableMsg c msg = sendMsg c $ wrapSendable msg
 
     acceptRequest ::  Pending c -> IO c
 

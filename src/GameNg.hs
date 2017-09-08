@@ -233,11 +233,14 @@ getGameOverView GameOver
     { gameOverPlayerPositions
     , gameOverPlayerEnergies
     , gameOverRogueHistory
+    , gameOverWinningPlayer
     } =
     GameOverView
         gameOverPlayerPositions
         gameOverPlayerEnergies
         gameOverRogueHistory
+        gameOverWinningPlayer
+
 
 gameNetwork :: GameState -> Network
 gameNetwork = network . gameConfig

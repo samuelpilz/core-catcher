@@ -23,8 +23,8 @@ import           Test.HUnit.Base
 
 
 
-test_loginRogue :: IO ()
-test_loginRogue = do
+test_loginRogue_initialInfo :: IO ()
+test_loginRogue_initialInfo = do
     initialState <- initialStateWith3FakeConnections
     appTestCase
         initialState
@@ -34,15 +34,27 @@ test_loginRogue = do
         assertions state = do
             msgSent <- getSentMsg $ getConnectionById 0 state
             case msgSent of
-                Nothing -> assertFailure "should have sent to alice"
-                Just (InitialInfoForClient_ info) -> do
-                    alice @?= initialPlayer info
-                    network defaultConfig @?= networkForGame info
+                Nothing -> assertFailure "should have sent initial info to alice"
+                Just (InitialInfoForClient_ InitialInfoForClient
+                    { initialPlayer
+                    , initialGameView
+                    , networkForGame
+                    , allPlayers
+                    , allEnergies
+                    }) -> do
+                    -- assertions on all fields of the initialInfoForClient
+                    alice @?= initialPlayer
+                    network defaultConfig @?= networkForGame
+                    [alice, bob, charlie] @?= allPlayers
+                    [Red, Blue, Orange] @?= allEnergies
+                    case initialGameView of
+                        CatcherView _ -> assertFailure "expeced rogue view"
+                        RogueView _ -> return ()
+
                 Just msg -> assertFailure $ "expected initialInfo, got " ++ show msg
 
--- TODO: rogue and catcher specific assertions
-test_loginCatcher :: IO ()
-test_loginCatcher = do
+test_loginCatcher_initialInfo :: IO ()
+test_loginCatcher_initialInfo = do
     stateVar <- initialStateWith3FakeConnections
     appTestCase
         stateVar
@@ -71,17 +83,23 @@ test_playerMoved_responseToAllWithCorrectGameView = do
             -- assertion for rogue
             msgSentToRogue <- getSentMsg $ getConnectionById 0 state
             case msgSentToRogue of
-                Nothing -> assertFailure "should have sent to rogue"
-                Just (GameView_ (RogueView _)) -> return ()
-                Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+                Nothing ->
+                    assertFailure "should have sent to rogue"
+                Just (GameView_ (RogueView RogueGameView {rogueNextPlayer})) ->
+                    bob @?= rogueNextPlayer
+                Just msg ->
+                    assertFailure $ "expected gameView, got " ++ show msg
             -- assertions for catcher
             mapM_
                 (\cId -> do
                     msgSent <- getSentMsg $ getConnectionById cId state
                     case msgSent of
-                        Nothing -> assertFailure $ "should have sent to " ++ show cId
-                        Just (GameView_ (CatcherView _)) -> return ()
-                        Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+                        Nothing ->
+                            assertFailure $ "should have sent to " ++ show cId
+                        Just (GameView_ (CatcherView CatcherGameView {catcherNextPlayer})) ->
+                            bob @?= catcherNextPlayer
+                        Just msg ->
+                            assertFailure $ "expected gameView, got " ++ show msg
                 )
                 [1,2]
 
@@ -107,6 +125,48 @@ test_playerMovedIncorrectly_gameErrorToOnlyOne = do
                     Nothing @?= msgSent
                 )
                 [0,2]
+
+
+test_playerMovedIncorrectly_stateSillOld :: IO ()
+test_playerMovedIncorrectly_stateSillOld = do
+    stateVar <- initialStateWith3Logins
+    appTestCase
+        stateVar
+        [ (1, Action_ $ Move bob Red (Node 6))
+        , (0, Action_ $ Move alice Red (Node 6))]
+        assertions
+    where
+        assertions state = do
+            -- test that alice did move indeed
+            msgSentToAlice <- getSentMsg $ getConnectionById 0 state
+            case msgSentToAlice of
+                Nothing -> assertFailure "should have sent to rogue"
+                Just (GameView_ _) -> return ()
+                Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+
+
+test_playerMovedCorrectly_stateUpdatedTwice :: IO ()
+test_playerMovedCorrectly_stateUpdatedTwice = do
+    stateVar <- initialStateWith3Logins
+    appTestCase
+        stateVar
+        [ (0, Action_ $ Move alice Red (Node 6))
+        , (1, Action_ $ Move bob Orange (Node 10))
+        ]
+        assertions
+    where
+        assertions state = do
+            -- test that alice did move indeed
+            -- TODO: test that 2 messages have been sent?
+            msgSentToAlice <- getSentMsg $ getConnectionById 0 state
+            case msgSentToAlice of
+                Nothing -> assertFailure "should have sent to rogue"
+                Just (GameView_ (RogueView RogueGameView {rogueNextPlayer})) ->
+                    charlie @?= rogueNextPlayer
+                Just msg -> assertFailure $ "expected gameView, got " ++ show msg
+
+
+-- TODO: tests for gameOver
 
 {- |Function for testing the app-module.
 

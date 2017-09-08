@@ -192,8 +192,9 @@ test_rogueWins_gameOverWinningPlayer0 =
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
-test_getGameOverView_sameConfigAndSamePositionsAndEnergies :: IO ()
-test_getGameOverView_sameConfigAndSamePositionsAndEnergies =
+
+test_gameOver_sameConfigAndSamePositionsAndEnergies :: IO ()
+test_gameOver_sameConfigAndSamePositionsAndEnergies =
     gameNgTestCase
         config
         moves
@@ -218,8 +219,9 @@ test_getGameOverView_sameConfigAndSamePositionsAndEnergies =
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
-test_getGameOverView_openRogueHistory :: IO ()
-test_getGameOverView_openRogueHistory =
+
+test_getGameOverView_fieldsSet :: IO ()
+test_getGameOverView_fieldsSet =
     gameNgTestCase
         config
         moves
@@ -235,10 +237,22 @@ test_getGameOverView_openRogueHistory =
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
-        assertions (Right (GameOver_ GameOver {gameOverRogueHistory})) =
-            OpenRogueHistory [ (Red, Node 6, False) ] @?= gameOverRogueHistory
+        assertions (Right (GameOver_ gameOver)) =
+            let
+                GameOverView
+                    { gameOverViewRogueHistory
+                    , gameOverViewPlayerPositions
+                    , gameOverViewPlayerEnergies
+                    , gameOverViewWinningPlayer
+                    } = getGameOverView gameOver
+            in do
+                OpenRogueHistory [ (Red, Node 6, False) ] @?= gameOverViewRogueHistory
+                bob @?= gameOverViewWinningPlayer
+                when (gameOverViewPlayerPositions == mempty) $ assertFailure "player positions empty"
+                when (gameOverViewPlayerEnergies == mempty) $ assertFailure "player energies empty"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
+
 
 -- Test correct gameErrors
 
@@ -412,6 +426,7 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
             let (_, catcherView) = getViews game
             Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
+
 test_getViews_rogueShownAtLastPositionInCatcherView :: IO ()
 test_getViews_rogueShownAtLastPositionInCatcherView =
     gameNgTestCase
@@ -433,6 +448,7 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
             Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
+
 
 test_gameRound :: IO ()
 test_gameRound =
@@ -463,6 +479,8 @@ test_gameRound =
             Just (Node 13) @?=
                 (lookup charlie . playerPositions $ gameRunningPlayerPositions)
             alice @?= headEx gameRunningNextPlayers
+
+
 
 {- |Function for testing the gameNg.
 

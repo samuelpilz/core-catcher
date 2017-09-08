@@ -38,6 +38,7 @@ handle (cId, client) stateVar msg = do
                     state { playerMap = insertMap loginPlayer cId playerMap }
                 )
             state <- atomically $ readTVar stateVar
+
             sendSendableMsg client .
                 initialInfoForClient (gameState state) $
                 loginPlayer
@@ -84,9 +85,9 @@ sendGameViews (GameOver_ game) ServerState{ stateConnections } =
     multicastMsg stateConnections $ Game.getGameOverView game
 
 
-initialInfoForClient :: GameState -> Player -> InitialInfoForClient
+initialInfoForClient :: GameState -> Player -> Either GameError InitialInfoForClient
 initialInfoForClient (GameRunning_ gameRunning) player =
-    InitialInfoForClient
+    Right InitialInfoForClient
         { networkForGame = network
         , initialGameView = initialView
         , initialPlayer = player
@@ -97,7 +98,7 @@ initialInfoForClient (GameRunning_ gameRunning) player =
         config = gameRunningGameConfig gameRunning
         initialView = viewForPlayer config (getViews gameRunning) player
         network = Game.network config
-initialInfoForClient (GameOver_ gameOver) player = undefined
+initialInfoForClient (GameOver_ _) _ = Left GameIsOver
 
 viewForPlayer :: GameConfig -> (RogueGameView, CatcherGameView) -> Player -> GameView
 viewForPlayer config views player =

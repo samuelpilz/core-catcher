@@ -16,8 +16,8 @@ import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
-import qualified TH.MonoDerive             as Derive
 import qualified Test.QuickCheck.Gen       as Gen
+import qualified TH.MonoDerive             as Derive
 
 {-
 This module provides data-types that are sent to game-clients and bots as messages.
@@ -144,6 +144,7 @@ data GameOverView =
         { gameOverViewPlayerPositions :: PlayerPositions
         , gameOverViewPlayerEnergies  :: PlayerEnergies
         , gameOverViewRogueHistory    :: OpenRogueHistory
+        , gameOverViewWinningPlayer   :: Player
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -232,23 +233,25 @@ data MessageForClient
     deriving (Show, Read, Eq, Generic)
 
 class SendableToClient msg where
-    wrap :: msg -> MessageForClient
+    wrapSendable :: msg -> MessageForClient
 
 
 instance SendableToClient MessageForClient where
-    wrap = id
+    wrapSendable = id
 instance SendableToClient GameError where
-    wrap = GameError_
+    wrapSendable = GameError_
 instance SendableToClient GameView where
-    wrap = GameView_
+    wrapSendable = GameView_
 instance SendableToClient GameOverView where
-    wrap = GameOverView_
+    wrapSendable = GameOverView_
 instance SendableToClient RogueGameView where
-    wrap = GameView_ . RogueView
+    wrapSendable = GameView_ . RogueView
 instance SendableToClient CatcherGameView where
-    wrap = GameView_ . CatcherView
+    wrapSendable = GameView_ . CatcherView
 instance SendableToClient InitialInfoForClient where
-    wrap = InitialInfoForClient_
+    wrapSendable = InitialInfoForClient_
+instance (SendableToClient a, SendableToClient b) => SendableToClient (Either a b) where
+    wrapSendable = either wrapSendable wrapSendable
 
 instance FromJSONKey Player where
 
