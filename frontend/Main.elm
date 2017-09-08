@@ -59,10 +59,18 @@ view state =
 preGameView : PreGame -> Html Msg
 preGameView state =
     div []
-        [ h1 [] [ text <| "Core catcher" ]
+        [ h1 [] [ text "Core catcher" ]
         , Html.form [ onSubmit (DoLogin { loginPlayer = { playerName = state.playerNameField } }) ]
             [ input [ placeholder "Username", onInput PlayerNameChange, autofocus True ] []
             , button [ type_ "submit" ] [ text "Login" ]
+            , p []
+                [ text "Players in Game"
+                , ol []
+                    [ li [] [ text "Alice" ]
+                    , li [] [ text "Bob" ]
+                    , li [] [ text "Charlie" ]
+                    ]
+                ]
             ]
         ]
 
@@ -270,7 +278,7 @@ updateActiveAnimations gameState playerPositions =
                 )
                 -- toNode
                 (Maybe.andThen
-                    (\p -> EveryDict.get p playerPositions.playerPositions )
+                    (\p -> EveryDict.get p playerPositions.playerPositions)
                     movingPlayer
                 )
     in
