@@ -11,18 +11,28 @@ import AllDict exposing (..)
 import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
-import GameViewDisplay exposing (..)
+import View.GameViewDisplay exposing (..)
+import Debug exposing (log)
+import View.PlayerAnimation exposing (..)
 
 
--- TODO: css style with css-library?
+{-
+   TODO: how to implement animated player positions?
+
+   draw all playerPositions not possible.
+
+   new datatype for drawing players:
+   type PlayerPositionInFrame = AtNode Node | InMovement PlayerMovementAnimation
+   playerCircle takes PlayerPositionsInFrame together with rest...
+
+-}
 
 
-mapView : Network -> GameViewDisplayInfo -> ClientState -> Html.Html Msg
-mapView network displayInfo clientState =
+mapView : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
+mapView network displayInfo gameState =
     svg
         [ height << toString <| displayInfo.mapHeight
         , width << toString <| displayInfo.mapWidth
-        , Html.style [ ( "backgroundColor", "#cccccc" ) ]
         ]
     -- elements of svg now
     <|
@@ -33,30 +43,71 @@ mapView network displayInfo clientState =
                 (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) <| EveryDict.toList network.overlays)
             -- base network
             ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
-            ++ List.map (playerCircle displayInfo.nodeXyMap displayInfo.playerColorMap)
-                (EveryDict.toList
-                    (playerPositions clientState.gameView).playerPositions_
-                )
+            ++ List.map (playerCircle displayInfo gameState)
+                (EveryDict.toList gameState.playerPositions.playerPositions)
+            ++ gameErrorText gameState.gameError
+            ++ gameOverText gameState.gameOver
 
 
-mapViewOfNetworkOverlayName : GameViewDisplayInfo -> Network -> ( Transport, NetworkOverlay ) -> List (Svg.Svg Msg)
+mapViewOfNetworkOverlayName :
+    GameViewDisplayInfo
+    -> Network
+    -> ( Energy, NetworkOverlay )
+    -> List (Svg.Svg Msg)
 mapViewOfNetworkOverlayName displayInfo { overlays } ( overlayName, overlay ) =
     (Maybe.withDefault []
-        << Maybe.map2 (mapViewOfNetworkOverlay)
-            (displayInfoForTransport displayInfo overlayName)
+        << Maybe.map2 (mapViewOfNetworkOverlay displayInfo.nodeXyMap)
+            (displayInfoForEnergy displayInfo overlayName)
      <|
         Just overlay
     )
 
 
-mapViewOfNetworkOverlay : OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
-mapViewOfNetworkOverlay { color, edgeWidth, nodeSize, nodeXyMap } { overlayNodes, edges } =
-    List.map (edgeLine nodeXyMap color edgeWidth) edges
+mapViewOfNetworkOverlay : NodeXyMap -> OverlayDisplayInfo -> NetworkOverlay -> List (Svg Msg)
+mapViewOfNetworkOverlay nodeXyMap { color, edgeWidth, nodeSize } { overlayNodes, overlayEdges } =
+    List.map (edgeLine nodeXyMap color edgeWidth) overlayEdges
         ++ List.map (nodeCircleStop nodeXyMap color nodeSize) overlayNodes
 
 
 
+-- TODO: fix xymap
 -- svg create functions
+
+
+gameErrorText : Maybe GameError -> List (Svg Msg)
+gameErrorText errMay =
+    case errMay of
+        Nothing ->
+            []
+
+        Just err ->
+            [ text_
+                [ x "15"
+                , y "15"
+                , fill "red"
+                ]
+                [ text << toString <| err ]
+
+            -- TODO: popup notification for that?
+            ]
+
+
+gameOverText : Bool -> List (Svg Msg)
+gameOverText gameOverBool =
+    case gameOverBool of
+        False ->
+            []
+
+        True ->
+            [ text_
+                [ x "500"
+                , y "15"
+                , fill "red"
+                ]
+                [ text "Game Over" ]
+
+            -- TODO: visual design for that, and present more info
+            ]
 
 
 nodeCircleStop : NodeXyMap -> Color -> NodeSize -> Node -> Svg Msg
@@ -66,7 +117,7 @@ nodeCircleStop nodeXyMap color size node =
         , cy << toString <| nodeY nodeXyMap node
         , r (toString size)
         , fill color
-        , onClick (Clicked node)
+        , onClick (Movement node)
         , Html.style [ ( "cursor", "pointer" ) ]
         ]
         []
@@ -81,7 +132,7 @@ nodeCircle nodeXyMap node =
             , r "20"
             , fill "#111111"
             , Svg.Attributes.cursor "pointer"
-            , onClick (Clicked node)
+            , onClick (Movement node)
             ]
             []
         , text_
@@ -89,27 +140,31 @@ nodeCircle nodeXyMap node =
             , y << toString <| 5 + nodeY nodeXyMap node
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
-            , onClick (Clicked node)
+            , onClick (Movement node)
             , textAnchor "middle"
             ]
             [ text << toString <| node.nodeId ]
         ]
 
 
-playerCircle : NodeXyMap -> PlayerColorMap -> ( Player, Node ) -> Svg Msg
-playerCircle nodeXyMap playerColorMap ( player, node ) =
-    circle
-        [ cx << toString << nodeX nodeXyMap <| node
-        , cy << toString << nodeY nodeXyMap <| node
-        , r "15"
-        , fill "none"
-        , stroke << Maybe.withDefault "white" << AllDict.get player <| playerColorMap
-        , Svg.Attributes.cursor "pointer"
-        , onClick (Clicked node)
-        , strokeWidth "4"
-        , Svg.Attributes.strokeDasharray "5,3.5"
-        ]
-        []
+playerCircle : GameViewDisplayInfo -> GameState -> ( Player, Node ) -> Svg Msg
+playerCircle displayInfo gameState ( player, node ) =
+    let
+        ( x, y ) =
+            log "position" <| positionInSvg displayInfo gameState player
+    in
+        circle
+            [ cx << toString <| x
+            , cy << toString <| y
+            , r "15"
+            , fill "none"
+            , stroke << Maybe.withDefault "white" << AllDict.get player <| displayInfo.playerColorMap
+            , Svg.Attributes.cursor "pointer"
+            , onClick (Movement node)
+            , strokeWidth "4"
+            , Svg.Attributes.strokeDasharray "5,3.5"
+            ]
+            []
 
 
 edgeLine : NodeXyMap -> Color -> EdgeWidth -> Edge -> Svg msg

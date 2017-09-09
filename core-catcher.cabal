@@ -15,18 +15,18 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , GameLogic
+  exposed-modules:     GameNg
                      , Network.Protocol
                      , Network.ElmDerive
-                     , Glue
-                     , GlueMock
-                     , Network.ExampleGameView
-                     , App.WsApp
-                     , App.WsAppUtils
+                     , Config.Network
+                     , Config.GameConfig
+                     , App.App
                      , App.State
                      , App.ConnectionMgnt
-                     , App.Connection
+                     , TH.MonoDerive
+                     , TH.TypeFamily
+                     , TH.MonoFunctions
+
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
@@ -40,20 +40,24 @@ library
                      , elm-bridge
                      , bytestring
                      , safe
+                     , extra
                      , QuickCheck
                      , data-easy
                      , either
+                     , random
+                     , template-haskell
   default-language:    Haskell2010
 
 executable core-catcher-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  other-modules:
+  other-modules:       WsConnection
   ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , core-catcher
                      , warp
                      , wai
+                     , wai-app-static
                      , text
                      , websockets
                      , wai-websockets
@@ -66,24 +70,35 @@ executable core-catcher-exe
                      , bytestring
   default-language:    Haskell2010
 
+executable elm-bridge
+  hs-source-dirs:      frontend/elm-bridge
+  main-is:             Main.hs
+  ghc-options:         -threaded -Wall -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , classy-prelude
+                     , core-catcher
+  default-language:    Haskell2010
+
 test-suite core-catcher-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             TestMain.hs
   other-modules:       ProtocolTest
-                     , SpecTest
-                     , MainTest
-                     , StateTest
-                     , GameLogicTest
-                     , WsAppUtilsTest
+                     , ConnectionMgntTest
                      , Mock.Connection
+                     , GameNgTest
+                     , AppTest
   build-depends:       base
                      , core-catcher
                      , classy-prelude
+                     , containers
                      , QuickCheck
                      , HTF
+                     , HUnit
                      , aeson
                      , websockets
+                     , data-easy
+                     , extra
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

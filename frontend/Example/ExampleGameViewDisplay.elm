@@ -1,10 +1,12 @@
 module Example.ExampleGameViewDisplay exposing (..)
 
 import Protocol exposing (..)
-import GameViewDisplay exposing (..)
+import ProtocolUtils exposing (..)
+import View.GameViewDisplay exposing (..)
 import List exposing (..)
 import AllDict exposing (..)
 import Maybe exposing (..)
+import Time
 
 
 displayInfo : GameViewDisplayInfo
@@ -13,46 +15,47 @@ displayInfo =
     , edgeWidthMap = edgeWidthMap
     , nodeSizeMap = nodeSizeMap
     , nodeXyMap = nodeXyMap
-    , transportPriorityList =
-        [ { transportName = "red" }
-        , { transportName = "blue" }
-        , { transportName = "orange" }
+    , energyPriorityList =
+        [ Red
+        , Blue
+        , Orange
         ]
     , playerColorMap = playerColorMap
     , mapWidth = 800
     , mapHeight = 600
     , gridWidth = 7
     , gridHeight = 5
+    , movementAnimationDuration = 0.5 * Time.second
     }
 
 
 colorMap : ColorMap
 colorMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, "red" )
-        , ( { transportName = "blue" }, "blue" )
-        , ( { transportName = "orange" }, "orange" )
+        energyId
+        [ ( Red, "red" )
+        , ( Blue, "blue" )
+        , ( Orange, "orange" )
         ]
 
 
 edgeWidthMap : EdgeWidthMap
 edgeWidthMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, 14 )
-        , ( { transportName = "blue" }, 8 )
-        , ( { transportName = "orange" }, 2 )
+        energyId
+        [ ( Red, 14 )
+        , ( Blue, 8 )
+        , ( Orange, 2 )
         ]
 
 
-nodeSizeMap : EdgeWidthMap
+nodeSizeMap : NodeSizeMap
 nodeSizeMap =
     AllDict.fromList
-        .transportName
-        [ ( { transportName = "red" }, 28 )
-        , ( { transportName = "blue" }, 25 )
-        , ( { transportName = "orange" }, 22 )
+        energyId
+        [ ( Red, 28 )
+        , ( Blue, 25 )
+        , ( Orange, 22 )
         ]
 
 
@@ -62,7 +65,7 @@ nodeXyMap =
         .nodeId
         [ ( { nodeId = 1 }, ( 0, 0 ) )
         , ( { nodeId = 2 }, ( 3, 0 ) )
-        , ( { nodeId = 3 }, ( 2, 2 ) )
+        , ( { nodeId = 3 }, ( 3, 2 ) )
         , ( { nodeId = 4 }, ( 2, 5 ) )
         , ( { nodeId = 5 }, ( 4, 1 ) )
         , ( { nodeId = 6 }, ( 1, 3 ) )
@@ -76,15 +79,15 @@ nodeXyMap =
         , ( { nodeId = 14 }, ( 7, 5 ) )
         , ( { nodeId = 15 }, ( 6, 5 ) )
         , ( { nodeId = 16 }, ( 5, 4 ) )
+        , ( { nodeId = 17 }, ( 1, 1 ) )
         ]
 
 
 playerColorMap : PlayerColorMap
 playerColorMap =
     AllDict.fromList
-        .playerId
-        [ ( { playerId = 0 }, "#4444ff" )
-        , ( { playerId = 1 }, "red" )
-        , ( { playerId = 2 }, "green" )
-        , ( { playerId = 3 }, "yellow" )
+        .playerName
+        [ ( { playerName = "Alice" }, "#4444ff" )
+        , ( { playerName = "Bob" }, "red" )
+        , ( { playerName = "Charlie" }, "green" )
         ]

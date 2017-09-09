@@ -5,8 +5,6 @@ module ProtocolUtils exposing (..)
 -}
 
 import Protocol exposing (..)
-import List exposing (..)
-import Tuple as Tuple
 import Maybe exposing (..)
 import EveryDict exposing (EveryDict)
 
@@ -21,8 +19,8 @@ playerPositions gameView =
             view.catcherPlayerPositions
 
 
-energies : GameView -> PlayerEnergies
-energies gameView =
+playerEnergies : GameView -> PlayerEnergies
+playerEnergies gameView =
     case gameView of
         RogueView view ->
             view.rogueEnergies
@@ -51,17 +49,28 @@ nextPlayer gameView =
             view.catcherNextPlayer
 
 
-getFromList : k -> List ( k, v ) -> Maybe v
-getFromList k list =
-    List.head
-        << List.map Tuple.second
-        << List.filter ((==) k << Tuple.first)
+getEnergyForEnergyAndPlayer : Player -> Energy -> PlayerEnergies -> Int
+getEnergyForEnergyAndPlayer player energy playerEnergies =
+    Maybe.withDefault 0
+        << Maybe.andThen (EveryDict.get energy)
+        << Maybe.map .energyMap
+        << EveryDict.get player
     <|
-        list
+        playerEnergies.playerEnergies
 
 
-getEnergyForTransportAndPlayer : Player -> Transport -> GameView -> Int
-getEnergyForTransportAndPlayer player transport gameView =
-    EveryDict.get player (energies gameView).playerEnergies
-        |> Maybe.andThen (\energies -> EveryDict.get transport energies.energyMap)
-        |> Maybe.withDefault 0
+emptyNetwork : Network
+emptyNetwork =
+    { nodes = [], overlays = EveryDict.empty }
+
+energyId : Energy -> Int
+energyId e =
+    case e of
+        Red ->
+            0
+
+        Blue ->
+            1
+
+        Orange ->
+            2

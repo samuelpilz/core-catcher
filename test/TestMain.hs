@@ -6,11 +6,9 @@ import           ClassyPrelude
 import           Test.Framework
 
 import {-@ HTF_TESTS @-} ProtocolTest
-import {-@ HTF_TESTS @-} SpecTest
-import {-@ HTF_TESTS @-} MainTest
-import {-@ HTF_TESTS @-} StateTest
-import {-@ HTF_TESTS @-} GameLogicTest
-import {-@ HTF_TESTS @-} WsAppUtilsTest
+import {-@ HTF_TESTS @-} ConnectionMgntTest
+import {-@ HTF_TESTS @-} GameNgTest
+import {-@ HTF_TESTS @-} AppTest
 
 main :: IO ()
 main = do

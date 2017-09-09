@@ -8,14 +8,16 @@
 # Copy these contents into the root directory of your Github project in a file
 # named .travis.yml
 
-# Use new container infrastructure to enable caching
 sudo: false
 
 # Do not choose a language; we provide our own build tools.
-language: generic
+language: haskell
+ghc:
+  - "8.0.2"
 
 notifications:
   slack: slacker-team-group:blhdpAIn8vnojRfNf59wqKsS
+  email: false
 
 # Caching so the next build will be fast too.
 cache:
@@ -23,6 +25,7 @@ cache:
   - $HOME/.stack
   - /home/travis/build/Haskell-Praxis/core-catcher/elm-stuff/build-artifacts
   - /home/travis/build/Haskell-Praxis/core-catcher/.stack-work
+  - $(npm config get prefix)/bin/elm
 
 # Ensure necessary system libraries are present
 addons:
@@ -32,6 +35,9 @@ addons:
 
 before_install:
   # Download and unpack the stack executable
+  - npm install -g elm
+  - elm --version
+  - elm-package install -y
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
   - export TRAVIS=travis-ci
@@ -44,15 +50,11 @@ before_install:
   - stack build
   - cp `stack path --local-install-root`/bin/shc ~/.local/bin/
   - cd ../core-catcher
-  - npm install elm
-  - elm-package install -y
-
 
 
 install:
   # Build dependencies
   - stack --no-terminal --install-ghc test --only-dependencies
-  - travis_wait elm-make frontend/Main.elm --output=web/elm.js
 
 
 script:
@@ -64,4 +66,10 @@ after_script:
   # publish coverage results coveralls.io
   # after_script might clean some things
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
+  # ignore coverage in module Network.Protocol
+  - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
+  - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
+  - mv $TIX_FILE~ $TIX_FILE
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
+
+

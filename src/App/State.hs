@@ -1,38 +1,51 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeFamilies      #-}
+
 module App.State
   ( ServerState(..)
   , HasConnections
   , GameState
   , IsConnection(..)
-  , GameConnection(GameConnection)
+  , defaultInitialState
+  , defaultInitialStateWithRandomPositions
   ) where
 
-import           App.Connection
 import           App.ConnectionMgnt
 import           ClassyPrelude
-import           Glue               (GameState)
-import qualified Network.Protocol   () -- as Protocol
-import qualified Network.WebSockets as WS
-
-newtype GameConnection = GameConnection WS.Connection
+import           Config.GameConfig  (defaultConfig, defaultConfigWithRandomPositions)
+import           GameNg             (GameState (..), initialStateFromConfig)
+import           Network.Protocol   (Player)
 
 data ServerState conn =
     ServerState
-        { connections :: Seq (ClientConnection conn)
-        , gameState   :: GameState
+        { stateConnections :: ClientConnections conn
+        , gameState        :: GameState
+        , playerMap        :: Map Player ConnectionId
         }
 
 instance IsConnection conn => HasConnections (ServerState conn) where
     type Conn (ServerState conn) = conn
-    getConnections = connections
-    setConnections conn state = state { connections = conn }
+    getConnections =
+        stateConnections
 
-instance IsConnection GameConnection where
-    type Pending GameConnection = WS.PendingConnection
+    setConnections conns state =
+        state
+            { stateConnections = conns
+            }
 
-    sendData (GameConnection conn) = WS.sendTextData conn
-    receiveData (GameConnection conn) = WS.receiveData conn
-    acceptRequest pending = do
-        conn <- WS.acceptRequest pending
-        return $ GameConnection conn
+defaultInitialStateWithRandomPositions :: IO (ServerState conn)
+defaultInitialStateWithRandomPositions = do
+    config <- defaultConfigWithRandomPositions
+    return ServerState
+        { stateConnections = ClientConnections mempty 0
+        , gameState = GameRunning_ $ initialStateFromConfig config
+        , playerMap = mempty
+        }
+
+defaultInitialState :: ServerState conn
+defaultInitialState =
+    ServerState
+        { stateConnections = ClientConnections mempty 0
+        , gameState = GameRunning_ $ initialStateFromConfig defaultConfig
+        , playerMap = mempty
+        }

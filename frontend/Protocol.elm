@@ -33,41 +33,41 @@ encodeMap encKey encVal =
     Json.Encode.list << List.map (\( k, v ) -> Json.Encode.list [ encKey k, encVal v ]) << EveryDict.toList
 
 type alias Action  =
-   { player: Player
-   , transport: Transport
-   , node: Node
+   { actionPlayer: Player
+   , actionEnergy: Energy
+   , actionNode: Node
    }
 
 jsonDecAction : Json.Decode.Decoder ( Action )
 jsonDecAction =
-   ("player" := jsonDecPlayer) >>= \pplayer ->
-   ("transport" := jsonDecTransport) >>= \ptransport ->
-   ("node" := jsonDecNode) >>= \pnode ->
-   Json.Decode.succeed {player = pplayer, transport = ptransport, node = pnode}
+   ("actionPlayer" := jsonDecPlayer) >>= \pactionPlayer ->
+   ("actionEnergy" := jsonDecEnergy) >>= \pactionEnergy ->
+   ("actionNode" := jsonDecNode) >>= \pactionNode ->
+   Json.Decode.succeed {actionPlayer = pactionPlayer, actionEnergy = pactionEnergy, actionNode = pactionNode}
 
 jsonEncAction : Action -> Value
 jsonEncAction  val =
    Json.Encode.object
-   [ ("player", jsonEncPlayer val.player)
-   , ("transport", jsonEncTransport val.transport)
-   , ("node", jsonEncNode val.node)
+   [ ("actionPlayer", jsonEncPlayer val.actionPlayer)
+   , ("actionEnergy", jsonEncEnergy val.actionEnergy)
+   , ("actionNode", jsonEncNode val.actionNode)
    ]
 
 
 
 type alias PlayerPositions  =
-   { playerPositions_: (EveryDict Player Node)
+   { playerPositions: (EveryDict Player Node)
    }
 
 jsonDecPlayerPositions : Json.Decode.Decoder ( PlayerPositions )
 jsonDecPlayerPositions =
-   ("playerPositions_" := decodeMap (jsonDecPlayer) (jsonDecNode)) >>= \pplayerPositions_ ->
-   Json.Decode.succeed {playerPositions_ = pplayerPositions_}
+   ("playerPositions" := decodeMap (jsonDecPlayer) (jsonDecNode)) >>= \pplayerPositions ->
+   Json.Decode.succeed {playerPositions = pplayerPositions}
 
 jsonEncPlayerPositions : PlayerPositions -> Value
 jsonEncPlayerPositions  val =
    Json.Encode.object
-   [ ("playerPositions_", (encodeMap (jsonEncPlayer) (jsonEncNode)) val.playerPositions_)
+   [ ("playerPositions", (encodeMap (jsonEncPlayer) (jsonEncNode)) val.playerPositions)
    ]
 
 
@@ -163,75 +163,75 @@ jsonEncPlayerEnergies  val =
 
 
 type alias EnergyMap  =
-   { energyMap: (EveryDict Transport Int)
+   { energyMap: (EveryDict Energy Int)
    }
 
 jsonDecEnergyMap : Json.Decode.Decoder ( EnergyMap )
 jsonDecEnergyMap =
-   ("energyMap" := decodeMap (jsonDecTransport) (Json.Decode.int)) >>= \penergyMap ->
+   ("energyMap" := decodeMap (jsonDecEnergy) (Json.Decode.int)) >>= \penergyMap ->
    Json.Decode.succeed {energyMap = penergyMap}
 
 jsonEncEnergyMap : EnergyMap -> Value
 jsonEncEnergyMap  val =
    Json.Encode.object
-   [ ("energyMap", (encodeMap (jsonEncTransport) (Json.Encode.int)) val.energyMap)
+   [ ("energyMap", (encodeMap (jsonEncEnergy) (Json.Encode.int)) val.energyMap)
    ]
 
 
 
 type alias Network  =
    { nodes: (List Node)
-   , overlays: (EveryDict Transport NetworkOverlay)
+   , overlays: (EveryDict Energy NetworkOverlay)
    }
 
 jsonDecNetwork : Json.Decode.Decoder ( Network )
 jsonDecNetwork =
    ("nodes" := Json.Decode.list (jsonDecNode)) >>= \pnodes ->
-   ("overlays" := decodeMap (jsonDecTransport) (jsonDecNetworkOverlay)) >>= \poverlays ->
+   ("overlays" := decodeMap (jsonDecEnergy) (jsonDecNetworkOverlay)) >>= \poverlays ->
    Json.Decode.succeed {nodes = pnodes, overlays = poverlays}
 
 jsonEncNetwork : Network -> Value
 jsonEncNetwork  val =
    Json.Encode.object
    [ ("nodes", (Json.Encode.list << List.map jsonEncNode) val.nodes)
-   , ("overlays", (encodeMap (jsonEncTransport) (jsonEncNetworkOverlay)) val.overlays)
+   , ("overlays", (encodeMap (jsonEncEnergy) (jsonEncNetworkOverlay)) val.overlays)
    ]
 
 
 
 type alias NetworkOverlay  =
    { overlayNodes: (List Node)
-   , edges: (List Edge)
+   , overlayEdges: (List Edge)
    }
 
 jsonDecNetworkOverlay : Json.Decode.Decoder ( NetworkOverlay )
 jsonDecNetworkOverlay =
    ("overlayNodes" := Json.Decode.list (jsonDecNode)) >>= \poverlayNodes ->
-   ("edges" := Json.Decode.list (jsonDecEdge)) >>= \pedges ->
-   Json.Decode.succeed {overlayNodes = poverlayNodes, edges = pedges}
+   ("overlayEdges" := Json.Decode.list (jsonDecEdge)) >>= \poverlayEdges ->
+   Json.Decode.succeed {overlayNodes = poverlayNodes, overlayEdges = poverlayEdges}
 
 jsonEncNetworkOverlay : NetworkOverlay -> Value
 jsonEncNetworkOverlay  val =
    Json.Encode.object
    [ ("overlayNodes", (Json.Encode.list << List.map jsonEncNode) val.overlayNodes)
-   , ("edges", (Json.Encode.list << List.map jsonEncEdge) val.edges)
+   , ("overlayEdges", (Json.Encode.list << List.map jsonEncEdge) val.overlayEdges)
    ]
 
 
 
 type alias Player  =
-   { playerId: Int
+   { playerName: String
    }
 
 jsonDecPlayer : Json.Decode.Decoder ( Player )
 jsonDecPlayer =
-   ("playerId" := Json.Decode.int) >>= \pplayerId ->
-   Json.Decode.succeed {playerId = pplayerId}
+   ("playerName" := Json.Decode.string) >>= \pplayerName ->
+   Json.Decode.succeed {playerName = pplayerName}
 
 jsonEncPlayer : Player -> Value
 jsonEncPlayer  val =
    Json.Encode.object
-   [ ("playerId", Json.Encode.int val.playerId)
+   [ ("playerName", Json.Encode.string val.playerName)
    ]
 
 
@@ -270,107 +270,216 @@ jsonEncNode  val =
 
 
 
-type alias Transport  =
-   { transportName: String
-   }
+type Energy  =
+    Red 
+    | Blue 
+    | Orange 
 
-jsonDecTransport : Json.Decode.Decoder ( Transport )
-jsonDecTransport =
-   ("transportName" := Json.Decode.string) >>= \ptransportName ->
-   Json.Decode.succeed {transportName = ptransportName}
+jsonDecEnergy : Json.Decode.Decoder ( Energy )
+jsonDecEnergy = 
+    let jsonDecDictEnergy = Dict.fromList [("Red", Red), ("Blue", Blue), ("Orange", Orange)]
+    in  decodeSumUnaries "Energy" jsonDecDictEnergy
 
-jsonEncTransport : Transport -> Value
-jsonEncTransport  val =
-   Json.Encode.object
-   [ ("transportName", Json.Encode.string val.transportName)
-   ]
+jsonEncEnergy : Energy -> Value
+jsonEncEnergy  val =
+    case val of
+        Red -> Json.Encode.string "Red"
+        Blue -> Json.Encode.string "Blue"
+        Orange -> Json.Encode.string "Orange"
 
 
 
 type alias RogueHistory  =
-   { rogueHistory_: (List (Transport, (Maybe Node)))
+   { rogueHistory: (List (Energy, (Maybe Node)))
    }
 
 jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
 jsonDecRogueHistory =
-   ("rogueHistory_" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecTransport)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory_ ->
-   Json.Decode.succeed {rogueHistory_ = progueHistory_}
+   ("rogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory ->
+   Json.Decode.succeed {rogueHistory = progueHistory}
 
 jsonEncRogueHistory : RogueHistory -> Value
 jsonEncRogueHistory  val =
    Json.Encode.object
-   [ ("rogueHistory_", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncTransport) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory_)
+   [ ("rogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory)
    ]
 
 
 
-type alias GameError  =
-   { myError: String
+type alias OpenRogueHistory  =
+   { openRogueHistory: (List (Energy, Node, Bool))
    }
+
+jsonDecOpenRogueHistory : Json.Decode.Decoder ( OpenRogueHistory )
+jsonDecOpenRogueHistory =
+   ("openRogueHistory" := Json.Decode.list (Json.Decode.map3 (,,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (jsonDecNode)) (Json.Decode.index 2 (Json.Decode.bool)))) >>= \popenRogueHistory ->
+   Json.Decode.succeed {openRogueHistory = popenRogueHistory}
+
+jsonEncOpenRogueHistory : OpenRogueHistory -> Value
+jsonEncOpenRogueHistory  val =
+   Json.Encode.object
+   [ ("openRogueHistory", (Json.Encode.list << List.map (\(v1,v2,v3) -> Json.Encode.list [(jsonEncEnergy) v1,(jsonEncNode) v2,(Json.Encode.bool) v3])) val.openRogueHistory)
+   ]
+
+
+
+type GameError  =
+    NotTurn Player
+    | PlayerNotFound Player
+    | EnergyNotFound Energy
+    | NotReachable Node Energy Node
+    | NodeBlocked Player
+    | NotEnoughEnergy 
+    | GameIsOver 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
 jsonDecGameError =
-   ("myError" := Json.Decode.string) >>= \pmyError ->
-   Json.Decode.succeed {myError = pmyError}
+    let jsonDecDictGameError = Dict.fromList
+            [ ("NotTurn", Json.Decode.map NotTurn (jsonDecPlayer))
+            , ("PlayerNotFound", Json.Decode.map PlayerNotFound (jsonDecPlayer))
+            , ("EnergyNotFound", Json.Decode.map EnergyNotFound (jsonDecEnergy))
+            , ("NotReachable", Json.Decode.map3 NotReachable (Json.Decode.index 0 (jsonDecNode)) (Json.Decode.index 1 (jsonDecEnergy)) (Json.Decode.index 2 (jsonDecNode)))
+            , ("NodeBlocked", Json.Decode.map NodeBlocked (jsonDecPlayer))
+            , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
+            , ("GameIsOver", Json.Decode.succeed GameIsOver)
+            ]
+    in  decodeSumObjectWithSingleField  "GameError" jsonDecDictGameError
 
 jsonEncGameError : GameError -> Value
 jsonEncGameError  val =
+    let keyval v = case v of
+                    NotTurn v1 -> ("NotTurn", encodeValue (jsonEncPlayer v1))
+                    PlayerNotFound v1 -> ("PlayerNotFound", encodeValue (jsonEncPlayer v1))
+                    EnergyNotFound v1 -> ("EnergyNotFound", encodeValue (jsonEncEnergy v1))
+                    NotReachable v1 v2 v3 -> ("NotReachable", encodeValue (Json.Encode.list [jsonEncNode v1, jsonEncEnergy v2, jsonEncNode v3]))
+                    NodeBlocked v1 -> ("NodeBlocked", encodeValue (jsonEncPlayer v1))
+                    NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
+                    GameIsOver  -> ("GameIsOver", encodeValue (Json.Encode.list []))
+    in encodeSumObjectWithSingleField keyval val
+
+
+
+type alias GameOverView  =
+   { gameOverViewPlayerPositions: PlayerPositions
+   , gameOverViewPlayerEnergies: PlayerEnergies
+   , gameOverViewRogueHistory: OpenRogueHistory
+   , gameOverViewWinningPlayer: Player
+   }
+
+jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
+jsonDecGameOverView =
+   ("gameOverViewPlayerPositions" := jsonDecPlayerPositions) >>= \pgameOverViewPlayerPositions ->
+   ("gameOverViewPlayerEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewPlayerEnergies ->
+   ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
+   ("gameOverViewWinningPlayer" := jsonDecPlayer) >>= \pgameOverViewWinningPlayer ->
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer}
+
+jsonEncGameOverView : GameOverView -> Value
+jsonEncGameOverView  val =
    Json.Encode.object
-   [ ("myError", Json.Encode.string val.myError)
+   [ ("gameOverViewPlayerPositions", jsonEncPlayerPositions val.gameOverViewPlayerPositions)
+   , ("gameOverViewPlayerEnergies", jsonEncPlayerEnergies val.gameOverViewPlayerEnergies)
+   , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
+   , ("gameOverViewWinningPlayer", jsonEncPlayer val.gameOverViewWinningPlayer)
    ]
 
 
 
 type alias InitialInfoForClient  =
-   { player_: Player
+   { networkForGame: Network
    , initialGameView: GameView
+   , initialPlayer: Player
+   , allPlayers: (List Player)
+   , allEnergies: (List Energy)
    }
 
 jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
 jsonDecInitialInfoForClient =
-   ("player_" := jsonDecPlayer) >>= \pplayer_ ->
+   ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
-   Json.Decode.succeed {player_ = pplayer_, initialGameView = pinitialGameView}
+   ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
+   ("allPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pallPlayers ->
+   ("allEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pallEnergies ->
+   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer, allPlayers = pallPlayers, allEnergies = pallEnergies}
 
 jsonEncInitialInfoForClient : InitialInfoForClient -> Value
 jsonEncInitialInfoForClient  val =
    Json.Encode.object
-   [ ("player_", jsonEncPlayer val.player_)
+   [ ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
+   , ("initialPlayer", jsonEncPlayer val.initialPlayer)
+   , ("allPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.allPlayers)
+   , ("allEnergies", (Json.Encode.list << List.map jsonEncEnergy) val.allEnergies)
    ]
 
 
 
 type MessageForServer  =
     Action_ Action
+    | Login_ Login
 
 jsonDecMessageForServer : Json.Decode.Decoder ( MessageForServer )
 jsonDecMessageForServer =
-    Json.Decode.map Action_ (jsonDecAction)
-
+    let jsonDecDictMessageForServer = Dict.fromList
+            [ ("Action_", Json.Decode.map Action_ (jsonDecAction))
+            , ("Login_", Json.Decode.map Login_ (jsonDecLogin))
+            ]
+    in  decodeSumObjectWithSingleField  "MessageForServer" jsonDecDictMessageForServer
 
 jsonEncMessageForServer : MessageForServer -> Value
-jsonEncMessageForServer (Action_ v1) =
-    jsonEncAction v1
+jsonEncMessageForServer  val =
+    let keyval v = case v of
+                    Action_ v1 -> ("Action_", encodeValue (jsonEncAction v1))
+                    Login_ v1 -> ("Login_", encodeValue (jsonEncLogin v1))
+    in encodeSumObjectWithSingleField keyval val
 
 
 
 type MessageForClient  =
-    GameView_ GameView
+    ServerHello 
     | InitialInfoForClient_ InitialInfoForClient
+    | GameView_ GameView
+    | GameError_ GameError
+    | GameOverView_ GameOverView
+    | ClientMsgError 
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
-            [ ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
+            [ ("ServerHello", Json.Decode.succeed ServerHello)
             , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
+            , ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
+            , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
+            , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
+            , ("ClientMsgError", Json.Decode.succeed ClientMsgError)
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
 jsonEncMessageForClient : MessageForClient -> Value
 jsonEncMessageForClient  val =
     let keyval v = case v of
-                    GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
+                    ServerHello  -> ("ServerHello", encodeValue (Json.Encode.list []))
                     InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
+                    GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
+                    GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
+                    GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
+                    ClientMsgError  -> ("ClientMsgError", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
+
+
+
+type alias Login  =
+   { loginPlayer: Player
+   }
+
+jsonDecLogin : Json.Decode.Decoder ( Login )
+jsonDecLogin =
+   ("loginPlayer" := jsonDecPlayer) >>= \ploginPlayer ->
+   Json.Decode.succeed {loginPlayer = ploginPlayer}
+
+jsonEncLogin : Login -> Value
+jsonEncLogin  val =
+   Json.Encode.object
+   [ ("loginPlayer", jsonEncPlayer val.loginPlayer)
+   ]
 

@@ -11,56 +11,55 @@ https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
 
 module Main where
 
+import           App.App
 import           App.ConnectionMgnt
 import           App.State
-import           App.WsApp
-import qualified App.WsAppUtils                 as WsAppUtils
 import           ClassyPrelude                  hiding (handle)
 import qualified Control.Exception              as Exception
-import qualified Glue
---import qualified Network.ExampleGameView        as Example
-import qualified Network.ElmDerive              as ElmDerive
-import qualified Network.HTTP.Types             as Http
+import qualified Network.Protocol               as Protocol
 import qualified Network.Wai                    as Wai
+import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
+import           WsConnection
 
 main :: IO ()
 main = do
-    writeFileUtf8 "frontend/Protocol.elm" ElmDerive.elmProtocolModule
-    stateVar <- newTVarIO ServerState {connections = empty, gameState = Glue.initialState }
-    putStrLn "Starting Core-Catcher server on port 7999"
-    Warp.run 7999 $ WS.websocketsOr
+    initialState <- defaultInitialStateWithRandomPositions
+    stateVar <- newTVarIO initialState
+    let port = 7999
+    putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
+
+    Warp.run port $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
 
 httpApp :: Wai.Application
-httpApp _ respond = respond $ Wai.responseLBS Http.status400 [] "Not a websocket request"
+httpApp = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings "web")
 
 
-wsApp :: TVar (ServerState GameConnection) -> WS.ServerApp
+wsApp :: TVar (ServerState WsConnection) -> WS.ServerApp
 wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
-    let gameConn = GameConnection conn
-    clientId <- connectClient gameConn stateVar -- call to ConnectionMgnt
+    let wsConn = WsConnection conn
     WS.forkPingThread conn 30
-    WsAppUtils.sendInitialInfo (clientId, gameConn) $ initialInfoForClient clientId Glue.initialState
-    Exception.finally
-        (wsListen (clientId, gameConn) stateVar)
-        (disconnectClient clientId stateVar) -- call to ConnectionMgnt
+    cId <- connectClient wsConn stateVar -- call to ConnectionMgnt
+    sendSendableMsg wsConn Protocol.ServerHello
 
-wsListen :: IsConnection conn => ClientConnection conn -> TVar (ServerState conn) -> IO ()
-wsListen client stateVar = forever $ do
-    maybeAction <- WsAppUtils.recvAction client
-    case maybeAction of
-        Just action -> do
-            -- TODO: what about request forging? (send game-token to client using player-mgnt)
-            -- TODO: validation playerId==clientId
-            handle client stateVar action
+    Exception.finally
+        (wsListen (cId, wsConn) stateVar)
+        (disconnectClient cId stateVar) -- call to ConnectionMgnt
+
+wsListen :: IsConnection conn => (ConnectionId, conn) -> TVar (ServerState conn) -> IO ()
+wsListen (cId,client) stateVar = forever $ do
+    maybeMsg <- recvMsg client
+    case maybeMsg of
+        Just msg -> do
+            handle (cId, client) stateVar msg
             return ()
 
-        Nothing     ->
-            putStrLn "ERROR: The message could not be decoded"
-            -- TODO: send info back to client
+        Nothing -> do
+            sendSendableMsg client Protocol.ClientMsgError
+            putStrLn "ERROR: msg has invalid format"

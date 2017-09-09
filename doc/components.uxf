@@ -4,48 +4,47 @@
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>888</x>
-      <y>248</y>
+      <x>904</x>
+      <y>280</y>
       <w>88</w>
       <h>64</h>
     </coordinates>
     <panel_attributes>symbol=component
 
-GameLogic</panel_attributes>
+GameNg</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>816</x>
-      <y>264</y>
-      <w>88</w>
-      <h>48</h>
+      <x>808</x>
+      <y>296</y>
+      <w>112</w>
+      <h>40</h>
     </coordinates>
     <panel_attributes>lt=()-[]
-update
-state
-(via Glue)</panel_attributes>
-    <additional_attributes>10.0;20.0;90.0;20.0</additional_attributes>
+initialState
+updateState</panel_attributes>
+    <additional_attributes>10.0;20.0;120.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>752</x>
-      <y>264</y>
-      <w>80</w>
+      <x>760</x>
+      <y>296</y>
+      <w>64</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=[]-(</panel_attributes>
-    <additional_attributes>10.0;20.0;70.0;20.0</additional_attributes>
+    <additional_attributes>10.0;30.0;50.0;20.0</additional_attributes>
   </element>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>448</x>
-      <y>112</y>
+      <x>456</x>
+      <y>136</y>
       <w>312</w>
-      <h>200</h>
+      <h>256</h>
     </coordinates>
     <panel_attributes>symbol=component
 Haskell Impure</panel_attributes>
@@ -54,8 +53,8 @@ Haskell Impure</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>440</x>
-      <y>392</y>
+      <x>448</x>
+      <y>456</y>
       <w>136</w>
       <h>72</h>
     </coordinates>
@@ -66,20 +65,20 @@ Protocol</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>520</x>
-      <y>304</y>
+      <x>528</x>
+      <y>384</y>
       <w>88</w>
-      <h>104</h>
+      <h>88</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 &lt;&lt;import&gt;&gt;</panel_attributes>
-    <additional_attributes>60.0;10.0;10.0;110.0</additional_attributes>
+    <additional_attributes>60.0;10.0;10.0;90.0</additional_attributes>
   </element>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
       <x>0</x>
-      <y>152</y>
+      <y>184</y>
       <w>320</w>
       <h>320</h>
     </coordinates>
@@ -90,8 +89,8 @@ Protocol</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>648</x>
-      <y>160</y>
+      <x>664</x>
+      <y>248</y>
       <w>88</w>
       <h>64</h>
     </coordinates>
@@ -104,8 +103,8 @@ Management</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>480</x>
-      <y>184</y>
+      <x>488</x>
+      <y>280</y>
       <w>40</w>
       <h>48</h>
     </coordinates>
@@ -117,81 +116,81 @@ Main</panel_attributes>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>648</x>
-      <y>240</y>
+      <x>664</x>
+      <y>328</y>
       <w>72</w>
       <h>48</h>
     </coordinates>
     <panel_attributes>symbol=component
 
-WsApp</panel_attributes>
+App</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>568</x>
-      <y>160</y>
-      <w>96</w>
+      <x>576</x>
+      <y>248</y>
+      <w>104</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=()-[]
 connect
 disconnect</panel_attributes>
-    <additional_attributes>10.0;20.0;100.0;20.0</additional_attributes>
+    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>712</x>
-      <y>256</y>
-      <w>56</w>
-      <h>40</h>
+      <x>728</x>
+      <y>320</y>
+      <w>48</w>
+      <h>56</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 </panel_attributes>
-    <additional_attributes>10.0;20.0;50.0;30.0</additional_attributes>
+    <additional_attributes>10.0;50.0;40.0;10.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>512</x>
-      <y>160</y>
-      <w>72</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>lt=[]-(</panel_attributes>
-    <additional_attributes>10.0;30.0;60.0;20.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>512</x>
-      <y>216</y>
+      <x>520</x>
+      <y>248</y>
       <w>72</w>
       <h>64</h>
     </coordinates>
     <panel_attributes>lt=[]-(</panel_attributes>
-    <additional_attributes>10.0;10.0;60.0;50.0</additional_attributes>
+    <additional_attributes>10.0;60.0;60.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>568</x>
-      <y>240</y>
-      <w>96</w>
+      <x>520</x>
+      <y>312</y>
+      <w>72</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=[]-(</panel_attributes>
+    <additional_attributes>10.0;10.0;60.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>576</x>
+      <y>328</y>
+      <w>104</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=()-[]
 handle
 Action</panel_attributes>
-    <additional_attributes>10.0;20.0;100.0;20.0</additional_attributes>
+    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
   </element>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
       <x>432</x>
-      <y>80</y>
+      <y>112</y>
       <w>576</w>
       <h>424</h>
     </coordinates>
@@ -203,7 +202,7 @@ Action</panel_attributes>
     <id>UMLGeneric</id>
     <coordinates>
       <x>152</x>
-      <y>384</y>
+      <y>416</y>
       <w>136</w>
       <h>72</h>
     </coordinates>
@@ -215,20 +214,20 @@ Protocol</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>400</y>
-      <w>176</w>
-      <h>40</h>
+      <y>440</y>
+      <w>184</w>
+      <h>56</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 &lt;&lt;export to&gt;&gt;
 via elm-bridge</panel_attributes>
-    <additional_attributes>200.0;20.0;10.0;20.0</additional_attributes>
+    <additional_attributes>210.0;50.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLGeneric</id>
     <coordinates>
       <x>224</x>
-      <y>200</y>
+      <y>232</y>
       <w>40</w>
       <h>48</h>
     </coordinates>
@@ -241,7 +240,7 @@ Main</panel_attributes>
     <id>UMLGeneric</id>
     <coordinates>
       <x>32</x>
-      <y>200</y>
+      <y>232</y>
       <w>64</w>
       <h>48</h>
     </coordinates>
@@ -254,7 +253,7 @@ MapView</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>176</x>
-      <y>200</y>
+      <y>232</y>
       <w>64</w>
       <h>40</h>
     </coordinates>
@@ -265,7 +264,7 @@ MapView</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>88</x>
-      <y>200</y>
+      <y>232</y>
       <w>104</w>
       <h>32</h>
     </coordinates>
@@ -277,7 +276,7 @@ mapView</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>384</x>
-      <y>200</y>
+      <y>232</y>
       <w>64</w>
       <h>40</h>
     </coordinates>
@@ -288,7 +287,7 @@ mapView</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>312</x>
-      <y>200</y>
+      <y>232</y>
       <w>88</w>
       <h>40</h>
     </coordinates>
@@ -301,7 +300,7 @@ game</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>256</x>
-      <y>200</y>
+      <y>232</y>
       <w>72</w>
       <h>40</h>
     </coordinates>
@@ -312,25 +311,61 @@ game</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>432</x>
-      <y>192</y>
+      <x>440</x>
+      <y>288</y>
       <w>64</w>
-      <h>40</h>
+      <h>32</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 </panel_attributes>
-    <additional_attributes>60.0;20.0;10.0;30.0</additional_attributes>
+    <additional_attributes>60.0;20.0;10.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>40</x>
-      <y>240</y>
+      <y>272</y>
       <w>176</w>
       <h>160</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 &lt;&lt;import&gt;&gt;</panel_attributes>
     <additional_attributes>10.0;10.0;200.0;180.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLGeneric</id>
+    <coordinates>
+      <x>472</x>
+      <y>152</y>
+      <w>88</w>
+      <h>48</h>
+    </coordinates>
+    <panel_attributes>symbol=component
+
+WsConnection</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>480</x>
+      <y>240</y>
+      <w>40</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=[]-(</panel_attributes>
+    <additional_attributes>20.0;50.0;20.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>488</x>
+      <y>192</y>
+      <w>80</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=()-[]
+  send/recv</panel_attributes>
+    <additional_attributes>10.0;60.0;10.0;10.0</additional_attributes>
   </element>
 </diagram>
