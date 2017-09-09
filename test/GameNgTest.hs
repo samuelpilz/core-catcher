@@ -6,6 +6,7 @@
 {- |Module for testing the gameNg module.
 
 The main function to execute test cases is the gameNgTestCase function defined in this module.
+TODO: documentation
 
 -}
 module GameNgTest where
@@ -83,6 +84,7 @@ test_player0ValidMove_historyUpdated =
         assertions (Right (GameRunning_ game)) = do
             RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
             OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
+
 
 test_player0ValidMove_historyUpdatedWithShow :: IO ()
 test_player0ValidMove_historyUpdatedWithShow =
@@ -193,8 +195,8 @@ test_rogueWins_gameOverWinningPlayer0 =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
 
-test_gameOver_sameConfigAndSamePositionsAndEnergies :: IO ()
-test_gameOver_sameConfigAndSamePositionsAndEnergies =
+test_gameOver_fieldsTakenFromGame :: IO ()
+test_gameOver_fieldsTakenFromGame =
     gameNgTestCase
         config
         moves
@@ -210,12 +212,14 @@ test_gameOver_sameConfigAndSamePositionsAndEnergies =
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
-        assertions (Right (GameOver_ GameOver
-            {gameOverGameConfig, gameOverPlayerPositions, gameOverPlayerEnergies})) = do
-            Just (Node 6) @?= lookup alice gameOverPlayerPositions
-            Just (Node 6) @?= lookup bob gameOverPlayerPositions
-            Just 1 @?= (join . map (lookup Red) . lookup alice $ gameOverPlayerEnergies)
-            config @?= gameOverGameConfig
+        assertions (Right (GameOver_ gameOver)) = do
+            Just (Node 6) @?= lookup alice (gameOverPlayerPositions gameOver)
+            Just (Node 6) @?= lookup bob (gameOverPlayerPositions gameOver)
+            Just 1 @?= (join . map (lookup Red) . lookup alice . gameOverPlayerEnergies $ gameOver)
+            config @?= gameOverGameConfig gameOver
+            OpenRogueHistory [(Red, Node 6, False)] @?= gameOverRogueHistory gameOver
+            bob @?= gameOverWinningPlayer gameOver
+
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 

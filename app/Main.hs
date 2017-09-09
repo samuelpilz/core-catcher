@@ -22,11 +22,13 @@ import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
+import           System.Random                  (newStdGen)
 import           WsConnection
 
 main :: IO ()
 main = do
-    initialState <- defaultInitialStateWithRandomPositions
+    gen <- newStdGen
+    let initialState = defaultInitialStateWithRandomPositions gen
     stateVar <- newTVarIO initialState
     let port = 7999
     putStrLn $ "Starting Core-Catcher server on port " ++ tshow port

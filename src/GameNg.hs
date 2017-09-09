@@ -46,7 +46,6 @@ data GameOver =
         }
     deriving (Eq, Show, Read)
 
--- TODO: make game-initiation better
 -- |The initial state of the game
 initialStateFromConfig :: GameConfig -> GameRunning
 initialStateFromConfig config =
@@ -123,12 +122,12 @@ actionForGameRunning
         newPlayerPositions
     let rogueWonMay = do -- maybe monad
             unless (actionPlayer == roguePlayer) Nothing
-            -- TODO: not necessary because checked implicitly
+            -- check not necessary because checked implicitly above, but here for clarity
             unless (length gameRunningOpenRogueHistory == maxRounds) Nothing
             return roguePlayer
     let playerCaughtMay = do -- maybe monad
             when (actionPlayer == roguePlayer) Nothing
-            -- TODO: not necessary because checked implicitly
+            -- check not necessary because checked implicitly above, but here for clarity
             map fst .
                 find (\(p,n) -> p /= roguePlayer && n == roguePosition) .
                 mapToList $

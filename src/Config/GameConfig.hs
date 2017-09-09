@@ -13,7 +13,7 @@ import           ClassyPrelude
 import qualified Config.Network   as Network
 import           Data.List        (nub)
 import           Network.Protocol
-import qualified System.Random    as Random
+import           System.Random    (RandomGen, randomRs)
 
 data GameConfig =
     GameConfig
@@ -29,25 +29,16 @@ data GameConfig =
 getRogue :: GameConfig -> Player
 getRogue = head . players
 
-
-defaultConfigWithRandomPositions :: IO GameConfig
-defaultConfigWithRandomPositions = do
-    playerPos <- randomPositions (length $ nodes Network.network)
-    return GameConfig
-        { players = impureNonNull $ fromList defaultPlayers
-        , initialPlayerEnergies = defaultInitialPlayerEnergies
-        , initialPlayerPositions = playerPos
-        , maxRounds = 10
-        , rogueShowsAt = [1,4,7,10]
-        , network = Network.network
-        }
+-- |Generates gameConfig data from a generator from which to generate positions
+defaultConfigWithRandomPositions :: (RandomGen gen) => gen -> GameConfig
+defaultConfigWithRandomPositions gen =
+    defaultConfig { initialPlayerPositions = randomPositions (length $ nodes Network.network) gen }
 
 
-randomPositions :: Int -> IO PlayerPositions
-randomPositions nodeNum = do
-    gen <- Random.newStdGen
-    let rands = nub $ Random.randomRs (1, nodeNum) gen
-    return . mapFromList . zip defaultPlayers . map Node $ rands
+-- |Generates a playerPositions map from the given generator and the given max-amount of nodes
+randomPositions :: (RandomGen gen) => Int -> gen -> PlayerPositions
+randomPositions nodeNum =
+    mapFromList . zip defaultPlayers . map Node . nub . randomRs (1, nodeNum)
 
 
 

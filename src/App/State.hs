@@ -12,9 +12,12 @@ module App.State
 
 import           App.ConnectionMgnt
 import           ClassyPrelude
-import           Config.GameConfig  (defaultConfig, defaultConfigWithRandomPositions)
+import           Config.GameConfig  (defaultConfig,
+                                     defaultConfigWithRandomPositions)
 import           GameNg             (GameState (..), initialStateFromConfig)
 import           Network.Protocol   (Player)
+import           System.Random      (RandomGen, randomRs)
+
 
 data ServerState conn =
     ServerState
@@ -33,13 +36,11 @@ instance IsConnection conn => HasConnections (ServerState conn) where
             { stateConnections = conns
             }
 
-defaultInitialStateWithRandomPositions :: IO (ServerState conn)
-defaultInitialStateWithRandomPositions = do
-    config <- defaultConfigWithRandomPositions
-    return ServerState
-        { stateConnections = ClientConnections mempty 0
-        , gameState = GameRunning_ $ initialStateFromConfig config
-        , playerMap = mempty
+defaultInitialStateWithRandomPositions :: RandomGen gen => gen -> ServerState conn
+defaultInitialStateWithRandomPositions gen =
+    defaultInitialState
+        { gameState =
+            GameRunning_ . initialStateFromConfig . defaultConfigWithRandomPositions $ gen
         }
 
 defaultInitialState :: ServerState conn

@@ -3,9 +3,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-{- |Module for testing the gameNg module.
+{- |Module for testing the app module.
 
 The main function to execute test cases is the gameNgTestCase function defined in this module.
+TODO: fix documentation
 
 -}
 module AppTest where
