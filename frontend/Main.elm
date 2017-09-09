@@ -163,7 +163,7 @@ update msg state =
                             }
                   ]
 
-        -- TODO: implement that if already in game (i.e. reconnect)
+        -- login
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
             GameState_
                 { network = initInfo.networkForGame
@@ -177,6 +177,27 @@ update msg state =
                 , gameError = Nothing
                 , gameOver = False
                 , server = preGame.server
+                , player = initInfo.initialPlayer
+                , animationTime = 0
+                , activeAnimations = AllDict.empty .playerName
+                , displayInfo = Example.displayInfo
+                }
+                ! []
+
+        -- reconnect
+        ( MsgFromServer (InitialInfoForClient_ initInfo), GameState_ state ) ->
+            GameState_
+                { network = initInfo.networkForGame
+                , players = initInfo.allPlayers
+                , energies = initInfo.allEnergies
+                , playerPositions = playerPositions initInfo.initialGameView
+                , playerEnergies = playerEnergies <| initInfo.initialGameView
+                , rogueHistory = rogueHistory <| initInfo.initialGameView
+                , nextPlayer = Just <| nextPlayer initInfo.initialGameView
+                , selectedEnergy = Orange
+                , gameError = Nothing
+                , gameOver = False
+                , server = state.server
                 , player = initInfo.initialPlayer
                 , animationTime = 0
                 , activeAnimations = AllDict.empty .playerName

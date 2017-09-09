@@ -10,13 +10,15 @@ import           Network.Protocol
 
 network :: Network
 network =
-    Network { nodes = map Node [1..17]
-    , overlays = mapFromList
-        [ ( Red, redOverlay )
-        , ( Blue, blueOverlay )
-        , ( Orange, orangeOverlay )
-        ]
-    }
+    Network
+        { nodes = map Node [1..17]
+        , overlays =
+            mapFromList
+                [ ( Red, redOverlay )
+                , ( Blue, blueOverlay )
+                , ( Orange, orangeOverlay )
+                ]
+        }
 
 
 redOverlay :: NetworkOverlay

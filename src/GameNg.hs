@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GameNg
-    ( initialState
+    ( initialStateFromConfig
     , getViews
     , updateState
     , actionForGameRunning
@@ -12,8 +12,6 @@ module GameNg
     , GameOver(..)
     , gameRunningRogueHistory
     , getGameOverView
-    , gameNetwork
-    , gameConfig
     ) where
 
 import           ClassyPrelude
@@ -50,8 +48,8 @@ data GameOver =
 
 -- TODO: make game-initiation better
 -- |The initial state of the game
-initialState :: GameConfig -> GameRunning
-initialState config =
+initialStateFromConfig :: GameConfig -> GameRunning
+initialStateFromConfig config =
     GameRunning
         config
         (initialPlayerPositions config)
@@ -240,11 +238,3 @@ getGameOverView GameOver
         gameOverPlayerEnergies
         gameOverRogueHistory
         gameOverWinningPlayer
-
-
-gameNetwork :: GameState -> Network
-gameNetwork = network . gameConfig
-
-gameConfig :: GameState -> GameConfig
-gameConfig (GameRunning_ gameRunning) = gameRunningGameConfig gameRunning
-gameConfig (GameOver_ gameOver)       = gameOverGameConfig gameOver

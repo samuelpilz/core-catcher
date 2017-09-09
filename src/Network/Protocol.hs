@@ -230,6 +230,7 @@ data MessageForClient
     | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
+    | ClientMsgError
     deriving (Show, Read, Eq, Generic)
 
 class SendableToClient msg where

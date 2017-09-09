@@ -20,12 +20,12 @@ import           Test.HUnit.Base
 -- (@?=) = assertEqual
 test_defaultInitialStateHasStartingPlayer0 :: IO ()
 test_defaultInitialStateHasStartingPlayer0 =
-    alice @?= (headEx . gameRunningNextPlayers . initialState $ defaultConfig)
+    alice @?= (headEx . gameRunningNextPlayers . initialStateFromConfig $ defaultConfig)
 
 test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory = do
-    RogueHistory [] @?= (gameRunningRogueHistory . initialState $ defaultConfig)
-    OpenRogueHistory [] @?= (gameRunningOpenRogueHistory . initialState $ defaultConfig)
+    RogueHistory [] @?= (gameRunningRogueHistory . initialStateFromConfig $ defaultConfig)
+    OpenRogueHistory [] @?= (gameRunningOpenRogueHistory . initialStateFromConfig $ defaultConfig)
 
 test_player0ValidMove_playerPositionUpdated :: IO ()
 test_player0ValidMove_playerPositionUpdated =
@@ -378,7 +378,7 @@ test_nodeBlockedForRogue =
 
 test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 test_getViews_rogueViewEqualToFieldInGameState = do
-    let game = initialState defaultConfig
+    let game = initialStateFromConfig defaultConfig
     let (rogueView, _) = getViews game
     roguePlayerPositions rogueView @?= gameRunningPlayerPositions game
     rogueEnergies rogueView @?= gameRunningPlayerEnergies game
@@ -388,13 +388,13 @@ test_getViews_rogueViewEqualToFieldInGameState = do
 
 test_getViews_catcherViewDoesNotContainRogue :: IO ()
 test_getViews_catcherViewDoesNotContainRogue = do
-    let (_, catcherView) = getViews $ initialState defaultConfig
+    let (_, catcherView) = getViews $ initialStateFromConfig defaultConfig
     Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
 
 test_getViews_someFieldsEqualToGameState :: IO ()
 test_getViews_someFieldsEqualToGameState = do
-    let game = initialState defaultConfig
+    let game = initialStateFromConfig defaultConfig
     let (_, catcherView) = getViews game
     catcherEnergies catcherView @?= gameRunningPlayerEnergies game
     catcherRogueHistory catcherView @?= gameRunningRogueHistory game
@@ -403,7 +403,7 @@ test_getViews_someFieldsEqualToGameState = do
 
 test_getViews_rogueHiddenInCatcherView :: IO ()
 test_getViews_rogueHiddenInCatcherView = do
-    let (_, catcherView) = getViews $ initialState defaultConfig
+    let (_, catcherView) = getViews $ initialStateFromConfig defaultConfig
     Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
 
 
@@ -494,7 +494,7 @@ gameNgTestCase config  moves assertions =
     assertions $
         foldM
             (flip updateState)
-            (GameRunning_ $ initialState config)
+            (GameRunning_ $ initialStateFromConfig config)
             moves
 
 alice :: Player

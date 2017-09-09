@@ -26,7 +26,8 @@ import           WsConnection
 
 main :: IO ()
 main = do
-    stateVar <- newTVarIO defaultInitialState
+    initialState <- defaultInitialStateWithRandomPositions
+    stateVar <- newTVarIO initialState
     let port = 7999
     putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
 
@@ -51,7 +52,6 @@ wsApp stateVar pendingConn = do
         (wsListen (cId, wsConn) stateVar)
         (disconnectClient cId stateVar) -- call to ConnectionMgnt
 
--- TODO: this has only little functionality here
 wsListen :: IsConnection conn => (ConnectionId, conn) -> TVar (ServerState conn) -> IO ()
 wsListen (cId,client) stateVar = forever $ do
     maybeMsg <- recvMsg client
@@ -60,6 +60,6 @@ wsListen (cId,client) stateVar = forever $ do
             handle (cId, client) stateVar msg
             return ()
 
-        Nothing     ->
-            putStrLn "ERROR: The message could not be decoded"
-            -- TODO: send info back to client?
+        Nothing -> do
+            sendSendableMsg client Protocol.ClientMsgError
+            putStrLn "ERROR: msg has invalid format"

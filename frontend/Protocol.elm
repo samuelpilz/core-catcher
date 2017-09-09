@@ -363,6 +363,7 @@ type alias GameOverView  =
    { gameOverViewPlayerPositions: PlayerPositions
    , gameOverViewPlayerEnergies: PlayerEnergies
    , gameOverViewRogueHistory: OpenRogueHistory
+   , gameOverViewWinningPlayer: Player
    }
 
 jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
@@ -370,7 +371,8 @@ jsonDecGameOverView =
    ("gameOverViewPlayerPositions" := jsonDecPlayerPositions) >>= \pgameOverViewPlayerPositions ->
    ("gameOverViewPlayerEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewPlayerEnergies ->
    ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
-   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory}
+   ("gameOverViewWinningPlayer" := jsonDecPlayer) >>= \pgameOverViewWinningPlayer ->
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer}
 
 jsonEncGameOverView : GameOverView -> Value
 jsonEncGameOverView  val =
@@ -378,6 +380,7 @@ jsonEncGameOverView  val =
    [ ("gameOverViewPlayerPositions", jsonEncPlayerPositions val.gameOverViewPlayerPositions)
    , ("gameOverViewPlayerEnergies", jsonEncPlayerEnergies val.gameOverViewPlayerEnergies)
    , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
+   , ("gameOverViewWinningPlayer", jsonEncPlayer val.gameOverViewWinningPlayer)
    ]
 
 
@@ -438,6 +441,7 @@ type MessageForClient  =
     | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
+    | ClientMsgError 
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
@@ -447,6 +451,7 @@ jsonDecMessageForClient =
             , ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
+            , ("ClientMsgError", Json.Decode.succeed ClientMsgError)
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
@@ -458,6 +463,7 @@ jsonEncMessageForClient  val =
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
                     GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
+                    ClientMsgError  -> ("ClientMsgError", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 

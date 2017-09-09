@@ -200,6 +200,7 @@ handleMsg stateVar (cId, msg) = do
 
 initialStateWith3FakeConnections :: IO (TVar (ServerState FakeConnection))
 initialStateWith3FakeConnections = do
+
     stateVar <- newTVarIO defaultInitialState
     connA <- newFakeConnection
     connB <- newFakeConnection

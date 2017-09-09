@@ -44,7 +44,7 @@ handle (cId, client) stateVar msg = do
                 loginPlayer
 
 -- TODO: validation playerId matches connection-origin
--- TODO: draw transition diagrams
+-- TODO: draw transition diagrams for app
 
 
 updateGameAtomically
