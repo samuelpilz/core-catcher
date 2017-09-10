@@ -31,12 +31,13 @@ playerEnergies gameView =
 
 rogueHistory : GameView -> RogueHistory
 rogueHistory gameView =
-    case gameView of
-        RogueView view ->
-            view.rogueOwnHistory
+    ShadowHistory <|
+        case gameView of
+            RogueView view ->
+                view.rogueOwnHistory
 
-        CatcherView view ->
-            view.catcherRogueHistory
+            CatcherView view ->
+                view.catcherRogueHistory
 
 
 nextPlayer : GameView -> Player
@@ -62,6 +63,7 @@ getEnergyForEnergyAndPlayer player energy playerEnergies =
 emptyNetwork : Network
 emptyNetwork =
     { nodes = [], overlays = EveryDict.empty }
+
 
 energyId : Energy -> Int
 energyId e =

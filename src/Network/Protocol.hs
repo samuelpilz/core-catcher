@@ -16,7 +16,7 @@ import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
 import           Test.QuickCheck.Arbitrary
-import qualified Test.QuickCheck.Gen       as Gen
+import           Test.QuickCheck.Gen
 import qualified TH.MonoDerive             as Derive
 
 {-
@@ -29,7 +29,7 @@ newtype Player =
     Player { playerName :: Text }
     deriving (Show, Read, Eq, Ord, Generic)
 
--- |Nodes are ints (ids) representation
+-- |Nodes are ints (ids)
 newtype Node =
     Node { nodeId :: Int }
     deriving (Show, Read, Eq, Ord, Generic)
@@ -72,7 +72,7 @@ newtype PlayerEnergies =
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
--} -- TODO: write into design document that an action may be more than a move. Maybe change?
+-}
 data Action =
     Move
         { actionPlayer :: Player
@@ -92,16 +92,16 @@ newtype PlayerPositions =
         }
     deriving (Show, Read, Eq, Generic)
 
--- TODO: Seq instead of list?
--- TODO: rename to shadowRogueHistory?
-{- |The history of energies used by the rouge core.
+{- |The history of energies used by the rouge core where the position is sometimes revealed.
+
+This message is sent to the catchers
+
 -}
-newtype RogueHistory =
-    RogueHistory
-        { rogueHistory :: [(Energy, Maybe Node)]
+newtype ShadowRogueHistory =
+    ShadowRogueHistory
+        { shadowRogueHistory :: [(Energy, Maybe Node)]
         }
     deriving (Show, Read, Eq, Generic)
--- TODO: derive type-classes like monoFunctor, ...
 
 {- |The history of energies used by the rogue together with all nodes
 
@@ -115,13 +115,18 @@ newtype OpenRogueHistory =
     deriving (Show, Read, Eq, Generic)
 
 
+data RogueHistory
+    = OpenHistory OpenRogueHistory
+    | ShadowHistory ShadowRogueHistory
+    deriving (Show, Read, Eq, Generic)
+
 {- |A game view as seen by the rouge-core.
 -}
 data RogueGameView =
     RogueGameView
         { roguePlayerPositions :: PlayerPositions
         , rogueEnergies        :: PlayerEnergies
-        , rogueOwnHistory      :: RogueHistory
+        , rogueOwnHistory      :: ShadowRogueHistory
         , rogueNextPlayer      :: Player
         }
     deriving (Show, Read,  Eq, Generic)
@@ -132,7 +137,7 @@ data CatcherGameView =
     CatcherGameView
         { catcherPlayerPositions :: PlayerPositions
         , catcherEnergies        :: PlayerEnergies
-        , catcherRogueHistory    :: RogueHistory
+        , catcherRogueHistory    :: ShadowRogueHistory
         , catcherNextPlayer      :: Player
         }
     deriving (Show, Read, Eq, Generic)
@@ -145,6 +150,7 @@ data GameOverView =
         , gameOverViewPlayerEnergies  :: PlayerEnergies
         , gameOverViewRogueHistory    :: OpenRogueHistory
         , gameOverViewWinningPlayer   :: Player
+        , gameOverViewNetwork         :: Network
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -166,7 +172,7 @@ viewEnergies :: GameView -> PlayerEnergies
 viewEnergies (CatcherView view) = catcherEnergies view
 viewEnergies (RogueView view)   = rogueEnergies view
 
-viewRogueHistory :: GameView -> RogueHistory
+viewRogueHistory :: GameView -> ShadowRogueHistory
 viewRogueHistory (CatcherView view) = catcherRogueHistory view
 viewRogueHistory (RogueView view)   = rogueOwnHistory view
 
@@ -202,7 +208,9 @@ data NetworkOverlay =
 
 {- | InitialDataForClient the initial info the client gets after login
 
--}-- TODO: support login when game-over?
+If the client wants to log in when the game is over, the client gets sent a GameOverView instead
+
+-}
 data InitialInfoForClient =
     InitialInfoForClient
         { networkForGame  :: Network
@@ -298,16 +306,32 @@ instance Arbitrary EnergyMap where
     arbitrary =
         EnergyMap <$> arbitrary
 
-instance Arbitrary RogueHistory where
+instance Arbitrary ShadowRogueHistory where
     arbitrary =
-        RogueHistory <$> arbitrary
+        ShadowRogueHistory <$> arbitrary
 
 instance Arbitrary OpenRogueHistory where
     arbitrary =
         OpenRogueHistory <$> arbitrary
 
+instance Arbitrary RogueHistory where
+    arbitrary =
+        oneof
+            [ OpenHistory <$> arbitrary
+            , ShadowHistory <$> arbitrary
+            ]
+
 instance Arbitrary GameError where
-    arbitrary = undefined -- TODO: implement arbitrary for game-error??
+    arbitrary =
+        oneof
+            [ NotTurn <$> arbitrary
+            , PlayerNotFound <$> arbitrary
+            , EnergyNotFound <$> arbitrary
+            , NotReachable <$> arbitrary <*> arbitrary <*> arbitrary
+            , NodeBlocked <$> arbitrary
+            , return NotEnoughEnergy
+            , return GameIsOver
+            ]
 
 instance Arbitrary CatcherGameView where
     arbitrary =
@@ -316,6 +340,10 @@ instance Arbitrary CatcherGameView where
 instance Arbitrary RogueGameView where
     arbitrary =
         RogueGameView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary GameOverView where
+    arbitrary =
+        GameOverView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary Network where
     arbitrary =
@@ -333,12 +361,23 @@ instance Arbitrary GameView where
         else
             CatcherView <$> arbitrary
 
+instance Arbitrary InitialInfoForClient where
+    arbitrary = InitialInfoForClient <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
 instance Arbitrary MessageForServer where
     arbitrary = Action_ <$> arbitrary
 
 instance Arbitrary MessageForClient where
-    arbitrary = GameView_ <$> arbitrary
-    -- TODO: implement arbitrary with more constructors
+    arbitrary =
+        oneof
+            [ return ServerHello
+            , InitialInfoForClient_ <$> arbitrary
+            , GameView_ <$> arbitrary
+            , GameError_ <$> arbitrary
+            , GameOverView_ <$> arbitrary
+            , return ClientMsgError
+            ]
+
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions
@@ -354,8 +393,9 @@ deriveBoth Elm.Derive.defaultOptions ''Player
 deriveBoth Elm.Derive.defaultOptions ''Edge
 deriveBoth Elm.Derive.defaultOptions ''Node
 deriveBoth Elm.Derive.defaultOptions ''Energy
-deriveBoth Elm.Derive.defaultOptions ''RogueHistory
+deriveBoth Elm.Derive.defaultOptions ''ShadowRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
+deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''GameOverView
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
 deriveBoth Elm.Derive.defaultOptions ''Login
@@ -369,6 +409,6 @@ Derive.deriveMap ''EnergyMap
 -- IsMap implementation for PlayerEnergies
 Derive.deriveMap ''PlayerEnergies
 -- IsSequence for RogueHistory
-Derive.deriveSequence ''RogueHistory
+Derive.deriveSequence ''ShadowRogueHistory
 -- IsSequence for RogueHistory
 Derive.deriveSequence ''OpenRogueHistory

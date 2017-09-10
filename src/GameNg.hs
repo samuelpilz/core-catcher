@@ -33,7 +33,7 @@ data GameRunning = GameRunning
     deriving (Eq, Show, Read)
 
 -- |Function to access the shadowed version of the rogueHistory
-gameRunningRogueHistory :: GameRunning -> RogueHistory
+gameRunningRogueHistory :: GameRunning -> ShadowRogueHistory
 gameRunningRogueHistory = toShadowRogueHistory . gameRunningOpenRogueHistory
 
 data GameOver =
@@ -219,9 +219,9 @@ getViews
             find (isJust . snd) $
             shadowRogueHistory
 
-toShadowRogueHistory :: OpenRogueHistory -> RogueHistory
+toShadowRogueHistory :: OpenRogueHistory -> ShadowRogueHistory
 toShadowRogueHistory =
-    RogueHistory .
+    ShadowRogueHistory .
     map (\(e,n,showing) -> (e, showing `ifToMaybe` n)) .
     openRogueHistory
 
@@ -231,9 +231,11 @@ getGameOverView GameOver
     , gameOverPlayerEnergies
     , gameOverRogueHistory
     , gameOverWinningPlayer
+    , gameOverGameConfig = GameConfig { network }
     } =
     GameOverView
         gameOverPlayerPositions
         gameOverPlayerEnergies
         gameOverRogueHistory
         gameOverWinningPlayer
+        network

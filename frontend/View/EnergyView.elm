@@ -92,7 +92,7 @@ energyRecord gameState forPlayer ( ( posX, posY ), energy, color, count ) =
             gameState.player == forPlayer
 
         highlightEnergy =
-            ownPlayer && gameState.selectedEnergy == energy
+            ownPlayer && gameState.selectedEnergy == Just energy
     in
         g []
             [ rect
@@ -223,9 +223,14 @@ turnIcon displayInfo gameState posY forPlayer =
     else
         []
 
-
 historyView : RogueHistory -> GameViewDisplayInfo -> List (Svg.Svg Msg)
-historyView rogueHistory displayInfo =
+historyView rogueHistory =
+    case rogueHistory of
+        ShadowHistory h -> shadowHistoryView h
+        OpenHistory h -> openHistoryView h
+
+shadowHistoryView : ShadowRogueHistory -> GameViewDisplayInfo -> List (Svg.Svg Msg)
+shadowHistoryView rogueHistory displayInfo =
     List.map2 historyRecord (range 0 100)
         << List.map
             (\( t, n ) ->
@@ -235,8 +240,10 @@ historyView rogueHistory displayInfo =
             )
         << List.reverse
     <|
-        rogueHistory.rogueHistory
+        rogueHistory.shadowRogueHistory
 
+openHistoryView : OpenRogueHistory -> GameViewDisplayInfo -> List (Svg.Svg msg)
+openHistoryView rogueHistory displayInfo = [] -- TODO: implement
 
 historyRecord : Int -> ( Color, Maybe Node ) -> Svg.Svg Msg
 historyRecord pos ( color, nodeMay ) =

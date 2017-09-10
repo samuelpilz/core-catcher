@@ -151,7 +151,7 @@ playerCircle : GameViewDisplayInfo -> GameState -> ( Player, Node ) -> Svg Msg
 playerCircle displayInfo gameState ( player, node ) =
     let
         ( x, y ) =
-            log "position" <| positionInSvg displayInfo gameState player
+            positionInSvg displayInfo gameState player
     in
         circle
             [ cx << toString <| x

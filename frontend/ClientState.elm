@@ -4,7 +4,9 @@ import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import Time exposing (..)
 import AllDict exposing (..)
+import EveryDict exposing (..)
 import View.GameViewDisplay exposing (GameViewDisplayInfo)
+import Example.ExampleGameViewDisplay as Example
 
 
 type Msg
@@ -34,10 +36,10 @@ type alias GameState =
     , energies : List Energy
     , playerPositions : PlayerPositions
     , playerEnergies : PlayerEnergies
-    , rogueHistory : RogueHistory -- TODO: possibility for open history
+    , rogueHistory : RogueHistory
     , nextPlayer : Maybe Player
     , player : Player
-    , selectedEnergy : Energy
+    , selectedEnergy : Maybe Energy
     , server : String
     , gameError : Maybe GameError
     , gameOver : Bool
@@ -61,4 +63,31 @@ type alias PlayerMovementAnimation =
     { fromNode : Node
     , toNode : Node
     , startTime : Time
+    }
+
+
+emptyGameState : String -> Player -> GameState
+emptyGameState server player =
+    { network = ProtocolUtils.emptyNetwork
+    , players = []
+    , energies = []
+    , playerPositions = { playerPositions = EveryDict.empty }
+    , playerEnergies = { playerEnergies = EveryDict.empty }
+    , rogueHistory = ShadowHistory { shadowRogueHistory = [] }
+    , nextPlayer = Nothing
+    , selectedEnergy = Nothing
+    , gameError = Nothing
+    , gameOver = False
+    , server = server
+    , player = player
+    , animationTime = 0
+    , activeAnimations = AllDict.empty .playerName
+    , displayInfo = Example.displayInfo
+    }
+
+
+emptyPreGame : String -> PreGame
+emptyPreGame server =
+    { server = server
+    , playerNameField = ""
     }

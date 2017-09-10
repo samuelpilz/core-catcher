@@ -32,7 +32,7 @@ prop_decodeEncodeEnergyMap p = Just p == decodeEncode p
 prop_decodeEncodePlayerEnergies :: PlayerEnergies -> Bool
 prop_decodeEncodePlayerEnergies p = Just p == decodeEncode p
 
-prop_decodeEncodeRogueHistory :: RogueHistory -> Bool
+prop_decodeEncodeRogueHistory :: ShadowRogueHistory -> Bool
 prop_decodeEncodeRogueHistory p = Just p == decodeEncode p
 
 prop_decodeEncodeRogueGameView :: RogueGameView -> Bool

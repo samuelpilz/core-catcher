@@ -16,7 +16,7 @@ import           Config.GameConfig  (defaultConfig,
                                      defaultConfigWithRandomPositions)
 import           GameNg             (GameState (..), initialStateFromConfig)
 import           Network.Protocol   (Player)
-import           System.Random      (RandomGen, randomRs)
+import           System.Random      (RandomGen)
 
 
 data ServerState conn =

@@ -80,6 +80,7 @@ nodeXyMap =
         , ( { nodeId = 15 }, ( 6, 5 ) )
         , ( { nodeId = 16 }, ( 5, 4 ) )
         , ( { nodeId = 17 }, ( 1, 1 ) )
+        , ( { nodeId = 18 }, ( 7, 1 ) )
         ]
 
 

@@ -80,12 +80,11 @@ sendGameViews (GameRunning_ game) ServerState{ stateConnections, playerMap } = d
                 return (p, conn)
             ) $
         mapToList playerMap
+sendGameViews (GameOver_ gameOver) ServerState{ stateConnections } =
+    multicastMsg stateConnections $ Game.getGameOverView gameOver
 
-sendGameViews (GameOver_ game) ServerState{ stateConnections } =
-    multicastMsg stateConnections $ Game.getGameOverView game
 
-
-initialInfoForClient :: GameState -> Player -> Either GameError InitialInfoForClient
+initialInfoForClient :: GameState -> Player -> Either GameOverView InitialInfoForClient
 initialInfoForClient (GameRunning_ gameRunning) player =
     Right InitialInfoForClient
         { networkForGame = network
@@ -98,7 +97,7 @@ initialInfoForClient (GameRunning_ gameRunning) player =
         config = gameRunningGameConfig gameRunning
         initialView = viewForPlayer config (getViews gameRunning) player
         network = Game.network config
-initialInfoForClient (GameOver_ _) _ = Left GameIsOver
+initialInfoForClient (GameOver_ gameOver) _ = Left $ Game.getGameOverView gameOver
 
 viewForPlayer :: GameConfig -> (RogueGameView, CatcherGameView) -> Player -> GameView
 viewForPlayer config views player =

@@ -25,7 +25,7 @@ test_defaultInitialStateHasStartingPlayer0 =
 
 test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory = do
-    RogueHistory [] @?= (gameRunningRogueHistory . initialStateFromConfig $ defaultConfig)
+    ShadowRogueHistory [] @?= (gameRunningRogueHistory . initialStateFromConfig $ defaultConfig)
     OpenRogueHistory [] @?= (gameRunningOpenRogueHistory . initialStateFromConfig $ defaultConfig)
 
 test_player0ValidMove_playerPositionUpdated :: IO ()
@@ -82,7 +82,7 @@ test_player0ValidMove_historyUpdated =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
+            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
             OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
 
 
@@ -102,7 +102,7 @@ test_player0ValidMove_historyUpdatedWithShow =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            RogueHistory [(Red, Just $ Node 6)] @?= gameRunningRogueHistory game
+            ShadowRogueHistory [(Red, Just $ Node 6)] @?= gameRunningRogueHistory game
             OpenRogueHistory [(Red, Node 6, True)] @?= gameRunningOpenRogueHistory game
 
 
@@ -120,7 +120,7 @@ test_player0ValidMove_historyUpdate =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
+            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
             OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
 
 test_player1ValidMove_historyNotUpdated :: IO ()
@@ -139,7 +139,7 @@ test_player1ValidMove_historyNotUpdated =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            RogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
+            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
             OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
 
 

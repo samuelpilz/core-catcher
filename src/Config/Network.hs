@@ -11,7 +11,7 @@ import           Network.Protocol
 network :: Network
 network =
     Network
-        { nodes = map Node [1..17]
+        { nodes = map Node [1..18]
         , overlays =
             mapFromList
                 [ ( Red, redOverlay )
@@ -24,7 +24,7 @@ network =
 redOverlay :: NetworkOverlay
 redOverlay =
     mkOverlayCompact
-        [ [1, 6, 13, 9]
+        [ [1, 6, 16, 9]
         ]
 
 
@@ -32,6 +32,7 @@ blueOverlay :: NetworkOverlay
 blueOverlay =
     mkOverlayCompact
         [ [ 3, 4, 15, 12, 8, 17, 3 ]
+        , [ 5, 16 ]
         ]
 
 
@@ -42,9 +43,10 @@ orangeOverlay =
         , [ 1, 11, 6, 3, 5 ]
         , [ 2, 5, 8, 2 ]
         , [ 5, 12, 13, 14 ]
-        , [ 8, 9 ]
+        , [ 8, 9, 18, 12 ]
         , [ 3, 7 ]
         , [ 1, 17, 2 ]
+        , [ 12, 16 ]
         ]
 
 

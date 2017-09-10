@@ -121,7 +121,7 @@ update msg state =
     case ( log "msg" msg, state ) of
         ( Movement n, GameState_ state ) ->
             GameState_ { state | gameError = Nothing }
-                ! [ send state.server <| msgForActionOfNode state n
+                ! [ sendProtocolMsgMay state.server <| msgForActionOfNode state n
                   ]
 
         ( MsgFromServer (GameView_ gameView), GameState_ state ) ->
@@ -154,9 +154,8 @@ update msg state =
 
         ( MsgFromServer ServerHello, GameState_ state ) ->
             -- reconnect upon ServerHello
-            -- TODO: implement, also for other state-objects
             GameState_ state
-                ! [ send state.server <|
+                ! [ sendProtocolMsg state.server <|
                         Login_
                             { loginPlayer =
                                 { playerName = state.player.playerName }
@@ -165,50 +164,44 @@ update msg state =
 
         -- login
         ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
-            GameState_
-                { network = initInfo.networkForGame
-                , players = initInfo.allPlayers
-                , energies = initInfo.allEnergies
-                , playerPositions = playerPositions initInfo.initialGameView
-                , playerEnergies = playerEnergies <| initInfo.initialGameView
-                , rogueHistory = rogueHistory <| initInfo.initialGameView
-                , nextPlayer = Just <| nextPlayer initInfo.initialGameView
-                , selectedEnergy = Orange
-                , gameError = Nothing
-                , gameOver = False
-                , server = preGame.server
-                , player = initInfo.initialPlayer
-                , animationTime = 0
-                , activeAnimations = AllDict.empty .playerName
-                , displayInfo = Example.displayInfo
-                }
-                ! []
+            let
+                emptyState =
+                    emptyGameState preGame.server initInfo.initialPlayer
+            in
+                GameState_
+                    { emptyState
+                        | network = initInfo.networkForGame
+                        , players = initInfo.allPlayers
+                        , energies = initInfo.allEnergies
+                        , playerPositions = playerPositions initInfo.initialGameView
+                        , playerEnergies = playerEnergies <| initInfo.initialGameView
+                        , rogueHistory = rogueHistory <| initInfo.initialGameView
+                        , nextPlayer = Just <| nextPlayer initInfo.initialGameView
+                    }
+                    ! []
 
         -- reconnect
         ( MsgFromServer (InitialInfoForClient_ initInfo), GameState_ state ) ->
-            GameState_
-                { network = initInfo.networkForGame
-                , players = initInfo.allPlayers
-                , energies = initInfo.allEnergies
-                , playerPositions = playerPositions initInfo.initialGameView
-                , playerEnergies = playerEnergies <| initInfo.initialGameView
-                , rogueHistory = rogueHistory <| initInfo.initialGameView
-                , nextPlayer = Just <| nextPlayer initInfo.initialGameView
-                , selectedEnergy = Orange
-                , gameError = Nothing
-                , gameOver = False
-                , server = state.server
-                , player = initInfo.initialPlayer
-                , animationTime = 0
-                , activeAnimations = AllDict.empty .playerName
-                , displayInfo = Example.displayInfo
-                }
-                ! []
+            let
+                emptyState =
+                    emptyGameState state.server initInfo.initialPlayer
+            in
+                GameState_
+                    { emptyState
+                        | network = initInfo.networkForGame
+                        , players = initInfo.allPlayers
+                        , energies = initInfo.allEnergies
+                        , playerPositions = playerPositions initInfo.initialGameView
+                        , playerEnergies = playerEnergies <| initInfo.initialGameView
+                        , rogueHistory = rogueHistory <| initInfo.initialGameView
+                        , nextPlayer = Just <| nextPlayer initInfo.initialGameView
+                    }
+                    ! []
 
-        -- other message that is not recognized
-        ( MsgFromServer _, GameState_ state ) ->
+        -- other message from the server that is not recognized
+        ( MsgFromServer _, _ ) ->
             -- TODO: error for that
-            GameState_ state ! []
+            state ! []
 
         ( Tick dt, GameState_ state ) ->
             GameState_
@@ -227,7 +220,7 @@ update msg state =
                 ! []
 
         ( SelectEnergy energy, GameState_ state ) ->
-            GameState_ { state | selectedEnergy = energy } ! []
+            GameState_ { state | selectedEnergy = Just energy } ! []
 
         ( None, state ) ->
             state ! []
@@ -237,13 +230,14 @@ update msg state =
 
         ( DoLogin login, PreGame_ state ) ->
             PreGame_ state
-                ! [ send state.server <|
+                ! [ sendProtocolMsg state.server <|
                         Login_
                             { loginPlayer =
                                 { playerName = state.playerNameField }
                             }
                   ]
 
+        -- messages that have not been recogniced but defined in ClientState.elm
         ( _, state ) ->
             -- TODO: error for that
             state ! []
@@ -251,14 +245,11 @@ update msg state =
 
 initialState : Location -> ClientState
 initialState location =
-    PreGame_
-        { server = location.hostname
-        , playerNameField = ""
-        }
+    PreGame_ <| emptyPreGame location.hostname
 
 
-send : String -> MessageForServer -> Cmd a
-send server msg =
+sendProtocolMsg : String -> MessageForServer -> Cmd a
+sendProtocolMsg server msg =
     WebSocket.send (wsUrl server)
         << encode 0
         << jsonEncMessageForServer
@@ -266,13 +257,27 @@ send server msg =
         log "ws-send" msg
 
 
-msgForActionOfNode : GameState -> Node -> MessageForServer
+sendProtocolMsgMay : String -> Maybe MessageForServer -> Cmd a
+sendProtocolMsgMay server msgMay =
+    case msgMay of
+        Nothing ->
+            Cmd.none
+
+        Just msg ->
+            sendProtocolMsg server msg
+
+
+msgForActionOfNode : GameState -> Node -> Maybe MessageForServer
 msgForActionOfNode state n =
-    Action_
-        { actionPlayer = state.player
-        , actionEnergy = state.selectedEnergy
-        , actionNode = n
-        }
+    Maybe.map
+        (\energy ->
+            Action_
+                { actionPlayer = state.player
+                , actionEnergy = energy
+                , actionNode = n
+                }
+        )
+        state.selectedEnergy
 
 
 updateActiveAnimations : GameState -> PlayerPositions -> AllDict Player PlayerMovementAnimation String

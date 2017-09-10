@@ -75,7 +75,7 @@ jsonEncPlayerPositions  val =
 type alias RogueGameView  =
    { roguePlayerPositions: PlayerPositions
    , rogueEnergies: PlayerEnergies
-   , rogueOwnHistory: RogueHistory
+   , rogueOwnHistory: ShadowRogueHistory
    , rogueNextPlayer: Player
    }
 
@@ -83,7 +83,7 @@ jsonDecRogueGameView : Json.Decode.Decoder ( RogueGameView )
 jsonDecRogueGameView =
    ("roguePlayerPositions" := jsonDecPlayerPositions) >>= \proguePlayerPositions ->
    ("rogueEnergies" := jsonDecPlayerEnergies) >>= \progueEnergies ->
-   ("rogueOwnHistory" := jsonDecRogueHistory) >>= \progueOwnHistory ->
+   ("rogueOwnHistory" := jsonDecShadowRogueHistory) >>= \progueOwnHistory ->
    ("rogueNextPlayer" := jsonDecPlayer) >>= \progueNextPlayer ->
    Json.Decode.succeed {roguePlayerPositions = proguePlayerPositions, rogueEnergies = progueEnergies, rogueOwnHistory = progueOwnHistory, rogueNextPlayer = progueNextPlayer}
 
@@ -92,7 +92,7 @@ jsonEncRogueGameView  val =
    Json.Encode.object
    [ ("roguePlayerPositions", jsonEncPlayerPositions val.roguePlayerPositions)
    , ("rogueEnergies", jsonEncPlayerEnergies val.rogueEnergies)
-   , ("rogueOwnHistory", jsonEncRogueHistory val.rogueOwnHistory)
+   , ("rogueOwnHistory", jsonEncShadowRogueHistory val.rogueOwnHistory)
    , ("rogueNextPlayer", jsonEncPlayer val.rogueNextPlayer)
    ]
 
@@ -101,7 +101,7 @@ jsonEncRogueGameView  val =
 type alias CatcherGameView  =
    { catcherPlayerPositions: PlayerPositions
    , catcherEnergies: PlayerEnergies
-   , catcherRogueHistory: RogueHistory
+   , catcherRogueHistory: ShadowRogueHistory
    , catcherNextPlayer: Player
    }
 
@@ -109,7 +109,7 @@ jsonDecCatcherGameView : Json.Decode.Decoder ( CatcherGameView )
 jsonDecCatcherGameView =
    ("catcherPlayerPositions" := jsonDecPlayerPositions) >>= \pcatcherPlayerPositions ->
    ("catcherEnergies" := jsonDecPlayerEnergies) >>= \pcatcherEnergies ->
-   ("catcherRogueHistory" := jsonDecRogueHistory) >>= \pcatcherRogueHistory ->
+   ("catcherRogueHistory" := jsonDecShadowRogueHistory) >>= \pcatcherRogueHistory ->
    ("catcherNextPlayer" := jsonDecPlayer) >>= \pcatcherNextPlayer ->
    Json.Decode.succeed {catcherPlayerPositions = pcatcherPlayerPositions, catcherEnergies = pcatcherEnergies, catcherRogueHistory = pcatcherRogueHistory, catcherNextPlayer = pcatcherNextPlayer}
 
@@ -118,7 +118,7 @@ jsonEncCatcherGameView  val =
    Json.Encode.object
    [ ("catcherPlayerPositions", jsonEncPlayerPositions val.catcherPlayerPositions)
    , ("catcherEnergies", jsonEncPlayerEnergies val.catcherEnergies)
-   , ("catcherRogueHistory", jsonEncRogueHistory val.catcherRogueHistory)
+   , ("catcherRogueHistory", jsonEncShadowRogueHistory val.catcherRogueHistory)
    , ("catcherNextPlayer", jsonEncPlayer val.catcherNextPlayer)
    ]
 
@@ -289,19 +289,19 @@ jsonEncEnergy  val =
 
 
 
-type alias RogueHistory  =
-   { rogueHistory: (List (Energy, (Maybe Node)))
+type alias ShadowRogueHistory  =
+   { shadowRogueHistory: (List (Energy, (Maybe Node)))
    }
 
-jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
-jsonDecRogueHistory =
-   ("rogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \progueHistory ->
-   Json.Decode.succeed {rogueHistory = progueHistory}
+jsonDecShadowRogueHistory : Json.Decode.Decoder ( ShadowRogueHistory )
+jsonDecShadowRogueHistory =
+   ("shadowRogueHistory" := Json.Decode.list (Json.Decode.map2 (,) (Json.Decode.index 0 (jsonDecEnergy)) (Json.Decode.index 1 (Json.Decode.maybe (jsonDecNode))))) >>= \pshadowRogueHistory ->
+   Json.Decode.succeed {shadowRogueHistory = pshadowRogueHistory}
 
-jsonEncRogueHistory : RogueHistory -> Value
-jsonEncRogueHistory  val =
+jsonEncShadowRogueHistory : ShadowRogueHistory -> Value
+jsonEncShadowRogueHistory  val =
    Json.Encode.object
-   [ ("rogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,((maybeEncode (jsonEncNode))) v2])) val.rogueHistory)
+   [ ("shadowRogueHistory", (Json.Encode.list << List.map (\(v1,v2) -> Json.Encode.list [(jsonEncEnergy) v1,((maybeEncode (jsonEncNode))) v2])) val.shadowRogueHistory)
    ]
 
 
@@ -320,6 +320,27 @@ jsonEncOpenRogueHistory  val =
    Json.Encode.object
    [ ("openRogueHistory", (Json.Encode.list << List.map (\(v1,v2,v3) -> Json.Encode.list [(jsonEncEnergy) v1,(jsonEncNode) v2,(Json.Encode.bool) v3])) val.openRogueHistory)
    ]
+
+
+
+type RogueHistory  =
+    OpenHistory OpenRogueHistory
+    | ShadowHistory ShadowRogueHistory
+
+jsonDecRogueHistory : Json.Decode.Decoder ( RogueHistory )
+jsonDecRogueHistory =
+    let jsonDecDictRogueHistory = Dict.fromList
+            [ ("OpenHistory", Json.Decode.map OpenHistory (jsonDecOpenRogueHistory))
+            , ("ShadowHistory", Json.Decode.map ShadowHistory (jsonDecShadowRogueHistory))
+            ]
+    in  decodeSumObjectWithSingleField  "RogueHistory" jsonDecDictRogueHistory
+
+jsonEncRogueHistory : RogueHistory -> Value
+jsonEncRogueHistory  val =
+    let keyval v = case v of
+                    OpenHistory v1 -> ("OpenHistory", encodeValue (jsonEncOpenRogueHistory v1))
+                    ShadowHistory v1 -> ("ShadowHistory", encodeValue (jsonEncShadowRogueHistory v1))
+    in encodeSumObjectWithSingleField keyval val
 
 
 
@@ -364,6 +385,7 @@ type alias GameOverView  =
    , gameOverViewPlayerEnergies: PlayerEnergies
    , gameOverViewRogueHistory: OpenRogueHistory
    , gameOverViewWinningPlayer: Player
+   , gameOverViewNetwork: Network
    }
 
 jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
@@ -372,7 +394,8 @@ jsonDecGameOverView =
    ("gameOverViewPlayerEnergies" := jsonDecPlayerEnergies) >>= \pgameOverViewPlayerEnergies ->
    ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
    ("gameOverViewWinningPlayer" := jsonDecPlayer) >>= \pgameOverViewWinningPlayer ->
-   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer}
+   ("gameOverViewNetwork" := jsonDecNetwork) >>= \pgameOverViewNetwork ->
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer, gameOverViewNetwork = pgameOverViewNetwork}
 
 jsonEncGameOverView : GameOverView -> Value
 jsonEncGameOverView  val =
@@ -381,6 +404,7 @@ jsonEncGameOverView  val =
    , ("gameOverViewPlayerEnergies", jsonEncPlayerEnergies val.gameOverViewPlayerEnergies)
    , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
    , ("gameOverViewWinningPlayer", jsonEncPlayer val.gameOverViewWinningPlayer)
+   , ("gameOverViewNetwork", jsonEncNetwork val.gameOverViewNetwork)
    ]
 
 
