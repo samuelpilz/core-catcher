@@ -368,4 +368,16 @@ WsConnection</panel_attributes>
   send/recv</panel_attributes>
     <additional_attributes>10.0;60.0;10.0;10.0</additional_attributes>
   </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>576</x>
+      <y>336</y>
+      <w>368</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;import&gt;&gt;</panel_attributes>
+    <additional_attributes>440.0;10.0;10.0;180.0</additional_attributes>
+  </element>
 </diagram>

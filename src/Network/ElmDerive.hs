@@ -32,8 +32,10 @@ elmProtocolModule =
             , DefineElm (Proxy :: Proxy RogueHistory)
             , DefineElm (Proxy :: Proxy GameError)
             , DefineElm (Proxy :: Proxy GameOverView)
-            , DefineElm (Proxy :: Proxy InitialInfoForClient)
+            , DefineElm (Proxy :: Proxy InitialInfoForGame)
             , DefineElm (Proxy :: Proxy MessageForServer)
             , DefineElm (Proxy :: Proxy MessageForClient)
             , DefineElm (Proxy :: Proxy Login)
+            , DefineElm (Proxy :: Proxy LoginSuccess)
+            , DefineElm (Proxy :: Proxy LoginFail)
             ]

@@ -36,7 +36,7 @@ test_loginRogue_initialInfo = do
             msgSent <- getSentMsg $ getConnectionById 0 state
             case msgSent of
                 Nothing -> assertFailure "should have sent initial info to alice"
-                Just (InitialInfoForClient_ InitialInfoForClient
+                Just (InitialInfoForGame_ InitialInfoForGame
                     { initialPlayer
                     , initialGameView
                     , networkForGame
@@ -66,7 +66,7 @@ test_loginCatcher_initialInfo = do
             msgSent <- getSentMsg $ getConnectionById 1 state
             case msgSent of
                 Nothing -> assertFailure "should have sent to bob"
-                Just (InitialInfoForClient_ info) -> do
+                Just (InitialInfoForGame_ info) -> do
                     bob @?= initialPlayer info
                     network defaultConfig @?= networkForGame info
                 Just msg -> assertFailure $ "expected initialInfo, got " ++ show msg

@@ -20,15 +20,27 @@ import AllDict exposing (AllDict)
 import Navigation exposing (..)
 import AnimationFrame exposing (diffs)
 
+import Experimental.Main as Experimental
+import Experimental.ClientState as Experimental
 
-main : Program Never ClientState Msg
+
+main : Program Never Experimental.ClientModel Experimental.Msg
 main =
-    Navigation.program (const None)
-        { init = init
-        , update = update
-        , view = view
-        , subscriptions = subscriptions
+    Navigation.program (const Experimental.None)
+        { init = Experimental.init
+        , update = Experimental.update
+        , view = Experimental.view
+        , subscriptions = const Sub.none
         }
+
+--main : Program Never ClientState Msg
+--main =
+--    Navigation.program (const None)
+--        { init = init
+--        , update = update
+--        , view = view
+--        , subscriptions = subscriptions
+--        }
 
 
 init : Location -> ( ClientState, Cmd Msg )
@@ -163,7 +175,7 @@ update msg state =
                   ]
 
         -- login
-        ( MsgFromServer (InitialInfoForClient_ initInfo), PreGame_ preGame ) ->
+        ( MsgFromServer (InitialInfoForGame_ initInfo), PreGame_ preGame ) ->
             let
                 emptyState =
                     emptyGameState preGame.server initInfo.initialPlayer
@@ -181,7 +193,7 @@ update msg state =
                     ! []
 
         -- reconnect
-        ( MsgFromServer (InitialInfoForClient_ initInfo), GameState_ state ) ->
+        ( MsgFromServer (InitialInfoForGame_ initInfo), GameState_ state ) ->
             let
                 emptyState =
                     emptyGameState state.server initInfo.initialPlayer

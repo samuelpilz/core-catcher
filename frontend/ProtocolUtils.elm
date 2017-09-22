@@ -59,12 +59,6 @@ getEnergyForEnergyAndPlayer player energy playerEnergies =
     <|
         playerEnergies.playerEnergies
 
-
-emptyNetwork : Network
-emptyNetwork =
-    { nodes = [], overlays = EveryDict.empty }
-
-
 energyId : Energy -> Int
 energyId e =
     case e of

@@ -211,8 +211,8 @@ data NetworkOverlay =
 If the client wants to log in when the game is over, the client gets sent a GameOverView instead
 
 -}
-data InitialInfoForClient =
-    InitialInfoForClient
+data InitialInfoForGame =
+    InitialInfoForGame
         { networkForGame  :: Network
         , initialGameView :: GameView
         , initialPlayer   :: Player
@@ -221,11 +221,26 @@ data InitialInfoForClient =
         }
         deriving (Show, Read, Eq, Generic)
 
+
 newtype Login =
     Login
         { loginPlayer :: Player
         }
     deriving (Show, Read, Eq, Generic)
+
+
+newtype LoginSuccess =
+    LoginSuccess
+        { loginSuccessPlayer :: Player
+        }
+    deriving (Show, Read, Eq, Generic)
+
+newtype LoginFail =
+    LoginFail
+        { loginFailPlayer :: Player
+        }
+    deriving (Show, Read, Eq, Generic)
+
 
 data MessageForServer
     = Action_ Action
@@ -234,11 +249,14 @@ data MessageForServer
 
 data MessageForClient
     = ServerHello
-    | InitialInfoForClient_ InitialInfoForClient
+    | LoginSuccess_ LoginSuccess
+    | LoginFail_ LoginFail
+    | InitialInfoForGame_ InitialInfoForGame
     | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
     | ClientMsgError
+    | PreGameLobby_
     deriving (Show, Read, Eq, Generic)
 
 class SendableToClient msg where
@@ -257,8 +275,8 @@ instance SendableToClient RogueGameView where
     wrapSendable = GameView_ . RogueView
 instance SendableToClient CatcherGameView where
     wrapSendable = GameView_ . CatcherView
-instance SendableToClient InitialInfoForClient where
-    wrapSendable = InitialInfoForClient_
+instance SendableToClient InitialInfoForGame where
+    wrapSendable = InitialInfoForGame_
 instance (SendableToClient a, SendableToClient b) => SendableToClient (Either a b) where
     wrapSendable = either wrapSendable wrapSendable
 
@@ -361,8 +379,8 @@ instance Arbitrary GameView where
         else
             CatcherView <$> arbitrary
 
-instance Arbitrary InitialInfoForClient where
-    arbitrary = InitialInfoForClient <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+instance Arbitrary InitialInfoForGame where
+    arbitrary = InitialInfoForGame <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary MessageForServer where
     arbitrary = Action_ <$> arbitrary
@@ -371,7 +389,7 @@ instance Arbitrary MessageForClient where
     arbitrary =
         oneof
             [ return ServerHello
-            , InitialInfoForClient_ <$> arbitrary
+            , InitialInfoForGame_ <$> arbitrary
             , GameView_ <$> arbitrary
             , GameError_ <$> arbitrary
             , GameOverView_ <$> arbitrary
@@ -397,8 +415,10 @@ deriveBoth Elm.Derive.defaultOptions ''ShadowRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''GameOverView
-deriveBoth Elm.Derive.defaultOptions ''InitialInfoForClient
+deriveBoth Elm.Derive.defaultOptions ''InitialInfoForGame
 deriveBoth Elm.Derive.defaultOptions ''Login
+deriveBoth Elm.Derive.defaultOptions ''LoginSuccess
+deriveBoth Elm.Derive.defaultOptions ''LoginFail
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 

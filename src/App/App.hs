@@ -84,9 +84,9 @@ sendGameViews (GameOver_ gameOver) ServerState{ stateConnections } =
     multicastMsg stateConnections $ Game.getGameOverView gameOver
 
 
-initialInfoForClient :: GameState -> Player -> Either GameOverView InitialInfoForClient
+initialInfoForClient :: GameState -> Player -> Either GameOverView InitialInfoForGame
 initialInfoForClient (GameRunning_ gameRunning) player =
-    Right InitialInfoForClient
+    Right InitialInfoForGame
         { networkForGame = network
         , initialGameView = initialView
         , initialPlayer = player

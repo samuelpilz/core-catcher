@@ -409,7 +409,7 @@ jsonEncGameOverView  val =
 
 
 
-type alias InitialInfoForClient  =
+type alias InitialInfoForGame  =
    { networkForGame: Network
    , initialGameView: GameView
    , initialPlayer: Player
@@ -417,8 +417,8 @@ type alias InitialInfoForClient  =
    , allEnergies: (List Energy)
    }
 
-jsonDecInitialInfoForClient : Json.Decode.Decoder ( InitialInfoForClient )
-jsonDecInitialInfoForClient =
+jsonDecInitialInfoForGame : Json.Decode.Decoder ( InitialInfoForGame )
+jsonDecInitialInfoForGame =
    ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
    ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
@@ -426,8 +426,8 @@ jsonDecInitialInfoForClient =
    ("allEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pallEnergies ->
    Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer, allPlayers = pallPlayers, allEnergies = pallEnergies}
 
-jsonEncInitialInfoForClient : InitialInfoForClient -> Value
-jsonEncInitialInfoForClient  val =
+jsonEncInitialInfoForGame : InitialInfoForGame -> Value
+jsonEncInitialInfoForGame  val =
    Json.Encode.object
    [ ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
@@ -461,21 +461,27 @@ jsonEncMessageForServer  val =
 
 type MessageForClient  =
     ServerHello 
-    | InitialInfoForClient_ InitialInfoForClient
+    | LoginSuccess_ LoginSuccess
+    | LoginFail_ LoginFail
+    | InitialInfoForGame_ InitialInfoForGame
     | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
     | ClientMsgError 
+    | PreGameLobby_ 
 
 jsonDecMessageForClient : Json.Decode.Decoder ( MessageForClient )
 jsonDecMessageForClient =
     let jsonDecDictMessageForClient = Dict.fromList
             [ ("ServerHello", Json.Decode.succeed ServerHello)
-            , ("InitialInfoForClient_", Json.Decode.map InitialInfoForClient_ (jsonDecInitialInfoForClient))
+            , ("LoginSuccess_", Json.Decode.map LoginSuccess_ (jsonDecLoginSuccess))
+            , ("LoginFail_", Json.Decode.map LoginFail_ (jsonDecLoginFail))
+            , ("InitialInfoForGame_", Json.Decode.map InitialInfoForGame_ (jsonDecInitialInfoForGame))
             , ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
             , ("ClientMsgError", Json.Decode.succeed ClientMsgError)
+            , ("PreGameLobby_", Json.Decode.succeed PreGameLobby_)
             ]
     in  decodeSumObjectWithSingleField  "MessageForClient" jsonDecDictMessageForClient
 
@@ -483,11 +489,14 @@ jsonEncMessageForClient : MessageForClient -> Value
 jsonEncMessageForClient  val =
     let keyval v = case v of
                     ServerHello  -> ("ServerHello", encodeValue (Json.Encode.list []))
-                    InitialInfoForClient_ v1 -> ("InitialInfoForClient_", encodeValue (jsonEncInitialInfoForClient v1))
+                    LoginSuccess_ v1 -> ("LoginSuccess_", encodeValue (jsonEncLoginSuccess v1))
+                    LoginFail_ v1 -> ("LoginFail_", encodeValue (jsonEncLoginFail v1))
+                    InitialInfoForGame_ v1 -> ("InitialInfoForGame_", encodeValue (jsonEncInitialInfoForGame v1))
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
                     GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
                     ClientMsgError  -> ("ClientMsgError", encodeValue (Json.Encode.list []))
+                    PreGameLobby_  -> ("PreGameLobby_", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 
@@ -505,5 +514,39 @@ jsonEncLogin : Login -> Value
 jsonEncLogin  val =
    Json.Encode.object
    [ ("loginPlayer", jsonEncPlayer val.loginPlayer)
+   ]
+
+
+
+type alias LoginSuccess  =
+   { loginSuccessPlayer: Player
+   }
+
+jsonDecLoginSuccess : Json.Decode.Decoder ( LoginSuccess )
+jsonDecLoginSuccess =
+   ("loginSuccessPlayer" := jsonDecPlayer) >>= \ploginSuccessPlayer ->
+   Json.Decode.succeed {loginSuccessPlayer = ploginSuccessPlayer}
+
+jsonEncLoginSuccess : LoginSuccess -> Value
+jsonEncLoginSuccess  val =
+   Json.Encode.object
+   [ ("loginSuccessPlayer", jsonEncPlayer val.loginSuccessPlayer)
+   ]
+
+
+
+type alias LoginFail  =
+   { loginFailPlayer: Player
+   }
+
+jsonDecLoginFail : Json.Decode.Decoder ( LoginFail )
+jsonDecLoginFail =
+   ("loginFailPlayer" := jsonDecPlayer) >>= \ploginFailPlayer ->
+   Json.Decode.succeed {loginFailPlayer = ploginFailPlayer}
+
+jsonEncLoginFail : LoginFail -> Value
+jsonEncLoginFail  val =
+   Json.Encode.object
+   [ ("loginFailPlayer", jsonEncPlayer val.loginFailPlayer)
    ]
 

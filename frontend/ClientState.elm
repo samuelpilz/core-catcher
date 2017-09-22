@@ -7,6 +7,7 @@ import AllDict exposing (..)
 import EveryDict exposing (..)
 import View.GameViewDisplay exposing (GameViewDisplayInfo)
 import Example.ExampleGameViewDisplay as Example
+import ProtocolEmpty exposing (..)
 
 
 type Msg
@@ -68,7 +69,7 @@ type alias PlayerMovementAnimation =
 
 emptyGameState : String -> Player -> GameState
 emptyGameState server player =
-    { network = ProtocolUtils.emptyNetwork
+    { network = ProtocolEmpty.emptyNetwork
     , players = []
     , energies = []
     , playerPositions = { playerPositions = EveryDict.empty }

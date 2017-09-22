@@ -4,7 +4,7 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>260</x>
+      <x>200</x>
       <y>200</y>
       <w>100</w>
       <h>30</h>
@@ -15,7 +15,7 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>420</x>
+      <x>360</x>
       <y>90</y>
       <w>100</w>
       <h>30</h>
@@ -26,7 +26,7 @@
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>460</x>
+      <x>400</x>
       <y>190</y>
       <w>40</w>
       <h>40</h>
@@ -37,7 +37,7 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>470</x>
+      <x>410</x>
       <y>110</y>
       <w>30</w>
       <h>100</h>
@@ -48,7 +48,7 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>350</x>
+      <x>290</x>
       <y>200</y>
       <w>130</w>
       <h>30</h>
@@ -61,33 +61,11 @@
     <coordinates>
       <x>350</x>
       <y>220</y>
-      <w>150</w>
+      <w>90</w>
       <h>110</h>
     </coordinates>
     <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;90.0;130.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>470</x>
-      <y>220</y>
-      <w>30</w>
-      <h>110</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;90.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>470</x>
-      <y>220</y>
-      <w>140</w>
-      <h>110</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>120.0;90.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;90.0;70.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
@@ -102,33 +80,9 @@ GameState</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>430</x>
-      <y>310</y>
-      <w>100</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>Rogue
-GameView</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>560</x>
-      <y>310</y>
-      <w>100</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>Catcher
-GameView</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
     <id>Relation</id>
     <coordinates>
-      <x>490</x>
+      <x>430</x>
       <y>200</y>
       <w>130</w>
       <h>30</h>
@@ -139,20 +93,20 @@ GameView</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>200</x>
+      <x>60</x>
       <y>360</y>
       <w>710</w>
       <h>50</h>
     </coordinates>
     <panel_attributes>updateState :: Protocol.Action -&gt; GameState -&gt;
-    Either Protocol.GameError (GameState, Protocol.RogueGameView, Protocol.CatcherGameView)
+    Either Protocol.GameError (Either GameOver GameState)
 </panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>600</x>
+      <x>540</x>
       <y>200</y>
       <w>100</w>
       <h>30</h>
@@ -163,8 +117,8 @@ GameView</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>200</x>
-      <y>430</y>
+      <x>60</x>
+      <y>420</y>
       <w>710</w>
       <h>50</h>
     </coordinates>
@@ -174,7 +128,7 @@ GameView</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>150</x>
+      <x>90</x>
       <y>200</y>
       <w>130</w>
       <h>30</h>
@@ -185,7 +139,7 @@ GameView</panel_attributes>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>140</x>
+      <x>80</x>
       <y>200</y>
       <w>20</w>
       <h>20</h>
@@ -196,12 +150,34 @@ GameView</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>200</x>
+      <x>50</x>
       <y>490</y>
       <w>710</w>
       <h>50</h>
     </coordinates>
     <panel_attributes>initialViews :: (Protocol.RogueGameView, Protocol.CatcherGameView)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>410</x>
+      <y>220</y>
+      <w>80</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>60.0;90.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>430</x>
+      <y>310</y>
+      <w>100</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>GameError</panel_attributes>
     <additional_attributes/>
   </element>
 </diagram>
