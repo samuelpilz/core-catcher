@@ -22,6 +22,8 @@ import AnimationFrame exposing (diffs)
 
 import Experimental.Main as Experimental
 import Experimental.ClientState as Experimental
+import Experimental.Update as Experimental
+import Experimental.View as Experimental
 
 
 main : Program Never Experimental.ClientModel Experimental.Msg

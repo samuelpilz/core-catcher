@@ -68,6 +68,11 @@ emptyInitialInfo =
     }
 
 
+emptyError : GameError
+emptyError =
+    GameIsOver
+
+
 emptyGameOverView : GameOverView
 emptyGameOverView =
     { gameOverViewPlayerPositions = emptyPlayerPositions

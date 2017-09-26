@@ -9,8 +9,9 @@ import View.GameViewDisplay exposing (GameViewDisplayInfo)
 import Example.ExampleGameViewDisplay as Example
 
 
--- TODO document
+-- TODO document messages
 -- TODO: split messages for scoping
+
 
 type Msg
     = PlayerNameChange String
@@ -21,15 +22,17 @@ type Msg
     | Tick Time
     | DoOpenNewGame
     | DoCreateGame
-    | DoStartGame
     | DoJoinGame
-    | DoGameReconnect
     | DoGameConnect
     | ToHome
+    | ToLandingPage
     | ConnectionLost
     | None
 
-type GameAction = Movement Node
+
+type GameAction
+    = Movement Node
+
 
 
 {-
@@ -50,25 +53,35 @@ type alias ClientModel =
 
 
 type ClientState
-    = Landing_ Landing
-    | LandingConnected_ LandingConnected
-    | LoginPending_ LoginPending
-    | LoginFailed_
+    = LandingArea_ LandingAreaState LandingArea
     | LoggedIn_ LoggedInState LoggedIn
     | InGame_ InGameState InGame
+    | Disconnected DisconnectReconnect
+    | Reconnected DisconnectReconnect
 
 
-type alias Landing =
-    { playerNameField : String
-    }
+type LandingAreaState
+    = Landing
+    | LandingConnected
+    | LoginPending_ LoginPending
+    | LoginFailed
 
-type alias LandingConnected =
+
+type alias LandingArea =
     { playerNameField : String
     }
 
 
 type alias LoginPending =
-    { player : Player
+    { pendingPlayer : Player
+    }
+
+
+-- TODO: think about what needs to be stored in disconnect/reconnect
+-- TODO: think about name
+-- TODO: think about to what is returned after a lost connection
+type alias DisconnectReconnect =
+    { loggedIn : LoggedIn
     }
 
 
@@ -79,18 +92,17 @@ type alias LoggedIn =
 
 
 -- |Model for logged in player.
+-- TODO: remove disconnect from state here...
 
 
 type LoggedInState
     = PlayerHome
-    | Disconnected
-    | ServerReconnected
     | JoinGamePending
     | NewGame
     | NewGamePending
-    | PreGameLobby -- TODO: rename due to name clash with protocol
-    | GameStartPending
+    | PreGameLobby
     | GameConnectPending
+    | GameOver
 
 
 
@@ -99,7 +111,8 @@ type LoggedInState
 
 type alias InGame =
     { player : Player
---    , networkViewModel : NetworkModel
+
+    --    , networkViewModel : NetworkModel
     }
 
 
@@ -129,15 +142,12 @@ type InGameState
     = GameActive_ GameActive
     | GameDisconnected
     | GameServerReconnected
-    | GameReconnectPending
-    | GameOver
 
 
 type GameActive
     = YourTurn
     | ActionPending
     | OthersTurn
-
 
 
 type alias PlayerMovementAnimation =
