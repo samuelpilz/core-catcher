@@ -54,8 +54,9 @@ wsApp stateVar pendingConn = do
         (wsListen (cId, wsConn) stateVar)
         (disconnectClient cId stateVar) -- call to ConnectionMgnt
 
+
 wsListen :: IsConnection conn => (ConnectionId, conn) -> TVar (ServerState conn) -> IO ()
-wsListen (cId,client) stateVar = forever $ do
+wsListen (cId,client) stateVar = Exception.handle handler . forever $ do
     maybeMsg <- recvMsg client
     case maybeMsg of
         Just msg -> do
@@ -65,3 +66,6 @@ wsListen (cId,client) stateVar = forever $ do
         Nothing -> do
             sendSendableMsg client Protocol.ClientMsgError
             putStrLn "ERROR: msg has invalid format"
+    where
+        handler :: WS.ConnectionException -> IO ()
+        handler _ = return ()
