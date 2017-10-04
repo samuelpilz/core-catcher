@@ -24,6 +24,7 @@ This module provides data-types that are sent to game-clients and bots as messag
 This class is a semantic protocol definition. The data-types are sent in json format.
 -}
 
+
 -- |Players have names
 newtype Player =
     Player { playerName :: Text }
@@ -211,8 +212,8 @@ data NetworkOverlay =
 If the client wants to log in when the game is over, the client gets sent a GameOverView instead
 
 -}
-data InitialInfoForGame =
-    InitialInfoForGame
+data InitialInfoGameActive =
+    InitialInfoGameActive
         { networkForGame  :: Network
         , initialGameView :: GameView
         , initialPlayer   :: Player
@@ -229,36 +230,68 @@ newtype Login =
     deriving (Show, Read, Eq, Generic)
 
 
-newtype LoginSuccess =
-    LoginSuccess
-        { loginSuccessPlayer :: Player
-        }
-    deriving (Show, Read, Eq, Generic)
-
 newtype LoginFail =
     LoginFail
         { loginFailPlayer :: Player
         }
     deriving (Show, Read, Eq, Generic)
 
+data GameLobbyView =
+    GameLobbyView
+        { gameLobbyViewGameName :: Text
+        , gameLobbyViewPlayers  :: [Player]
+        }
+    deriving (Show, Read, Eq, Generic)
+
+data PlayerHome =
+    PlayerHome
+        { playerHomePlayer :: Player
+        , activeGames      :: [GamePreviewInfo]
+        , activeLobbies    :: [GameLobbyView]
+        }
+    deriving (Show, Read, Eq, Generic)
+
+data GamePreviewInfo =
+    GamePreviewInfo
+        { gamePreviewInfoGameName :: Text
+        , gamePreviewInfoPlayers  :: [Player]
+        }
+    deriving (Show, Read, Eq, Generic)
+
+newtype CreateNewGame =
+    CreateNewGame
+        { createGameName :: Text
+        }
+    deriving (Show, Read, Eq, Generic)
+
+data ServerError
+    = NoSuchGame Int
+    | NotInGame Player
+    | ClientMsgError
+    | NotLoggedIn
+    deriving (Show, Read, Eq, Generic)
+
 
 data MessageForServer
-    = Action_ Action
-    | Login_ Login
+    = Login_ Login
+    | CreateNewGame_ CreateNewGame
+    | Action_ Action
+    | StartGame
     deriving (Show, Read, Eq, Generic)
 
 data MessageForClient
     = ServerHello
-    | LoginSuccess_ LoginSuccess
     | LoginFail_ LoginFail
-    | InitialInfoForGame_ InitialInfoForGame
+    | PlayerHome_ PlayerHome
+    | InitialInfoGameActive_ InitialInfoGameActive
     | GameView_ GameView
     | GameError_ GameError
     | GameOverView_ GameOverView
-    | ClientMsgError
-    | PreGameLobby_
+    | GameLobbyView_ GameLobbyView
+    | ServerError_ ServerError
     deriving (Show, Read, Eq, Generic)
 
+-- |class for messages sendable to the client
 class SendableToClient msg where
     wrapSendable :: msg -> MessageForClient
 
@@ -275,8 +308,14 @@ instance SendableToClient RogueGameView where
     wrapSendable = GameView_ . RogueView
 instance SendableToClient CatcherGameView where
     wrapSendable = GameView_ . CatcherView
-instance SendableToClient InitialInfoForGame where
-    wrapSendable = InitialInfoForGame_
+instance SendableToClient InitialInfoGameActive where
+    wrapSendable = InitialInfoGameActive_
+instance SendableToClient GameLobbyView where
+    wrapSendable = GameLobbyView_
+instance SendableToClient PlayerHome where
+    wrapSendable = PlayerHome_
+instance SendableToClient ServerError where
+    wrapSendable = ServerError_
 instance (SendableToClient a, SendableToClient b) => SendableToClient (Either a b) where
     wrapSendable = either wrapSendable wrapSendable
 
@@ -371,6 +410,7 @@ instance Arbitrary NetworkOverlay where
     arbitrary =
         NetworkOverlay <$> arbitrary <*> arbitrary
 
+
 instance Arbitrary GameView where
     arbitrary = do
         rogue <- arbitrary
@@ -379,21 +419,36 @@ instance Arbitrary GameView where
         else
             CatcherView <$> arbitrary
 
-instance Arbitrary InitialInfoForGame where
-    arbitrary = InitialInfoForGame <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary InitialInfoGameActive where
+    arbitrary = InitialInfoGameActive <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+
+instance Arbitrary GameLobbyView where
+    arbitrary = GameLobbyView <$> arbitrary <*> arbitrary
+
+
+instance Arbitrary PlayerHome where
+    arbitrary = PlayerHome <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary GamePreviewInfo where
+    arbitrary = GamePreviewInfo <$> arbitrary <*> arbitrary
+
+-- TODO: update arbitraries
 instance Arbitrary MessageForServer where
     arbitrary = Action_ <$> arbitrary
+
 
 instance Arbitrary MessageForClient where
     arbitrary =
         oneof
             [ return ServerHello
-            , InitialInfoForGame_ <$> arbitrary
+            , InitialInfoGameActive_ <$> arbitrary
             , GameView_ <$> arbitrary
             , GameError_ <$> arbitrary
             , GameOverView_ <$> arbitrary
-            , return ClientMsgError
+            , GameLobbyView_ <$> arbitrary
+            , PlayerHome_ <$> arbitrary
             ]
 
 
@@ -415,12 +470,16 @@ deriveBoth Elm.Derive.defaultOptions ''ShadowRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''OpenRogueHistory
 deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''GameOverView
-deriveBoth Elm.Derive.defaultOptions ''InitialInfoForGame
+deriveBoth Elm.Derive.defaultOptions ''InitialInfoGameActive
 deriveBoth Elm.Derive.defaultOptions ''Login
-deriveBoth Elm.Derive.defaultOptions ''LoginSuccess
 deriveBoth Elm.Derive.defaultOptions ''LoginFail
+deriveBoth Elm.Derive.defaultOptions ''GameLobbyView
+deriveBoth Elm.Derive.defaultOptions ''GamePreviewInfo
+deriveBoth Elm.Derive.defaultOptions ''PlayerHome
+deriveBoth Elm.Derive.defaultOptions ''CreateNewGame
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
+deriveBoth Elm.Derive.defaultOptions ''ServerError
 
 -- IsMap implementation for PlayerPositions
 Derive.deriveMap ''PlayerPositions

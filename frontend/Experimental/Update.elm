@@ -5,11 +5,24 @@ import Experimental.ClientState exposing (..)
 import AllDict exposing (..)
 import EveryDict
 import ProtocolEmpty exposing (..)
+import Debug exposing (log)
+import Json.Encode exposing (encode)
+import WebSocket
+
+
+const : a -> b -> a
+const a b =
+    a
+
+
+log2 : String -> a -> b -> b
+log2 s a b =
+    const b (log s a)
 
 
 update : Msg -> ClientModel -> ( ClientModel, Cmd Msg )
 update msg state =
-    case state.state of
+    case log2 "msg" msg state.state of
         LandingArea_ landingAreaState landingArea ->
             updateLandingArea msg state ( landingAreaState, landingArea )
 
@@ -32,8 +45,8 @@ update msg state =
 
         Reconnected reconnect ->
             case msg of
-                MsgFromServer (LoginSuccess_ _) ->
-                    { state | state = LoggedIn_ PlayerHome reconnect.loggedIn } ! []
+                MsgFromServer (PlayerHome_ _) ->
+                    { state | state = LoggedIn_ InPlayerHome reconnect.loggedIn } ! []
 
                 MsgFromServer (LoginFail_ _) ->
                     { state | state = LandingArea_ LoginFailed { playerNameField = "" } } ! []
@@ -41,7 +54,8 @@ update msg state =
                 ConnectionLost ->
                     { state | state = Disconnected reconnect } ! []
 
-                _ -> state ! []
+                _ ->
+                    state ! []
 
 
 updateLandingArea : Msg -> ClientModel -> ( LandingAreaState, LandingArea ) -> ( ClientModel, Cmd Msg )
@@ -49,6 +63,10 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
     case ( msg, landingAreaState ) of
         ( MsgFromServer ServerHello, Landing ) ->
             { state | state = LandingArea_ LandingConnected landingArea } ! []
+
+        ( MsgFromServer ServerHello, LoginPending_ { pendingPlayer } ) ->
+            -- resend the login message
+            state ! [ sendProtocolMsg <| Login_ { loginPlayer = pendingPlayer } ]
 
         ( MsgFromServer ServerHello, _ ) ->
             -- explicitly do nothing
@@ -58,7 +76,8 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
             { state | state = LandingArea_ Landing landingArea } ! []
 
         ( DoLogin, LandingConnected ) ->
-            { state | state = LandingArea_ (LoginPending_ { pendingPlayer = emptyPlayer }) landingArea } ! []
+            { state | state = LandingArea_ (LoginPending_ { pendingPlayer = emptyPlayer }) landingArea }
+                ! [ sendProtocolMsg <| Login_ emptyLogin ]
 
         ( _, LoginPending_ loginPending ) ->
             updateLoginPending msg state landingArea loginPending
@@ -73,8 +92,8 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
 updateLoginPending : Msg -> ClientModel -> LandingArea -> LoginPending -> ( ClientModel, Cmd Msg )
 updateLoginPending msg state landingArea loginPending =
     case msg of
-        MsgFromServer (LoginSuccess_ login) ->
-            { state | state = LoggedIn_ PlayerHome { player = login.loginSuccessPlayer } }
+        MsgFromServer (PlayerHome_ playerHome) ->
+            { state | state = LoggedIn_ InPlayerHome { player = playerHome.playerHomePlayer } }
                 ! []
 
         MsgFromServer (LoginFail_ _) ->
@@ -91,24 +110,27 @@ updateLoggedIn msg state ( loggedInState, loggedIn ) =
             { state | state = Disconnected { loggedIn = loggedIn } } ! []
 
         ( MsgFromServer ServerHello, _ ) ->
-            { state | state = Reconnected { loggedIn = loggedIn } } ! []
+            { state | state = Reconnected { loggedIn = loggedIn } }
+                -- resend the login message
+                ! [ sendProtocolMsg <| Login_ { loginPlayer = loggedIn.player } ]
 
         ( ToHome, _ ) ->
-            { state | state = LoggedIn_ PlayerHome loggedIn } ! []
+            { state | state = LoggedIn_ InPlayerHome loggedIn } ! []
 
-        ( _, PlayerHome ) ->
+        ( _, InPlayerHome ) ->
             updatePlayerHome msg state ( loggedInState, loggedIn )
 
         ( DoCreateGame, NewGame ) ->
-            { state | state = LoggedIn_ NewGamePending loggedIn } ! []
+            { state | state = LoggedIn_ NewGamePending loggedIn }
+                ! [sendProtocolMsg <| CreateNewGame_ emptyCreateNewGame]
 
-        ( MsgFromServer PreGameLobby_, NewGamePending ) ->
-            { state | state = LoggedIn_ PreGameLobby loggedIn } ! []
+        ( MsgFromServer (GameLobbyView_ lobby), NewGamePending ) ->
+            { state | state = LoggedIn_ InPreGameLobby loggedIn } ! []
 
-        ( MsgFromServer PreGameLobby_, JoinGamePending ) ->
-            { state | state = LoggedIn_ PreGameLobby loggedIn } ! []
+        ( MsgFromServer (GameLobbyView_ lobby), JoinGamePending ) ->
+            { state | state = LoggedIn_ InPreGameLobby loggedIn } ! []
 
-        ( MsgFromServer (InitialInfoForGame_ initInfo), PreGameLobby ) ->
+        ( MsgFromServer (InitialInfoGameActive_ initInfo), InPreGameLobby ) ->
             { state | state = InGame_ (GameActive_ YourTurn) { player = loggedIn.player } } ! []
 
         ( _, GameConnectPending ) ->
@@ -121,7 +143,7 @@ updateLoggedIn msg state ( loggedInState, loggedIn ) =
 updateGameConnectPending : Msg -> ClientModel -> ( LoggedInState, LoggedIn ) -> ( ClientModel, Cmd Msg )
 updateGameConnectPending msg state ( loggedInState, loggedIn ) =
     case msg of
-        MsgFromServer (InitialInfoForGame_ initInfo) ->
+        MsgFromServer (InitialInfoGameActive_ initInfo) ->
             { state | state = InGame_ (GameActive_ YourTurn) { player = loggedIn.player } } ! []
 
         MsgFromServer (GameOverView_ gameOver) ->
@@ -171,7 +193,7 @@ updateInGame msg state ( inGameState, inGame ) =
         ( MsgFromServer (LoginFail_ _), GameServerReconnected ) ->
             { state | state = LandingArea_ LoginFailed { playerNameField = "" } } ! []
 
-        ( MsgFromServer (InitialInfoForGame_ initInfo), GameServerReconnected ) ->
+        ( MsgFromServer (InitialInfoGameActive_ initInfo), GameServerReconnected ) ->
             { state | state = InGame_ (GameActive_ YourTurn) inGame } ! []
 
         ( MsgFromServer (GameOverView_ _), GameServerReconnected ) ->
@@ -180,3 +202,31 @@ updateInGame msg state ( inGameState, inGame ) =
         ( _, _ ) ->
             -- TODO: handle internal error
             state ! []
+
+
+
+-- TODO: extract these functions
+
+
+wsUrl : String -> String
+wsUrl server =
+    "ws://" ++ server ++ ":7999"
+
+
+sendProtocolMsg : MessageForServer -> Cmd a
+sendProtocolMsg msg =
+    WebSocket.send (wsUrl "localhost")
+        << encode 0
+        << jsonEncMessageForServer
+    <|
+        log "ws-send" msg
+
+
+sendProtocolMsgMay : Maybe MessageForServer -> Cmd a
+sendProtocolMsgMay msgMay =
+    case msgMay of
+        Nothing ->
+            Cmd.none
+
+        Just msg ->
+            sendProtocolMsg msg

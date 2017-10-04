@@ -32,7 +32,7 @@ main =
         { init = Experimental.init
         , update = Experimental.update
         , view = Experimental.view
-        , subscriptions = const Sub.none
+        , subscriptions = const <| WebSocket.listen (wsUrl "localhost") receivedStringToMsg2
         }
 
 --main : Program Never ClientState Msg
@@ -118,6 +118,17 @@ subscriptions state =
         ]
 
 
+receivedStringToMsg2 : String -> Experimental.Msg
+receivedStringToMsg2 s =
+    case decodeString jsonDecMessageForClient s of
+        Ok msg ->
+            Experimental.MsgFromServer msg
+
+        Err err ->
+            -- TODO: popup for that?
+            -- how to handle json error?
+            log2 "error" err Experimental.None
+
 receivedStringToMsg : String -> Msg
 receivedStringToMsg s =
     case decodeString jsonDecMessageForClient s of
@@ -177,7 +188,7 @@ update msg state =
                   ]
 
         -- login
-        ( MsgFromServer (InitialInfoForGame_ initInfo), PreGame_ preGame ) ->
+        ( MsgFromServer (InitialInfoGameActive_ initInfo), PreGame_ preGame ) ->
             let
                 emptyState =
                     emptyGameState preGame.server initInfo.initialPlayer
@@ -195,7 +206,7 @@ update msg state =
                     ! []
 
         -- reconnect
-        ( MsgFromServer (InitialInfoForGame_ initInfo), GameState_ state ) ->
+        ( MsgFromServer (InitialInfoGameActive_ initInfo), GameState_ state ) ->
             let
                 emptyState =
                     emptyGameState state.server initInfo.initialPlayer

@@ -77,9 +77,12 @@ type alias LoginPending =
     }
 
 
+
 -- TODO: think about what needs to be stored in disconnect/reconnect
 -- TODO: think about name
 -- TODO: think about to what is returned after a lost connection
+
+
 type alias DisconnectReconnect =
     { loggedIn : LoggedIn
     }
@@ -96,11 +99,11 @@ type alias LoggedIn =
 
 
 type LoggedInState
-    = PlayerHome
+    = InPlayerHome
     | JoinGamePending
     | NewGame
     | NewGamePending
-    | PreGameLobby
+    | InPreGameLobby
     | GameConnectPending
     | GameOver
 

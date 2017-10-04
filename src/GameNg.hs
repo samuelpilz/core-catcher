@@ -3,15 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GameNg
-    ( initialStateFromConfig
-    , getViews
-    , updateState
+    ( updateState
     , actionForGameRunning
-    , GameState(..)
-    , GameRunning(..)
-    , GameOver(..)
-    , gameRunningRogueHistory
-    , getGameOverView
     ) where
 
 import           ClassyPrelude
@@ -19,42 +12,8 @@ import           Config.GameConfig
 import           Control.Monad.Extra (whenJust)
 import           Data.Easy           (ifToMaybe, maybeToEither)
 import           Data.List           (cycle)
+import           GameState
 import           Network.Protocol
-
-data GameState = GameRunning_ GameRunning | GameOver_ GameOver
-
-data GameRunning = GameRunning
-        { gameRunningGameConfig       :: GameConfig
-        , gameRunningPlayerPositions  :: PlayerPositions
-        , gameRunningPlayerEnergies   :: PlayerEnergies
-        , gameRunningOpenRogueHistory :: OpenRogueHistory
-        , gameRunningNextPlayers      :: [Player]
-        }
-    deriving (Eq, Show, Read)
-
--- |Function to access the shadowed version of the rogueHistory
-gameRunningRogueHistory :: GameRunning -> ShadowRogueHistory
-gameRunningRogueHistory = toShadowRogueHistory . gameRunningOpenRogueHistory
-
-data GameOver =
-    GameOver
-        { gameOverGameConfig      :: GameConfig
-        , gameOverPlayerPositions :: PlayerPositions
-        , gameOverPlayerEnergies  :: PlayerEnergies
-        , gameOverRogueHistory    :: OpenRogueHistory
-        , gameOverWinningPlayer   :: Player
-        }
-    deriving (Eq, Show, Read)
-
--- |The initial state of the game
-initialStateFromConfig :: GameConfig -> GameRunning
-initialStateFromConfig config =
-    GameRunning
-        config
-        (initialPlayerPositions config)
-        (initialPlayerEnergies config)
-        (OpenRogueHistory [])
-        (cycle . toList . players $ config)
 
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
 updateState :: Action -> GameState -> Either GameError GameState
@@ -182,60 +141,3 @@ nextPlayerEnergies pEnergies player energy = do
         maybeToEither (EnergyNotFound energy) . lookup energy $ eMap
     unless (energyCount >= 1) . Left $ NotEnoughEnergy
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies
-
--- |Converts the GameState into the 2 Views
-getViews :: GameRunning -> (RogueGameView, CatcherGameView)
-getViews
-    GameRunning
-    { gameRunningGameConfig = GameConfig {players}
-    , gameRunningPlayerPositions
-    , gameRunningPlayerEnergies
-    , gameRunningOpenRogueHistory
-    , gameRunningNextPlayers
-    } =
-    ( RogueGameView
-        { roguePlayerPositions = gameRunningPlayerPositions
-        , rogueEnergies = gameRunningPlayerEnergies
-        , rogueOwnHistory = shadowRogueHistory
-        , rogueNextPlayer = nextPlayer
-        }
-    , CatcherGameView
-        { catcherPlayerPositions = catcherPlayerPositions -- filtered player positions
-        , catcherEnergies = gameRunningPlayerEnergies
-        , catcherRogueHistory = shadowRogueHistory
-        , catcherNextPlayer = nextPlayer
-        }
-    )
-    where
-        roguePlayer = head players
-        nextPlayer = headEx gameRunningNextPlayers
-
-        shadowRogueHistory = toShadowRogueHistory gameRunningOpenRogueHistory
-        catcherPlayerPositions =
-            updateMap (const rogueShowsPosition) roguePlayer gameRunningPlayerPositions
-        rogueShowsPosition =
-            join .
-            map snd .
-            find (isJust . snd) $
-            shadowRogueHistory
-
-toShadowRogueHistory :: OpenRogueHistory -> ShadowRogueHistory
-toShadowRogueHistory =
-    ShadowRogueHistory .
-    map (\(e,n,showing) -> (e, showing `ifToMaybe` n)) .
-    openRogueHistory
-
-getGameOverView :: GameOver -> GameOverView
-getGameOverView GameOver
-    { gameOverPlayerPositions
-    , gameOverPlayerEnergies
-    , gameOverRogueHistory
-    , gameOverWinningPlayer
-    , gameOverGameConfig = GameConfig { network }
-    } =
-    GameOverView
-        gameOverPlayerPositions
-        gameOverPlayerEnergies
-        gameOverRogueHistory
-        gameOverWinningPlayer
-        network

@@ -20,6 +20,7 @@ import           ClassyPrelude
 import           Control.Monad.Extra (whenJust)
 import           Network.Protocol
 import           Test.Framework
+import App.State (ConnectionState(..))
 
 data FakeConnection =
     FakeConnection
@@ -27,7 +28,7 @@ data FakeConnection =
         , recvBuffer :: TVar (Maybe MessageForServer)
         }
 
-type FakeConnections = ClientConnections FakeConnection
+type FakeConnections = ClientConnections FakeConnection ConnectionState
 
 newFakeConnection :: IO FakeConnection
 newFakeConnection = do

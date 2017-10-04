@@ -11,32 +11,12 @@ This module implements functions managing Client Connections inside a bigger sta
 
 The state-type has to be kept within an TVar variable and the update functions are done using IO
 
-For instances, it is only necessary to TODO
-
 Note: this is used for preventing mutually recursive modules.
 
 TODO: write about what is exported and how to use this module
 -}
 
-module App.ConnectionMgnt (
-    ConnectionId,
-    ClientConnections(..),
-    HasConnections,
-    Conn,
-    connectClient,
-    disconnectClient,
-    getConnections,
-    setConnections,
-    findConnectionById,
-    withoutClient,
-    IsConnection,
-    Pending,
-    sendMsg,
-    sendSendableMsg,
-    recvMsg,
-    acceptRequest,
-    multicastMsg
-    ) where
+module App.ConnectionMgnt where
 
 import           ClassyPrelude
 import           Network.Protocol
@@ -44,9 +24,9 @@ import           Network.Protocol
 type ConnectionId = Int
 
 -- TODO: instance MonoFoldable & MonoTraversable for ClientConnections
-data ClientConnections conn =
+data ClientConnections conn connState =
     ClientConnections
-        { connections :: Map ConnectionId conn
+        { connections :: Map ConnectionId (conn, connState)
         , nextId      :: ConnectionId
         }
 
@@ -66,66 +46,88 @@ class IsConnection c where
 --     multicastMsg ::
 --         (SendableToClient msg, MonoFoldable f, IsConnection c, c ~ Element f)
 --         => f -> msg -> IO ()
-    multicastMsg :: (SendableToClient msg) => ClientConnections c -> msg -> IO ()
-    multicastMsg cs msg = omapM_ (`sendSendableMsg` msg) $ connections cs
+    multicastMsg :: (SendableToClient msg) => ClientConnections c s -> msg -> IO ()
+    multicastMsg cs msg = omapM_ (`sendSendableMsg` msg) . map fst $ connections cs
 
+-- instance for connections bundled with state information
+instance (IsConnection c, IsConnectionState s) => IsConnection (c, s) where
+    type Pending (c,s) = Pending c
+    sendMsg (c,_) = sendMsg c
+    recvMsg (c,_) = recvMsg c
+    acceptRequest p = do
+        c <- acceptRequest p
+        return (c, newConnectionState)
+
+class IsConnectionState connState where
+    newConnectionState :: connState
 
 class HasConnections state where
     type Conn state :: *
+    type ConnState state :: *
 
-    getConnections :: state -> ClientConnections (Conn state)
+    getConnections :: state -> ClientConnections (Conn state) (ConnState state)
 
-    setConnections :: ClientConnections (Conn state) -> state -> state
+    setConnections :: ClientConnections (Conn state) (ConnState state) -> state -> state
 
-    connectClient :: Conn state -> TVar state -> IO ConnectionId
-    connectClient conn stateVar = do
-        clientId <- atomically $ addClient conn stateVar
-        putStrLn $ "connect " ++ tshow clientId
-        return clientId
 
-    disconnectClient :: ConnectionId -> TVar state -> IO ()
-    disconnectClient clientId stateVar = do
-        atomically $ removeClient clientId stateVar
-        putStrLn $ "disconnect " ++ tshow clientId
+-- functions for connections
+
+connectClient
+    :: (HasConnections state, IsConnectionState connState, ConnState state ~ connState)
+    => TVar state -> Conn state -> STM ConnectionId
+connectClient stateVar conn = do -- update connection list
+    state <- readTVar stateVar
+    let conns@ClientConnections{connections} = getConnections state
+    let newConnections =
+            conns
+                { connections =
+                    insertMap (nextId conns) (conn, newConnectionState) connections
+                , nextId = 1 + nextId conns
+                }
+    writeTVar stateVar $ setConnections newConnections state
+    return $ nextId conns
+
+modifyClientState
+    :: (HasConnections state, IsConnectionState connState, ConnState state ~ connState)
+    => TVar state -> ConnectionId -> (connState -> connState) -> STM ()
+modifyClientState stateVar cId connStateF = do
+    state <- readTVar stateVar
+    let conns@ClientConnections{connections} = getConnections state
+    case findConnectionById cId state of
+        Nothing -> return ()
+        Just (conn, connState) -> do
+            let newConnections =
+                    conns
+                        { connections =
+                            insertMap cId (conn, connStateF connState) connections
+                        }
+            writeTVar stateVar $ setConnections newConnections state
+
+disconnectClient
+    :: (HasConnections state, IsConnectionState connState, ConnState state ~ connState)
+    => TVar state -> ConnectionId -> STM ()
+disconnectClient stateVar cId = do
+    state <- readTVar stateVar
+    let connections = getConnections state
+    writeTVar stateVar (setConnections (withoutClient cId connections) state)
 
 -- implement HasConnections for ClientConnections themselves
-instance IsConnection conn => HasConnections (ClientConnections conn) where
-    type Conn (ClientConnections conn) = conn
+instance HasConnections (ClientConnections conn connState) where
+    type Conn (ClientConnections conn connState) = conn
+    type ConnState (ClientConnections conn connState) = connState
     getConnections = id
     setConnections = const
 
 -- extra functions
 
-findConnectionById :: ConnectionId -> ClientConnections conn -> Maybe conn
+findConnectionStateById :: (HasConnections state) => ConnectionId -> state -> Maybe (ConnState state)
+findConnectionStateById cId =
+    map snd . findConnectionById cId
+
+findConnectionById :: (HasConnections state) => ConnectionId -> state -> Maybe (Conn state, ConnState state)
 findConnectionById cId =
-    lookup cId . connections
+    lookup cId . connections . getConnections
 
-withoutClient :: ConnectionId -> ClientConnections conn -> ClientConnections conn
+withoutClient :: ConnectionId -> ClientConnections conn connState -> ClientConnections conn connState
 withoutClient cId conns =
-    conns
-        { connections = deleteMap cId . connections $ conns
-        }
-
--- helper functions (not exported)
-
-addClient :: HasConnections state => Conn state -> TVar state -> STM ConnectionId
-addClient conn stateVar = do -- update connection list
-    state <- readTVar stateVar
-    let conns = getConnections state
-    let newConnections =
-            conns
-                { connections =
-                    insertMap (nextId conns) conn $
-                    connections conns
-                , nextId = 1 + nextId conns
-                }
-
-    writeTVar stateVar (setConnections newConnections state)
-    return $ nextId conns
-
-removeClient :: HasConnections state => ConnectionId -> TVar state -> STM ()
-removeClient cId stateVar = do
-    state <- readTVar stateVar
-    let connections = getConnections state
-    writeTVar stateVar (setConnections (withoutClient cId connections) state)
-
+    conns { connections = deleteMap cId . connections $ conns }

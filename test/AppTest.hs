@@ -8,6 +8,8 @@
 The main function to execute test cases is the gameNgTestCase function defined in this module.
 TODO: fix documentation
 
+TODO: fix tests with new app interface
+
 -}
 module AppTest where
 
@@ -36,7 +38,7 @@ test_loginRogue_initialInfo = do
             msgSent <- getSentMsg $ getConnectionById 0 state
             case msgSent of
                 Nothing -> assertFailure "should have sent initial info to alice"
-                Just (InitialInfoForGame_ InitialInfoForGame
+                Just (InitialInfoGameActive_ InitialInfoGameActive
                     { initialPlayer
                     , initialGameView
                     , networkForGame
@@ -66,7 +68,7 @@ test_loginCatcher_initialInfo = do
             msgSent <- getSentMsg $ getConnectionById 1 state
             case msgSent of
                 Nothing -> assertFailure "should have sent to bob"
-                Just (InitialInfoForGame_ info) -> do
+                Just (InitialInfoGameActive_ info) -> do
                     bob @?= initialPlayer info
                     network defaultConfig @?= networkForGame info
                 Just msg -> assertFailure $ "expected initialInfo, got " ++ show msg
@@ -191,24 +193,17 @@ handleMultipleMsgs
     :: TVar (ServerState FakeConnection)
     -> [(ConnectionId, MessageForServer)]
     -> IO ()
-handleMultipleMsgs stateVar = mapM_ (handleMsg stateVar)
-
--- |Helper function to handle one message for a stateVar
-handleMsg :: TVar (ServerState FakeConnection) -> (ConnectionId, MessageForServer) -> IO ()
-handleMsg stateVar (cId, msg) = do
-   state <- atomically $ readTVar stateVar
-   handle (cId, getConnectionById cId state) stateVar msg
+handleMultipleMsgs stateVar = mapM_ (uncurry (handleClientMsg stateVar))
 
 initialStateWith3FakeConnections :: IO (TVar (ServerState FakeConnection))
 initialStateWith3FakeConnections = do
-
     stateVar <- newTVarIO defaultInitialState
     connA <- newFakeConnection
     connB <- newFakeConnection
     connC <- newFakeConnection
-    _ <- connectClient connA stateVar
-    _ <- connectClient connB stateVar
-    _ <- connectClient connC stateVar
+    _ <- atomically $ connectClient stateVar connA
+    _ <- atomically $ connectClient stateVar connB
+    _ <- atomically $ connectClient stateVar connC
     return stateVar
 
 initialStateWith3Logins :: IO (TVar (ServerState FakeConnection))
@@ -220,12 +215,12 @@ initialStateWith3Logins = do
         , (2, Login_ $ Login charlie)
         ]
     state <- readTVarIO stateVar
-    mapM_ (resetSendBuffer . snd) . mapToList . connections . stateConnections $ state
+    mapM_ (resetSendBuffer . fst . snd) . mapToList . connections . serverStateConnections $ state
     return stateVar
 
 
 getConnectionById :: ConnectionId -> ServerState FakeConnection -> FakeConnection
-getConnectionById cId = fromJust . findConnectionById cId . stateConnections
+getConnectionById cId = fst . fromJust . findConnectionById cId
 
 alice :: Player
 alice = Player "Alice"

@@ -14,6 +14,7 @@ module GameNgTest where
 import           ClassyPrelude
 import           Config.GameConfig
 import           GameNg
+import           GameState
 import           Network.Protocol
 import           Test.Framework
 import           Test.HUnit.Base

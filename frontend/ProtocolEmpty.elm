@@ -58,7 +58,7 @@ emptyGameView =
     RogueView emptyRogueView
 
 
-emptyInitialInfo : InitialInfoForGame
+emptyInitialInfo : InitialInfoGameActive
 emptyInitialInfo =
     { networkForGame = emptyNetwork
     , initialGameView = emptyGameView
@@ -83,11 +83,32 @@ emptyGameOverView =
     }
 
 
-emptyLoginSuccess : LoginSuccess
-emptyLoginSuccess =
-    { loginSuccessPlayer = emptyPlayer }
+emptyLogin : Login
+emptyLogin =
+    { loginPlayer = emptyPlayer }
 
 
 emptyLoginFail : LoginFail
 emptyLoginFail =
     { loginFailPlayer = emptyPlayer }
+
+
+emptyPlayerHome : PlayerHome
+emptyPlayerHome =
+    { playerHomePlayer = emptyPlayer
+    , activeGames = []
+    , activeLobbies = []
+    }
+
+
+emptyGameLobbyView : GameLobbyView
+emptyGameLobbyView =
+    { gameLobbyViewGameName = ""
+    , gameLobbyViewPlayers = []
+    }
+
+
+emptyCreateNewGame : CreateNewGame
+emptyCreateNewGame =
+    { createGameName = ""
+    }

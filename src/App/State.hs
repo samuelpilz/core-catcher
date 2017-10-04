@@ -1,52 +1,60 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module App.State
-  ( ServerState(..)
-  , HasConnections
-  , GameState
-  , IsConnection(..)
-  , defaultInitialState
-  , defaultInitialStateWithRandomPositions
-  ) where
+module App.State where
 
 import           App.ConnectionMgnt
+import           App.GameMgnt
 import           ClassyPrelude
-import           Config.GameConfig  (defaultConfig,
-                                     defaultConfigWithRandomPositions)
-import           GameNg             (GameState (..), initialStateFromConfig)
 import           Network.Protocol   (Player)
-import           System.Random      (RandomGen)
-
 
 data ServerState conn =
     ServerState
-        { stateConnections :: ClientConnections conn
-        , gameState        :: GameState
-        , playerMap        :: Map Player ConnectionId
+        { serverStateConnections :: ClientConnections conn ConnectionState
+        , serverStateGameStates  :: GameStates
+        , serverStatePlayerMap   :: Map Player ConnectionId
         }
+
+data ConnectionState =
+    ConnectionState
+        { connectionLoggedInPlayer :: Maybe Player
+        , connectionInGame         :: Maybe GameId
+        }
+
+setConnectionLoggedInPlayer :: Player -> ConnectionState -> ConnectionState
+setConnectionLoggedInPlayer player state = state { connectionLoggedInPlayer = Just player }
+
+setConnectionInGame :: GameId -> ConnectionState -> ConnectionState
+setConnectionInGame gameId state = state { connectionInGame = Just gameId }
 
 instance IsConnection conn => HasConnections (ServerState conn) where
     type Conn (ServerState conn) = conn
+    type ConnState (ServerState conn) = ConnectionState
+
     getConnections =
-        stateConnections
+        serverStateConnections
 
     setConnections conns state =
-        state
-            { stateConnections = conns
-            }
+        state { serverStateConnections = conns }
 
-defaultInitialStateWithRandomPositions :: RandomGen gen => gen -> ServerState conn
-defaultInitialStateWithRandomPositions gen =
-    defaultInitialState
-        { gameState =
-            GameRunning_ . initialStateFromConfig . defaultConfigWithRandomPositions $ gen
-        }
+instance HasGameStates (ServerState conn) where
+    getGameStates = serverStateGameStates
+    setGameStates states state = state { serverStateGameStates = states }
+
+instance IsConnectionState ConnectionState where
+    newConnectionState = ConnectionState Nothing Nothing
 
 defaultInitialState :: ServerState conn
 defaultInitialState =
     ServerState
-        { stateConnections = ClientConnections mempty 0
-        , gameState = GameRunning_ $ initialStateFromConfig defaultConfig
-        , playerMap = mempty
+        { serverStateConnections = ClientConnections mempty 0
+        , serverStateGameStates = GameStates mempty 0
+        , serverStatePlayerMap = mempty
         }
+
+insertPlayer :: ConnectionId -> Player -> ServerState conn -> ServerState conn
+insertPlayer cId p state@ServerState{ serverStatePlayerMap } =
+   state { serverStatePlayerMap = insertMap p cId serverStatePlayerMap }
+
+-- TODO: removePlayer (maybe playerMgnt)

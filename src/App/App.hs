@@ -4,101 +4,129 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
-module App.App (handle) where
+module App.App (handleClientMsg, handleMsgStm) where
 
 import           App.ConnectionMgnt
+import           App.GameMgnt
 import           App.State
-import           ClassyPrelude       hiding (handle)
-import           Config.GameConfig   (GameConfig (..))
-import qualified Config.GameConfig   as Game
-import           GameNg              (GameRunning (..), GameState (..),
-                                      getViews)
-import qualified GameNg              as Game
+import           ClassyPrelude
+import qualified GameNg             as Game
+import           GameState
 import           Network.Protocol
 
-handle
+{- TODO: features
+* message for leaving a game??
+* validation playerId matches connection-origin
+* draw state diagrams for app / serverConnection
+-}
+
+handleClientMsg
     :: IsConnection conn
-    => (ConnectionId, conn)
-    -> TVar (ServerState conn)
+    => TVar (ServerState conn)
+    -> ConnectionId
     -> MessageForServer
     -> IO ()
-handle (cId, client) stateVar msg = do
+handleClientMsg stateVar cId msg = do
     putStrLn $ tshow msg
-    case msg of
-        Action_ action -> do
-            (newState, updateResult) <- atomically $ updateGameAtomically stateVar action
-            case updateResult of
-                Right newGameState -> sendGameViews newGameState newState
-                Left gameError -> do
-                    sendSendableMsg client gameError
-                    putStrLn $ "invalid action " ++ tshow gameError
-        Login_ Login{ loginPlayer } -> do
-            atomically $ modifyTVar stateVar
-                (\state@ServerState{ playerMap } ->
-                    state { playerMap = insertMap loginPlayer cId playerMap }
-                )
-            state <- atomically $ readTVar stateVar
+    toSend <- atomically $ handleMsgStm stateVar cId msg
+    ServerState{serverStateConnections} <- readTVarIO stateVar
+    mapM_ (uncurry sendSendableMsg) .
+        mapMaybe
+            (\(cIdToSend, m) -> do -- maybe monad
+                conn <- findConnectionById cIdToSend serverStateConnections
+                return (conn, m)
+            ) $
+        toSend
 
-            sendSendableMsg client .
-                initialInfoForClient (gameState state) $
-                loginPlayer
-
--- TODO: validation playerId matches connection-origin
--- TODO: draw transition diagrams for app
-
-
-updateGameAtomically
+-- TODO: tests
+handleMsgStm
     :: IsConnection conn
-    =>  TVar (ServerState conn)
+    => TVar (ServerState conn)
+    -> ConnectionId
+    -> MessageForServer
+    -> STM [(ConnectionId, MessageForClient)]
+handleMsgStm serverStateVar cId msg = do
+    serverState <- readTVar serverStateVar
+    case findConnectionById cId serverState of
+        Nothing -> return [] -- TODO: fail
+        Just (_,connState) ->
+            case msg of
+                Action_ action ->
+                    case connectionInGame connState of
+                        Nothing ->
+                            case connectionLoggedInPlayer connState of
+                                Nothing ->
+                                    return [(cId, ServerError_ NotLoggedIn)]
+                                Just player ->
+                                    return [(cId, ServerError_ $ NotInGame player)]
+                        Just gameId -> do
+                            updateResult <- updateGame serverStateVar gameId action
+                            case updateResult of
+                                Right (Right newGameState) ->
+                                    return $ distributeGameViewsForGame serverState newGameState
+                                Right (Left gameError) ->
+                                    return [(cId, GameError_ gameError)]
+                                Left serverError ->
+                                    return [(cId, ServerError_ serverError)]
+
+                Login_ Login{ loginPlayer } -> do
+                    modifyClientState serverStateVar cId (setConnectionLoggedInPlayer loginPlayer)
+                    modifyTVar serverStateVar $ insertPlayer cId loginPlayer
+                    return
+                        [ (cId
+                          , PlayerHome_ PlayerHome
+                                { playerHomePlayer = loginPlayer
+                                , activeGames = []
+                                , activeLobbies = []
+                                }
+                          )
+                          -- TODO: populate playerHome & general type for game-state-preview??
+                        ]
+
+                CreateNewGame_ CreateNewGame{createGameName} -> do
+                    let gameLobby = GameLobby
+                            { gameLobbyGameName = createGameName
+                            , gameLobbyConnectedPlayers = maybeToList $ connectionLoggedInPlayer connState
+                            }
+                    gameId <- addGameState serverStateVar $ GameLobby_ gameLobby
+                    modifyClientState serverStateVar cId (setConnectionInGame gameId)
+                    return [(cId, GameLobbyView_ $ getGameLobbyView gameLobby)]
+
+                _ -> return [] -- TODO: error for unexpected
+
+distributeGameViewsForGame
+    :: IsConnection conn
+    => ServerState conn
+    -> GameState -- TODO: gameId instead?
+    -> [(ConnectionId, MessageForClient)]
+distributeGameViewsForGame serverState gameState =
+    map
+        (\(player, cId) -> (cId, viewForGameState gameState player)) .
+        mapToList $
+        serverStatePlayerMap serverState
+
+-- TODO: fix player-map (use players from state)
+
+
+updateGame
+    :: IsConnection conn
+    => TVar (ServerState conn)
+    -> GameId
     -> Action
-    -> STM (ServerState conn, Either GameError GameState)
-updateGameAtomically stateVar action = do
+    -> STM (Either ServerError (Either GameError GameState))
+updateGame stateVar gameId action = do
     state <- readTVar stateVar
 
-    let updateResult = Game.updateState action $ gameState state
+    let gameMay = findGameStateById gameId $ serverStateGameStates state
+    case gameMay of
+        Nothing ->
+            return . Left . NoSuchGame $ gameId
+        Just gameState -> do
+            let updateResult = Game.updateState action gameState
+            case updateResult of
+                Right newGameState ->
+                    updateGameState stateVar gameId newGameState
+                Left _ -> return ()
 
-    newState <- case updateResult of
-        Right newGameState -> do
-            let newState = state { gameState = newGameState }
-            writeTVar stateVar newState
-            return newState
-        Left _ -> return state -- let state stay the same
+            return . Right $ updateResult
 
-    return (newState, updateResult)
-
-sendGameViews :: IsConnection conn => GameState -> ServerState conn -> IO ()
-sendGameViews (GameRunning_ game) ServerState{ stateConnections, playerMap } = do
-    let views = Game.getViews game
-    mapM_
-        (\(player, conn) ->
-            sendSendableMsg conn $
-            viewForPlayer (gameRunningGameConfig game) views player
-        ) .
-        mapMaybe
-            (\(p,cId) -> do -- maybe monad
-                conn <- lookup cId $ connections stateConnections
-                return (p, conn)
-            ) $
-        mapToList playerMap
-sendGameViews (GameOver_ gameOver) ServerState{ stateConnections } =
-    multicastMsg stateConnections $ Game.getGameOverView gameOver
-
-
-initialInfoForClient :: GameState -> Player -> Either GameOverView InitialInfoForGame
-initialInfoForClient (GameRunning_ gameRunning) player =
-    Right InitialInfoForGame
-        { networkForGame = network
-        , initialGameView = initialView
-        , initialPlayer = player
-        , allPlayers = toList $ players config
-        , allEnergies = [Red, Blue, Orange]
-        }
-    where
-        config = gameRunningGameConfig gameRunning
-        initialView = viewForPlayer config (getViews gameRunning) player
-        network = Game.network config
-initialInfoForClient (GameOver_ gameOver) _ = Left $ Game.getGameOverView gameOver
-
-viewForPlayer :: GameConfig -> (RogueGameView, CatcherGameView) -> Player -> GameView
-viewForPlayer config views player =
-    (if player == head (players config) then RogueView . fst else CatcherView . snd) views

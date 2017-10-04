@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     GameNg
+                     , GameState
                      , Network.Protocol
                      , Network.ElmDerive
                      , Config.Network
@@ -23,6 +24,7 @@ library
                      , App.App
                      , App.State
                      , App.ConnectionMgnt
+                     , App.GameMgnt
                      , TH.MonoDerive
                      , TH.TypeFamily
                      , TH.MonoFunctions

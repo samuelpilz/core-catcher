@@ -26,9 +26,9 @@ fakeConnectionsTVar = do
     newTVarIO ClientConnections
         { connections =
             mapFromList
-                [ (0, conn0)
-                , (1, conn1)
-                , (2, conn2)
+                [ (0, (conn0, newConnectionState))
+                , (1, (conn1, newConnectionState))
+                , (2, (conn2, newConnectionState))
                 ]
         , nextId = 3
         }
@@ -38,7 +38,7 @@ test_addConnection :: IO ()
 test_addConnection = do
     conns <- emptyFakeConnectionsTVar
     conn <- newFakeConnection
-    cId <- connectClient conn conns
+    cId <- atomically $ connectClient conns conn
     0 @?= cId
     newConns <- readTVarIO conns
     1 @?= length (connections newConns)
@@ -50,9 +50,9 @@ test_addMultipleConnections = do
     conn1 <- newFakeConnection
     conn2 <- newFakeConnection
     conn3 <- newFakeConnection
-    cId1 <- connectClient conn1 conns
-    cId2 <- connectClient conn2 conns
-    cId3 <- connectClient conn3 conns
+    cId1 <- atomically $ connectClient conns conn1
+    cId2 <- atomically $ connectClient conns conn2
+    cId3 <- atomically $ connectClient conns conn3
 
     0 @?= cId1
     1 @?= cId2
@@ -65,7 +65,7 @@ test_addMultipleConnections = do
 test_disconnectClient :: IO ()
 test_disconnectClient = do
     conns <- fakeConnectionsTVar
-    disconnectClient 1 conns
+    atomically $ disconnectClient conns 1
 
     newConns <- readTVarIO conns
     [0,2] @?= (map fst . mapToList . connections $ newConns)
@@ -92,7 +92,7 @@ prop_multicastAction msg = assertionAsProperty $ do
     connsTVar <- fakeConnectionsTVar
     conns <- readTVarIO connsTVar
     multicastMsg conns msg
-    for_ (otoList $ connections conns) (\conn -> do
+    for_ (otoList $ connections conns) (\(conn,_) -> do
         sentMsg <- readTVarIO $ sendBuffer conn
         Just msg @?= sentMsg)
 

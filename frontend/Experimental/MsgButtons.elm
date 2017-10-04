@@ -28,9 +28,9 @@ loginButton =
     button [ onClick <| DoLogin ] [ text "Login" ]
 
 
-loginSuccessButton : Html Msg
-loginSuccessButton =
-    button [ onClick <| MsgFromServer <| LoginSuccess_ emptyLoginSuccess ] [ text "Login Sucess" ]
+playerHomeButton : Html Msg
+playerHomeButton =
+    button [ onClick <| MsgFromServer <| PlayerHome_ emptyPlayerHome ] [ text "Player Home" ]
 
 
 loginFailButton : Html Msg
@@ -65,12 +65,12 @@ createGameButton =
 
 preGameLobbyButton : Html Msg
 preGameLobbyButton =
-    button [ onClick <| MsgFromServer <| PreGameLobby_ ] [ text "PreGame Lobby" ]
+    button [ onClick <| MsgFromServer <| GameLobbyView_ emptyGameLobbyView ] [ text "PreGame Lobby" ]
 
 
 initialInfoForGameButton : Html Msg
 initialInfoForGameButton =
-    button [ onClick <| MsgFromServer <| InitialInfoForGame_ emptyInitialInfo ] [ text "Initial Game Info" ]
+    button [ onClick <| MsgFromServer <| InitialInfoGameActive_ emptyInitialInfo ] [ text "Initial Game Info" ]
 
 
 actionButton : Html Msg
