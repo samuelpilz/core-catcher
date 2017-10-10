@@ -7,6 +7,9 @@ module ProtocolUtils exposing (..)
 import Protocol exposing (..)
 import Maybe exposing (..)
 import EveryDict exposing (EveryDict)
+import Experimental.ClientState exposing (..)
+import AllDict
+import View.GameViewDisplay exposing (..)
 
 
 playerPositions : GameView -> PlayerPositions
@@ -59,6 +62,7 @@ getEnergyForEnergyAndPlayer player energy playerEnergies =
     <|
         playerEnergies.playerEnergies
 
+
 energyId : Energy -> Int
 energyId e =
     case e of
@@ -70,3 +74,45 @@ energyId e =
 
         Orange ->
             2
+
+
+
+-- TODO: move to own module for state-transformations / utils
+
+
+networkModelFromInitInfo : GameViewDisplayInfo -> Player -> InitialInfoGameActive -> NetworkModel
+networkModelFromInitInfo displayInfo player initInfo =
+    { network = initInfo.networkForGame
+    , player = player
+    , players = initInfo.initialInfoAllPlayers
+    , energies = initInfo.initialInfoAllEnergies
+    , playerPositions = playerPositions initInfo.initialGameView
+    , playerEnergies = playerEnergies initInfo.initialGameView
+    , rogueHistory = rogueHistory initInfo.initialGameView
+    , nextPlayer = Just initInfo.startingPlayer
+    , selectedEnergy = Nothing
+    , gameError = Nothing
+    , gameOver = False
+    , animationTime = 0
+    , activeAnimations = AllDict.empty .playerName
+    , displayInfo = displayInfo
+    }
+
+
+networkModelFromGameOverView : GameViewDisplayInfo -> Player -> GameOverView -> NetworkModel
+networkModelFromGameOverView displayInfo player gameOverView =
+    { network = gameOverView.gameOverViewNetwork
+    , player = player
+    , players = gameOverView.gameOverViewAllPlayers
+    , energies = gameOverView.gameOverViewAllEnergies
+    , playerPositions = gameOverView.gameOverViewPlayerPositions
+    , playerEnergies = gameOverView.gameOverViewPlayerEnergies
+    , rogueHistory = OpenHistory gameOverView.gameOverViewRogueHistory
+    , nextPlayer = Nothing
+    , selectedEnergy = Nothing
+    , gameError = Nothing
+    , gameOver = False
+    , animationTime = 0
+    , activeAnimations = AllDict.empty .playerName
+    , displayInfo = displayInfo
+    }

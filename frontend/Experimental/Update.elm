@@ -8,16 +8,12 @@ import ProtocolEmpty exposing (..)
 import Debug exposing (log)
 import Json.Encode exposing (encode)
 import WebSocket
+import Example.ExampleGameViewDisplay as Example
+import ProtocolUtils exposing (..)
+import View.PlayerAnimation exposing (..)
 
 
-const : a -> b -> a
-const a b =
-    a
-
-
-log2 : String -> a -> b -> b
-log2 s a b =
-    const b (log s a)
+-- TODO: import view in update??
 
 
 update : Msg -> ClientModel -> ( ClientModel, Cmd Msg )
@@ -45,8 +41,14 @@ update msg state =
 
         Reconnected reconnect ->
             case msg of
-                MsgFromServer (PlayerHome_ _) ->
-                    { state | state = LoggedIn_ InPlayerHome reconnect.loggedIn } ! []
+                MsgFromServer (PlayerHome_ playerHome) ->
+                    { state
+                        | state =
+                            LoggedIn_
+                                InPlayerHome
+                                reconnect.loggedIn
+                    }
+                        ! []
 
                 MsgFromServer (LoginFail_ _) ->
                     { state | state = LandingArea_ LoginFailed { playerNameField = "" } } ! []
@@ -66,7 +68,7 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
 
         ( MsgFromServer ServerHello, LoginPending_ { pendingPlayer } ) ->
             -- resend the login message
-            state ! [ sendProtocolMsg <| Login_ { loginPlayer = pendingPlayer } ]
+            state ! [ sendProtocolMsg state.server <| Login_ { loginPlayer = pendingPlayer } ]
 
         ( MsgFromServer ServerHello, _ ) ->
             -- explicitly do nothing
@@ -75,9 +77,32 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
         ( ConnectionLost, _ ) ->
             { state | state = LandingArea_ Landing landingArea } ! []
 
+        ( PlayerNameChange newPlayerName, _ ) ->
+            { state
+                | state =
+                    LandingArea_
+                        landingAreaState
+                        { landingArea | playerNameField = newPlayerName }
+            }
+                ! []
+
         ( DoLogin, LandingConnected ) ->
-            { state | state = LandingArea_ (LoginPending_ { pendingPlayer = emptyPlayer }) landingArea }
-                ! [ sendProtocolMsg <| Login_ emptyLogin ]
+            { state
+                | state =
+                    LandingArea_
+                        (LoginPending_
+                            { pendingPlayer =
+                                { playerName = landingArea.playerNameField }
+                            }
+                        )
+                        landingArea
+            }
+                ! [ sendProtocolMsg state.server <|
+                        Login_
+                            { loginPlayer =
+                                { playerName = landingArea.playerNameField }
+                            }
+                  ]
 
         ( _, LoginPending_ loginPending ) ->
             updateLoginPending msg state landingArea loginPending
@@ -93,7 +118,17 @@ updateLoginPending : Msg -> ClientModel -> LandingArea -> LoginPending -> ( Clie
 updateLoginPending msg state landingArea loginPending =
     case msg of
         MsgFromServer (PlayerHome_ playerHome) ->
-            { state | state = LoggedIn_ InPlayerHome { player = playerHome.playerHomePlayer } }
+            { state
+                | state =
+                    LoggedIn_
+                        InPlayerHome
+                        { player = playerHome.playerHomePlayer
+                        , playerHomeContent =
+                            { activeLobbies = Just <| playerHome.activeLobbies
+                            , activeGames = Just <| playerHome.activeGames
+                            }
+                        }
+            }
                 ! []
 
         MsgFromServer (LoginFail_ _) ->
@@ -112,7 +147,7 @@ updateLoggedIn msg state ( loggedInState, loggedIn ) =
         ( MsgFromServer ServerHello, _ ) ->
             { state | state = Reconnected { loggedIn = loggedIn } }
                 -- resend the login message
-                ! [ sendProtocolMsg <| Login_ { loginPlayer = loggedIn.player } ]
+                ! [ sendProtocolMsg state.server <| Login_ { loginPlayer = loggedIn.player } ]
 
         ( ToHome, _ ) ->
             { state | state = LoggedIn_ InPlayerHome loggedIn } ! []
@@ -122,16 +157,67 @@ updateLoggedIn msg state ( loggedInState, loggedIn ) =
 
         ( DoCreateGame, NewGame ) ->
             { state | state = LoggedIn_ NewGamePending loggedIn }
-                ! [sendProtocolMsg <| CreateNewGame_ emptyCreateNewGame]
+                ! [ sendProtocolMsg state.server <|
+                        -- TODO: make field for game name
+                        CreateNewGame_ { createGameName = loggedIn.player.playerName }
+                  ]
 
         ( MsgFromServer (GameLobbyView_ lobby), NewGamePending ) ->
-            { state | state = LoggedIn_ InPreGameLobby loggedIn } ! []
+            { state
+                | state =
+                    InGame_
+                        (InPreGameLobby_
+                            { players = lobby.gameLobbyViewPlayers
+                            }
+                        )
+                        { player = loggedIn.player
+                        , gameName = lobby.gameLobbyViewGameName
+                        }
+            }
+                ! []
 
         ( MsgFromServer (GameLobbyView_ lobby), JoinGamePending ) ->
-            { state | state = LoggedIn_ InPreGameLobby loggedIn } ! []
+            { state
+                | state =
+                    InGame_
+                        (InPreGameLobby_
+                            { players = lobby.gameLobbyViewPlayers
+                            }
+                        )
+                        { player = loggedIn.player
+                        , gameName = lobby.gameLobbyViewGameName
+                        }
+            }
+                ! []
 
-        ( MsgFromServer (InitialInfoGameActive_ initInfo), InPreGameLobby ) ->
-            { state | state = InGame_ (GameActive_ YourTurn) { player = loggedIn.player } } ! []
+        ( Tick dt, GameOver_ gameOver ) ->
+            let
+                networkModel =
+                    gameOver.networkModel
+            in
+                { state
+                    | state =
+                        LoggedIn_
+                            (GameOver_
+                                { gameOver
+                                    | networkModel =
+                                        { networkModel
+                                            | animationTime = dt + networkModel.animationTime
+                                            , activeAnimations =
+                                                -- filter done animations
+                                                AllDict.filter
+                                                    (\_ a ->
+                                                        a.startTime
+                                                            + networkModel.displayInfo.movementAnimationDuration
+                                                            > networkModel.animationTime
+                                                    )
+                                                    networkModel.activeAnimations
+                                        }
+                                }
+                            )
+                            loggedIn
+                }
+                    ! []
 
         ( _, GameConnectPending ) ->
             updateGameConnectPending msg state ( loggedInState, loggedIn )
@@ -144,10 +230,38 @@ updateGameConnectPending : Msg -> ClientModel -> ( LoggedInState, LoggedIn ) -> 
 updateGameConnectPending msg state ( loggedInState, loggedIn ) =
     case msg of
         MsgFromServer (InitialInfoGameActive_ initInfo) ->
-            { state | state = InGame_ (GameActive_ YourTurn) { player = loggedIn.player } } ! []
+            { state
+                | state =
+                    InGame_
+                        (GameActive_ YourTurn
+                            { networkModel =
+                                networkModelFromInitInfo
+                                    Example.displayInfo
+                                    loggedIn.player
+                                    initInfo
+                            }
+                        )
+                        { player = loggedIn.player
+                        , gameName = initInfo.initialInfoGameName
+                        }
+            }
+                ! []
 
-        MsgFromServer (GameOverView_ gameOver) ->
-            { state | state = LoggedIn_ GameOver { player = loggedIn.player } } ! []
+        MsgFromServer (GameOverView_ gameOverView) ->
+            { state
+                | state =
+                    LoggedIn_
+                        (GameOver_
+                            { networkModel =
+                                networkModelFromGameOverView
+                                    Example.displayInfo
+                                    loggedIn.player
+                                    gameOverView
+                            }
+                        )
+                        loggedIn
+            }
+                ! []
 
         _ ->
             state ! []
@@ -159,11 +273,29 @@ updatePlayerHome msg state ( loggedInState, loggedIn ) =
         DoOpenNewGame ->
             { state | state = LoggedIn_ NewGame loggedIn } ! []
 
-        DoJoinGame ->
-            { state | state = LoggedIn_ JoinGamePending loggedIn } ! []
+        DoJoinGame gameId ->
+            { state | state = LoggedIn_ JoinGamePending loggedIn }
+                ! [ sendProtocolMsg state.server <| JoinGame_ { joinGameId = gameId } ]
 
         DoGameConnect ->
             { state | state = LoggedIn_ GameConnectPending loggedIn } ! []
+
+        DoPlayerHomeRefresh ->
+            state ! [ sendProtocolMsg state.server PlayerHomeRefresh ]
+
+        MsgFromServer (PlayerHome_ playerHome) ->
+            { state
+                | state =
+                    LoggedIn_
+                        InPlayerHome
+                        { loggedIn
+                            | playerHomeContent =
+                                { activeLobbies = Just <| playerHome.activeLobbies
+                                , activeGames = Just <| playerHome.activeGames
+                                }
+                        }
+            }
+                ! []
 
         _ ->
             state ! []
@@ -172,19 +304,150 @@ updatePlayerHome msg state ( loggedInState, loggedIn ) =
 updateInGame : Msg -> ClientModel -> ( InGameState, InGame ) -> ( ClientModel, Cmd Msg )
 updateInGame msg state ( inGameState, inGame ) =
     case ( msg, inGameState ) of
+        ( MsgFromServer (GameLobbyView_ lobbyView), InPreGameLobby_ lobby ) ->
+            { state
+                | state =
+                    InGame_
+                        (InPreGameLobby_
+                            { lobby
+                                | players = lobbyView.gameLobbyViewPlayers
+                            }
+                        )
+                        inGame
+            }
+                ! []
+
         ( ConnectionLost, _ ) ->
             { state | state = InGame_ GameDisconnected inGame } ! []
 
-        ( GameAction_ _, GameActive_ YourTurn ) ->
-            { state | state = InGame_ (GameActive_ ActionPending) inGame } ! []
+        ( MsgFromServer (InitialInfoGameActive_ initInfo), InPreGameLobby_ _ ) ->
+            { state
+                | state =
+                    InGame_
+                        (GameActive_ YourTurn
+                            { networkModel =
+                                networkModelFromInitInfo
+                                    Example.displayInfo
+                                    inGame.player
+                                    initInfo
+                            }
+                        )
+                        inGame
+            }
+                ! []
 
-        ( MsgFromServer (GameView_ _), GameActive_ _ ) ->
-            { state | state = InGame_ (GameActive_ OthersTurn) inGame } ! []
+        ( DoStartGame, InPreGameLobby_ _ ) ->
+            state ! [ sendProtocolMsg state.server StartGame ]
 
-        ( MsgFromServer (GameOverView_ _), GameActive_ _ ) ->
-            { state | state = LoggedIn_ GameOver { player = inGame.player } } ! []
+        -- TODO: helper functions that allow for more actions?
+        ( GameAction_ (Movement targetNode), GameActive_ YourTurn gameActive ) ->
+            case gameActive.networkModel.selectedEnergy of
+                Nothing ->
+                    state ! []
 
-        ( MsgFromServer ServerHello, GameActive_ _ ) ->
+                Just energy ->
+                    { state | state = InGame_ (GameActive_ ActionPending gameActive) inGame }
+                        ! [ sendProtocolMsg state.server <|
+                                Action_
+                                    { actionPlayer = inGame.player
+                                    , actionEnergy = energy
+                                    , actionNode = targetNode
+                                    }
+                          ]
+
+        ( SelectEnergy energy, GameActive_ gameActiveState gameActive ) ->
+            let
+                networkModel =
+                    gameActive.networkModel
+            in
+                { state
+                    | state =
+                        InGame_
+                            (GameActive_ gameActiveState
+                                { gameActive
+                                    | networkModel =
+                                        { networkModel | selectedEnergy = Just energy }
+                                }
+                            )
+                            inGame
+                }
+                    ! []
+
+        ( MsgFromServer (GameView_ gameView), GameActive_ _ gameActive ) ->
+            let
+                networkModel =
+                    gameActive.networkModel
+
+                newActiveState =
+                    if nextPlayer gameView == inGame.player then
+                        YourTurn
+                    else
+                        OthersTurn
+            in
+                { state
+                    | state =
+                        InGame_
+                            (GameActive_ newActiveState
+                                { gameActive
+                                    | networkModel =
+                                        { networkModel
+                                            | playerPositions = playerPositions gameView
+                                            , playerEnergies = playerEnergies gameView
+                                            , rogueHistory = rogueHistory gameView
+                                            , nextPlayer = Just <| nextPlayer gameView
+                                            , activeAnimations =
+                                                updateActiveAnimations networkModel <|
+                                                    playerPositions gameView
+                                        }
+                                }
+                            )
+                            inGame
+                }
+                    ! []
+
+        ( Tick dt, GameActive_ gameActiveState gameActive ) ->
+            let
+                networkModel =
+                    gameActive.networkModel
+            in
+                { state
+                    | state =
+                        InGame_
+                            (GameActive_ gameActiveState
+                                { gameActive
+                                    | networkModel =
+                                        { networkModel
+                                            | animationTime = dt + networkModel.animationTime
+                                            , activeAnimations =
+                                                -- filter done animations
+                                                AllDict.filter
+                                                    (\_ a ->
+                                                        a.startTime
+                                                            + networkModel.displayInfo.movementAnimationDuration
+                                                            > networkModel.animationTime
+                                                    )
+                                                    networkModel.activeAnimations
+                                        }
+                                }
+                            )
+                            inGame
+                }
+                    ! []
+
+        ( MsgFromServer (ServerError_ (GameError_ err)), GameActive_ ActionPending gameActive ) ->
+            { state | state = InGame_ (GameActive_ YourTurn gameActive) inGame } ! []
+
+        ( MsgFromServer (GameOverView_ _), GameActive_ _ gameActive ) ->
+            { state
+                | state =
+                    LoggedIn_ (GameOver_ { networkModel = gameActive.networkModel })
+                        { player = inGame.player
+                        , playerHomeContent = emptyPlayerHomeContent
+                        }
+            }
+                ! []
+
+        ( MsgFromServer ServerHello, GameActive_ _ _ ) ->
             { state | state = InGame_ GameServerReconnected inGame } ! []
 
         ( MsgFromServer ServerHello, GameDisconnected ) ->
@@ -194,14 +457,52 @@ updateInGame msg state ( inGameState, inGame ) =
             { state | state = LandingArea_ LoginFailed { playerNameField = "" } } ! []
 
         ( MsgFromServer (InitialInfoGameActive_ initInfo), GameServerReconnected ) ->
-            { state | state = InGame_ (GameActive_ YourTurn) inGame } ! []
+            { state
+                | state =
+                    InGame_
+                        (GameActive_ YourTurn
+                            { networkModel =
+                                networkModelFromInitInfo
+                                    Example.displayInfo
+                                    inGame.player
+                                    initInfo
+                            }
+                        )
+                        inGame
+            }
+                ! []
 
-        ( MsgFromServer (GameOverView_ _), GameServerReconnected ) ->
-            { state | state = LoggedIn_ GameOver { player = inGame.player } } ! []
-
+        -- TODO: fix this. upper: copied code; lower: old code. Missing: networkModel in reconnected...
+        --        ( MsgFromServer (GameOverView_ _), GameServerReconnected ) ->
+        --            { state
+        --                | state =
+        --                    LoggedIn_ (GameOver_ { networkModel = gameActive.networkModel })
+        --                        { player = inGame.player
+        --                        , playerHomeContent = emptyPlayerHomeContent
+        --                        }
+        --            }
+        --                ! []
+        --        ( MsgFromServer (GameOverView_ _), GameServerReconnected ) ->
+        --            { state
+        --                | state =
+        --                    LoggedIn_
+        --                        (GameOver_
+        --                            { player = inGame.player
+        --                            , playerHomeContent = emptyPlayerHomeContent
+        --                            }
+        --                        )
+        --            }
+        --                ! []
         ( _, _ ) ->
-            -- TODO: handle internal error
+            -- TODO: handle internal error?
             state ! []
+
+
+emptyPlayerHomeContent : PlayerHomeContent
+emptyPlayerHomeContent =
+    { activeLobbies = Nothing
+    , activeGames = Nothing
+    }
 
 
 
@@ -213,20 +514,30 @@ wsUrl server =
     "ws://" ++ server ++ ":7999"
 
 
-sendProtocolMsg : MessageForServer -> Cmd a
-sendProtocolMsg msg =
-    WebSocket.send (wsUrl "localhost")
+sendProtocolMsg : String -> MessageForServer -> Cmd a
+sendProtocolMsg server msg =
+    WebSocket.send (wsUrl server)
         << encode 0
         << jsonEncMessageForServer
     <|
         log "ws-send" msg
 
 
-sendProtocolMsgMay : Maybe MessageForServer -> Cmd a
-sendProtocolMsgMay msgMay =
-    case msgMay of
-        Nothing ->
-            Cmd.none
+--sendProtocolMsgMay : Maybe MessageForServer -> Cmd a
+--sendProtocolMsgMay msgMay =
+--    case msgMay of
+--        Nothing ->
+--            Cmd.none
+--
+--        Just msg ->
+--            sendProtocolMsg msg
 
-        Just msg ->
-            sendProtocolMsg msg
+
+const : a -> b -> a
+const a b =
+    a
+
+
+log2 : String -> a -> b -> b
+log2 s a b =
+    const b (log s a)

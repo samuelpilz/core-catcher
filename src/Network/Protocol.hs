@@ -44,6 +44,10 @@ newtype Edge =
 data Energy = Red | Blue | Orange
     deriving (Show, Read, Eq, Ord, Generic, Enum, Bounded)
 
+-- TODO: implement Num for that
+newtype GameId = GameId { gameId :: Int }
+    deriving (Show, Read, Eq, Ord, Generic)
+
 {- |An energy-map keeps track how much energy per energy a player has left.
 -}
 newtype EnergyMap =
@@ -61,6 +65,7 @@ data GameError
     | NodeBlocked Player
     | NotEnoughEnergy
     | GameIsOver
+    | GameNotStarted
     deriving (Show, Read, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
@@ -152,6 +157,9 @@ data GameOverView =
         , gameOverViewRogueHistory    :: OpenRogueHistory
         , gameOverViewWinningPlayer   :: Player
         , gameOverViewNetwork         :: Network
+        , gameOverViewAllPlayers      :: [Player]
+        , gameOverViewAllEnergies     :: [Energy]
+        , gameOverViewGameName        :: Text
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -214,11 +222,12 @@ If the client wants to log in when the game is over, the client gets sent a Game
 -}
 data InitialInfoGameActive =
     InitialInfoGameActive
-        { networkForGame  :: Network
-        , initialGameView :: GameView
-        , initialPlayer   :: Player
-        , allPlayers      :: [Player]
-        , allEnergies     :: [Energy]
+        { networkForGame         :: Network
+        , initialGameView        :: GameView
+        , startingPlayer         :: Player
+        , initialInfoAllPlayers  :: [Player]
+        , initialInfoAllEnergies :: [Energy]
+        , initialInfoGameName    :: Text
         }
         deriving (Show, Read, Eq, Generic)
 
@@ -243,18 +252,27 @@ data GameLobbyView =
         }
     deriving (Show, Read, Eq, Generic)
 
-data PlayerHome =
-    PlayerHome
-        { playerHomePlayer :: Player
-        , activeGames      :: [GamePreviewInfo]
-        , activeLobbies    :: [GameLobbyView]
+data GameLobbyPreview =
+    GameLobbyPreview
+        { gameLobbyPreviewGameId   :: GameId
+        , gameLobbyPreviewGameName :: Text
+        , gameLobbyPreviewPlayers  :: [Player]
         }
     deriving (Show, Read, Eq, Generic)
 
-data GamePreviewInfo =
-    GamePreviewInfo
-        { gamePreviewInfoGameName :: Text
-        , gamePreviewInfoPlayers  :: [Player]
+data GamePreview =
+    GamePreview
+        { gamePreviewGameId   :: GameId
+        , gamePreviewGameName :: Text
+        , gamePreviewPlayers  :: [Player]
+        }
+    deriving (Show, Read, Eq, Generic)
+
+data PlayerHome =
+    PlayerHome
+        { playerHomePlayer :: Player
+        , activeGames      :: [GamePreview]
+        , activeLobbies    :: [GameLobbyPreview]
         }
     deriving (Show, Read, Eq, Generic)
 
@@ -264,11 +282,20 @@ newtype CreateNewGame =
         }
     deriving (Show, Read, Eq, Generic)
 
+newtype JoinGame =
+    JoinGame
+        { joinGameId :: GameId
+        }
+    deriving (Show, Read, Eq, Generic)
+
 data ServerError
-    = NoSuchGame Int
+    = NoSuchGame GameId
     | NotInGame Player
     | ClientMsgError
     | NotLoggedIn
+    | GameAlreadyStarted
+    | NoSuchConnection
+    | GameError_ GameError
     deriving (Show, Read, Eq, Generic)
 
 
@@ -277,6 +304,9 @@ data MessageForServer
     | CreateNewGame_ CreateNewGame
     | Action_ Action
     | StartGame
+    | JoinGame_ JoinGame
+    | PlayerHomeRefresh
+    | Logout
     deriving (Show, Read, Eq, Generic)
 
 data MessageForClient
@@ -285,7 +315,6 @@ data MessageForClient
     | PlayerHome_ PlayerHome
     | InitialInfoGameActive_ InitialInfoGameActive
     | GameView_ GameView
-    | GameError_ GameError
     | GameOverView_ GameOverView
     | GameLobbyView_ GameLobbyView
     | ServerError_ ServerError
@@ -299,7 +328,7 @@ class SendableToClient msg where
 instance SendableToClient MessageForClient where
     wrapSendable = id
 instance SendableToClient GameError where
-    wrapSendable = GameError_
+    wrapSendable = wrapSendable . GameError_
 instance SendableToClient GameView where
     wrapSendable = GameView_
 instance SendableToClient GameOverView where
@@ -329,12 +358,17 @@ instance ToJSONKey Player where
 
 instance ToJSONKey Energy where
 
+
 instance Arbitrary Text where
     arbitrary = pack <$> arbitrary
 
 instance Arbitrary Player where
     arbitrary =
         Player <$> arbitrary
+
+instance Arbitrary GameId where
+    arbitrary =
+        GameId <$> arbitrary
 
 instance Arbitrary Node  where
     arbitrary =
@@ -400,7 +434,15 @@ instance Arbitrary RogueGameView where
 
 instance Arbitrary GameOverView where
     arbitrary =
-        GameOverView <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        GameOverView <$>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary <*>
+            arbitrary
 
 instance Arbitrary Network where
     arbitrary =
@@ -421,18 +463,20 @@ instance Arbitrary GameView where
 
 
 instance Arbitrary InitialInfoGameActive where
-    arbitrary = InitialInfoGameActive <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    arbitrary = InitialInfoGameActive <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 
 instance Arbitrary GameLobbyView where
     arbitrary = GameLobbyView <$> arbitrary <*> arbitrary
 
+instance Arbitrary GameLobbyPreview where
+    arbitrary = GameLobbyPreview <$> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary PlayerHome where
     arbitrary = PlayerHome <$> arbitrary <*> arbitrary <*> arbitrary
 
-instance Arbitrary GamePreviewInfo where
-    arbitrary = GamePreviewInfo <$> arbitrary <*> arbitrary
+instance Arbitrary GamePreview where
+    arbitrary = GamePreview <$> arbitrary <*> arbitrary <*> arbitrary
 
 -- TODO: update arbitraries
 instance Arbitrary MessageForServer where
@@ -445,7 +489,6 @@ instance Arbitrary MessageForClient where
             [ return ServerHello
             , InitialInfoGameActive_ <$> arbitrary
             , GameView_ <$> arbitrary
-            , GameError_ <$> arbitrary
             , GameOverView_ <$> arbitrary
             , GameLobbyView_ <$> arbitrary
             , PlayerHome_ <$> arbitrary
@@ -472,14 +515,17 @@ deriveBoth Elm.Derive.defaultOptions ''RogueHistory
 deriveBoth Elm.Derive.defaultOptions ''GameOverView
 deriveBoth Elm.Derive.defaultOptions ''InitialInfoGameActive
 deriveBoth Elm.Derive.defaultOptions ''Login
+deriveBoth Elm.Derive.defaultOptions ''JoinGame
 deriveBoth Elm.Derive.defaultOptions ''LoginFail
 deriveBoth Elm.Derive.defaultOptions ''GameLobbyView
-deriveBoth Elm.Derive.defaultOptions ''GamePreviewInfo
+deriveBoth Elm.Derive.defaultOptions ''GameLobbyPreview
+deriveBoth Elm.Derive.defaultOptions ''GamePreview
 deriveBoth Elm.Derive.defaultOptions ''PlayerHome
 deriveBoth Elm.Derive.defaultOptions ''CreateNewGame
 deriveBoth Elm.Derive.defaultOptions ''MessageForServer
 deriveBoth Elm.Derive.defaultOptions ''MessageForClient
 deriveBoth Elm.Derive.defaultOptions ''ServerError
+deriveBoth Elm.Derive.defaultOptions ''GameId
 
 -- IsMap implementation for PlayerPositions
 Derive.deriveMap ''PlayerPositions

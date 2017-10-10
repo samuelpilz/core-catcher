@@ -236,6 +236,23 @@ jsonEncPlayer  val =
 
 
 
+type alias GameId  =
+   { gameId: Int
+   }
+
+jsonDecGameId : Json.Decode.Decoder ( GameId )
+jsonDecGameId =
+   ("gameId" := Json.Decode.int) >>= \pgameId ->
+   Json.Decode.succeed {gameId = pgameId}
+
+jsonEncGameId : GameId -> Value
+jsonEncGameId  val =
+   Json.Encode.object
+   [ ("gameId", Json.Encode.int val.gameId)
+   ]
+
+
+
 type alias Edge  =
    { edge: (Node, Node)
    }
@@ -352,6 +369,7 @@ type GameError  =
     | NodeBlocked Player
     | NotEnoughEnergy 
     | GameIsOver 
+    | GameNotStarted 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
 jsonDecGameError =
@@ -363,6 +381,7 @@ jsonDecGameError =
             , ("NodeBlocked", Json.Decode.map NodeBlocked (jsonDecPlayer))
             , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
             , ("GameIsOver", Json.Decode.succeed GameIsOver)
+            , ("GameNotStarted", Json.Decode.succeed GameNotStarted)
             ]
     in  decodeSumObjectWithSingleField  "GameError" jsonDecDictGameError
 
@@ -376,6 +395,7 @@ jsonEncGameError  val =
                     NodeBlocked v1 -> ("NodeBlocked", encodeValue (jsonEncPlayer v1))
                     NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
                     GameIsOver  -> ("GameIsOver", encodeValue (Json.Encode.list []))
+                    GameNotStarted  -> ("GameNotStarted", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 
@@ -386,6 +406,9 @@ type alias GameOverView  =
    , gameOverViewRogueHistory: OpenRogueHistory
    , gameOverViewWinningPlayer: Player
    , gameOverViewNetwork: Network
+   , gameOverViewAllPlayers: (List Player)
+   , gameOverViewAllEnergies: (List Energy)
+   , gameOverViewGameName: String
    }
 
 jsonDecGameOverView : Json.Decode.Decoder ( GameOverView )
@@ -395,7 +418,10 @@ jsonDecGameOverView =
    ("gameOverViewRogueHistory" := jsonDecOpenRogueHistory) >>= \pgameOverViewRogueHistory ->
    ("gameOverViewWinningPlayer" := jsonDecPlayer) >>= \pgameOverViewWinningPlayer ->
    ("gameOverViewNetwork" := jsonDecNetwork) >>= \pgameOverViewNetwork ->
-   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer, gameOverViewNetwork = pgameOverViewNetwork}
+   ("gameOverViewAllPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pgameOverViewAllPlayers ->
+   ("gameOverViewAllEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pgameOverViewAllEnergies ->
+   ("gameOverViewGameName" := Json.Decode.string) >>= \pgameOverViewGameName ->
+   Json.Decode.succeed {gameOverViewPlayerPositions = pgameOverViewPlayerPositions, gameOverViewPlayerEnergies = pgameOverViewPlayerEnergies, gameOverViewRogueHistory = pgameOverViewRogueHistory, gameOverViewWinningPlayer = pgameOverViewWinningPlayer, gameOverViewNetwork = pgameOverViewNetwork, gameOverViewAllPlayers = pgameOverViewAllPlayers, gameOverViewAllEnergies = pgameOverViewAllEnergies, gameOverViewGameName = pgameOverViewGameName}
 
 jsonEncGameOverView : GameOverView -> Value
 jsonEncGameOverView  val =
@@ -405,6 +431,9 @@ jsonEncGameOverView  val =
    , ("gameOverViewRogueHistory", jsonEncOpenRogueHistory val.gameOverViewRogueHistory)
    , ("gameOverViewWinningPlayer", jsonEncPlayer val.gameOverViewWinningPlayer)
    , ("gameOverViewNetwork", jsonEncNetwork val.gameOverViewNetwork)
+   , ("gameOverViewAllPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.gameOverViewAllPlayers)
+   , ("gameOverViewAllEnergies", (Json.Encode.list << List.map jsonEncEnergy) val.gameOverViewAllEnergies)
+   , ("gameOverViewGameName", Json.Encode.string val.gameOverViewGameName)
    ]
 
 
@@ -412,28 +441,31 @@ jsonEncGameOverView  val =
 type alias InitialInfoGameActive  =
    { networkForGame: Network
    , initialGameView: GameView
-   , initialPlayer: Player
-   , allPlayers: (List Player)
-   , allEnergies: (List Energy)
+   , startingPlayer: Player
+   , initialInfoAllPlayers: (List Player)
+   , initialInfoAllEnergies: (List Energy)
+   , initialInfoGameName: String
    }
 
 jsonDecInitialInfoGameActive : Json.Decode.Decoder ( InitialInfoGameActive )
 jsonDecInitialInfoGameActive =
    ("networkForGame" := jsonDecNetwork) >>= \pnetworkForGame ->
    ("initialGameView" := jsonDecGameView) >>= \pinitialGameView ->
-   ("initialPlayer" := jsonDecPlayer) >>= \pinitialPlayer ->
-   ("allPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pallPlayers ->
-   ("allEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pallEnergies ->
-   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, initialPlayer = pinitialPlayer, allPlayers = pallPlayers, allEnergies = pallEnergies}
+   ("startingPlayer" := jsonDecPlayer) >>= \pstartingPlayer ->
+   ("initialInfoAllPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pinitialInfoAllPlayers ->
+   ("initialInfoAllEnergies" := Json.Decode.list (jsonDecEnergy)) >>= \pinitialInfoAllEnergies ->
+   ("initialInfoGameName" := Json.Decode.string) >>= \pinitialInfoGameName ->
+   Json.Decode.succeed {networkForGame = pnetworkForGame, initialGameView = pinitialGameView, startingPlayer = pstartingPlayer, initialInfoAllPlayers = pinitialInfoAllPlayers, initialInfoAllEnergies = pinitialInfoAllEnergies, initialInfoGameName = pinitialInfoGameName}
 
 jsonEncInitialInfoGameActive : InitialInfoGameActive -> Value
 jsonEncInitialInfoGameActive  val =
    Json.Encode.object
    [ ("networkForGame", jsonEncNetwork val.networkForGame)
    , ("initialGameView", jsonEncGameView val.initialGameView)
-   , ("initialPlayer", jsonEncPlayer val.initialPlayer)
-   , ("allPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.allPlayers)
-   , ("allEnergies", (Json.Encode.list << List.map jsonEncEnergy) val.allEnergies)
+   , ("startingPlayer", jsonEncPlayer val.startingPlayer)
+   , ("initialInfoAllPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.initialInfoAllPlayers)
+   , ("initialInfoAllEnergies", (Json.Encode.list << List.map jsonEncEnergy) val.initialInfoAllEnergies)
+   , ("initialInfoGameName", Json.Encode.string val.initialInfoGameName)
    ]
 
 
@@ -443,6 +475,8 @@ type MessageForServer  =
     | CreateNewGame_ CreateNewGame
     | Action_ Action
     | StartGame 
+    | JoinGame_ JoinGame
+    | PlayerHomeRefresh 
 
 jsonDecMessageForServer : Json.Decode.Decoder ( MessageForServer )
 jsonDecMessageForServer =
@@ -451,6 +485,8 @@ jsonDecMessageForServer =
             , ("CreateNewGame_", Json.Decode.map CreateNewGame_ (jsonDecCreateNewGame))
             , ("Action_", Json.Decode.map Action_ (jsonDecAction))
             , ("StartGame", Json.Decode.succeed StartGame)
+            , ("JoinGame_", Json.Decode.map JoinGame_ (jsonDecJoinGame))
+            , ("PlayerHomeRefresh", Json.Decode.succeed PlayerHomeRefresh)
             ]
     in  decodeSumObjectWithSingleField  "MessageForServer" jsonDecDictMessageForServer
 
@@ -461,6 +497,8 @@ jsonEncMessageForServer  val =
                     CreateNewGame_ v1 -> ("CreateNewGame_", encodeValue (jsonEncCreateNewGame v1))
                     Action_ v1 -> ("Action_", encodeValue (jsonEncAction v1))
                     StartGame  -> ("StartGame", encodeValue (Json.Encode.list []))
+                    JoinGame_ v1 -> ("JoinGame_", encodeValue (jsonEncJoinGame v1))
+                    PlayerHomeRefresh  -> ("PlayerHomeRefresh", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 
@@ -471,7 +509,6 @@ type MessageForClient  =
     | PlayerHome_ PlayerHome
     | InitialInfoGameActive_ InitialInfoGameActive
     | GameView_ GameView
-    | GameError_ GameError
     | GameOverView_ GameOverView
     | GameLobbyView_ GameLobbyView
     | ServerError_ ServerError
@@ -484,7 +521,6 @@ jsonDecMessageForClient =
             , ("PlayerHome_", Json.Decode.map PlayerHome_ (jsonDecPlayerHome))
             , ("InitialInfoGameActive_", Json.Decode.map InitialInfoGameActive_ (jsonDecInitialInfoGameActive))
             , ("GameView_", Json.Decode.map GameView_ (jsonDecGameView))
-            , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             , ("GameOverView_", Json.Decode.map GameOverView_ (jsonDecGameOverView))
             , ("GameLobbyView_", Json.Decode.map GameLobbyView_ (jsonDecGameLobbyView))
             , ("ServerError_", Json.Decode.map ServerError_ (jsonDecServerError))
@@ -499,7 +535,6 @@ jsonEncMessageForClient  val =
                     PlayerHome_ v1 -> ("PlayerHome_", encodeValue (jsonEncPlayerHome v1))
                     InitialInfoGameActive_ v1 -> ("InitialInfoGameActive_", encodeValue (jsonEncInitialInfoGameActive v1))
                     GameView_ v1 -> ("GameView_", encodeValue (jsonEncGameView v1))
-                    GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
                     GameOverView_ v1 -> ("GameOverView_", encodeValue (jsonEncGameOverView v1))
                     GameLobbyView_ v1 -> ("GameLobbyView_", encodeValue (jsonEncGameLobbyView v1))
                     ServerError_ v1 -> ("ServerError_", encodeValue (jsonEncServerError v1))
@@ -524,6 +559,23 @@ jsonEncLogin  val =
 
 
 
+type alias JoinGame  =
+   { joinGameId: GameId
+   }
+
+jsonDecJoinGame : Json.Decode.Decoder ( JoinGame )
+jsonDecJoinGame =
+   ("joinGameId" := jsonDecGameId) >>= \pjoinGameId ->
+   Json.Decode.succeed {joinGameId = pjoinGameId}
+
+jsonEncJoinGame : JoinGame -> Value
+jsonEncJoinGame  val =
+   Json.Encode.object
+   [ ("joinGameId", jsonEncGameId val.joinGameId)
+   ]
+
+
+
 type alias LoginFail  =
    { loginFailPlayer: Player
    }
@@ -543,23 +595,23 @@ jsonEncLoginFail  val =
 
 type alias PlayerHome  =
    { playerHomePlayer: Player
-   , activeGames: (List GamePreviewInfo)
-   , activeLobbies: (List GameLobbyView)
+   , activeGames: (List GamePreview)
+   , activeLobbies: (List GameLobbyPreview)
    }
 
 jsonDecPlayerHome : Json.Decode.Decoder ( PlayerHome )
 jsonDecPlayerHome =
    ("playerHomePlayer" := jsonDecPlayer) >>= \pplayerHomePlayer ->
-   ("activeGames" := Json.Decode.list (jsonDecGamePreviewInfo)) >>= \pactiveGames ->
-   ("activeLobbies" := Json.Decode.list (jsonDecGameLobbyView)) >>= \pactiveLobbies ->
+   ("activeGames" := Json.Decode.list (jsonDecGamePreview)) >>= \pactiveGames ->
+   ("activeLobbies" := Json.Decode.list (jsonDecGameLobbyPreview)) >>= \pactiveLobbies ->
    Json.Decode.succeed {playerHomePlayer = pplayerHomePlayer, activeGames = pactiveGames, activeLobbies = pactiveLobbies}
 
 jsonEncPlayerHome : PlayerHome -> Value
 jsonEncPlayerHome  val =
    Json.Encode.object
    [ ("playerHomePlayer", jsonEncPlayer val.playerHomePlayer)
-   , ("activeGames", (Json.Encode.list << List.map jsonEncGamePreviewInfo) val.activeGames)
-   , ("activeLobbies", (Json.Encode.list << List.map jsonEncGameLobbyView) val.activeLobbies)
+   , ("activeGames", (Json.Encode.list << List.map jsonEncGamePreview) val.activeGames)
+   , ("activeLobbies", (Json.Encode.list << List.map jsonEncGameLobbyPreview) val.activeLobbies)
    ]
 
 
@@ -601,48 +653,83 @@ jsonEncGameLobbyView  val =
 
 
 
-type alias GamePreviewInfo  =
-   { gamePreviewInfoGameName: String
-   , gamePreviewInfoPlayers: (List Player)
+type alias GameLobbyPreview  =
+   { gameLobbyPreviewGameId: GameId
+   , gameLobbyPreviewGameName: String
+   , gameLobbyPreviewPlayers: (List Player)
    }
 
-jsonDecGamePreviewInfo : Json.Decode.Decoder ( GamePreviewInfo )
-jsonDecGamePreviewInfo =
-   ("gamePreviewInfoGameName" := Json.Decode.string) >>= \pgamePreviewInfoGameName ->
-   ("gamePreviewInfoPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pgamePreviewInfoPlayers ->
-   Json.Decode.succeed {gamePreviewInfoGameName = pgamePreviewInfoGameName, gamePreviewInfoPlayers = pgamePreviewInfoPlayers}
+jsonDecGameLobbyPreview : Json.Decode.Decoder ( GameLobbyPreview )
+jsonDecGameLobbyPreview =
+   ("gameLobbyPreviewGameId" := jsonDecGameId) >>= \pgameLobbyPreviewGameId ->
+   ("gameLobbyPreviewGameName" := Json.Decode.string) >>= \pgameLobbyPreviewGameName ->
+   ("gameLobbyPreviewPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pgameLobbyPreviewPlayers ->
+   Json.Decode.succeed {gameLobbyPreviewGameId = pgameLobbyPreviewGameId, gameLobbyPreviewGameName = pgameLobbyPreviewGameName, gameLobbyPreviewPlayers = pgameLobbyPreviewPlayers}
 
-jsonEncGamePreviewInfo : GamePreviewInfo -> Value
-jsonEncGamePreviewInfo  val =
+jsonEncGameLobbyPreview : GameLobbyPreview -> Value
+jsonEncGameLobbyPreview  val =
    Json.Encode.object
-   [ ("gamePreviewInfoGameName", Json.Encode.string val.gamePreviewInfoGameName)
-   , ("gamePreviewInfoPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.gamePreviewInfoPlayers)
+   [ ("gameLobbyPreviewGameId", jsonEncGameId val.gameLobbyPreviewGameId)
+   , ("gameLobbyPreviewGameName", Json.Encode.string val.gameLobbyPreviewGameName)
+   , ("gameLobbyPreviewPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.gameLobbyPreviewPlayers)
+   ]
+
+
+
+type alias GamePreview  =
+   { gamePreviewGameId: GameId
+   , gamePreviewGameName: String
+   , gamePreviewPlayers: (List Player)
+   }
+
+jsonDecGamePreview : Json.Decode.Decoder ( GamePreview )
+jsonDecGamePreview =
+   ("gamePreviewGameId" := jsonDecGameId) >>= \pgamePreviewGameId ->
+   ("gamePreviewGameName" := Json.Decode.string) >>= \pgamePreviewGameName ->
+   ("gamePreviewPlayers" := Json.Decode.list (jsonDecPlayer)) >>= \pgamePreviewPlayers ->
+   Json.Decode.succeed {gamePreviewGameId = pgamePreviewGameId, gamePreviewGameName = pgamePreviewGameName, gamePreviewPlayers = pgamePreviewPlayers}
+
+jsonEncGamePreview : GamePreview -> Value
+jsonEncGamePreview  val =
+   Json.Encode.object
+   [ ("gamePreviewGameId", jsonEncGameId val.gamePreviewGameId)
+   , ("gamePreviewGameName", Json.Encode.string val.gamePreviewGameName)
+   , ("gamePreviewPlayers", (Json.Encode.list << List.map jsonEncPlayer) val.gamePreviewPlayers)
    ]
 
 
 
 type ServerError  =
-    NoSuchGame Int
+    NoSuchGame GameId
     | NotInGame Player
     | ClientMsgError 
     | NotLoggedIn 
+    | GameAlreadyStarted 
+    | NoSuchConnection 
+    | GameError_ GameError
 
 jsonDecServerError : Json.Decode.Decoder ( ServerError )
 jsonDecServerError =
     let jsonDecDictServerError = Dict.fromList
-            [ ("NoSuchGame", Json.Decode.map NoSuchGame (Json.Decode.int))
+            [ ("NoSuchGame", Json.Decode.map NoSuchGame (jsonDecGameId))
             , ("NotInGame", Json.Decode.map NotInGame (jsonDecPlayer))
             , ("ClientMsgError", Json.Decode.succeed ClientMsgError)
             , ("NotLoggedIn", Json.Decode.succeed NotLoggedIn)
+            , ("GameAlreadyStarted", Json.Decode.succeed GameAlreadyStarted)
+            , ("NoSuchConnection", Json.Decode.succeed NoSuchConnection)
+            , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
             ]
     in  decodeSumObjectWithSingleField  "ServerError" jsonDecDictServerError
 
 jsonEncServerError : ServerError -> Value
 jsonEncServerError  val =
     let keyval v = case v of
-                    NoSuchGame v1 -> ("NoSuchGame", encodeValue (Json.Encode.int v1))
+                    NoSuchGame v1 -> ("NoSuchGame", encodeValue (jsonEncGameId v1))
                     NotInGame v1 -> ("NotInGame", encodeValue (jsonEncPlayer v1))
                     ClientMsgError  -> ("ClientMsgError", encodeValue (Json.Encode.list []))
                     NotLoggedIn  -> ("NotLoggedIn", encodeValue (Json.Encode.list []))
+                    GameAlreadyStarted  -> ("GameAlreadyStarted", encodeValue (Json.Encode.list []))
+                    NoSuchConnection  -> ("NoSuchConnection", encodeValue (Json.Encode.list []))
+                    GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
     in encodeSumObjectWithSingleField keyval val
 

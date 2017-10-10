@@ -62,9 +62,10 @@ emptyInitialInfo : InitialInfoGameActive
 emptyInitialInfo =
     { networkForGame = emptyNetwork
     , initialGameView = emptyGameView
-    , initialPlayer = emptyPlayer
-    , allPlayers = []
-    , allEnergies = []
+    , startingPlayer = emptyPlayer
+    , initialInfoAllPlayers = []
+    , initialInfoAllEnergies = []
+    , initialInfoGameName = ""
     }
 
 
@@ -80,6 +81,9 @@ emptyGameOverView =
     , gameOverViewRogueHistory = emptyOpenRogueHistory
     , gameOverViewWinningPlayer = emptyPlayer
     , gameOverViewNetwork = emptyNetwork
+    , gameOverViewAllPlayers = []
+    , gameOverViewAllEnergies = []
+    , gameOverViewGameName = ""
     }
 
 
@@ -112,3 +116,13 @@ emptyCreateNewGame : CreateNewGame
 emptyCreateNewGame =
     { createGameName = ""
     }
+
+
+emptyGameId : GameId
+emptyGameId =
+    { gameId = 0 }
+
+
+emptyJoinGame : JoinGame
+emptyJoinGame =
+    { joinGameId = emptyGameId }

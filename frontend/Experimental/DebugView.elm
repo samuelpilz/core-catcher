@@ -14,22 +14,24 @@ import Experimental.MsgButtons exposing (..)
 debugView : ClientModel -> Html Msg
 debugView state =
     div []
-        (stateView state
+        (manualMsgView state
+            ++ [ hr [] [] ]
+            ++ possibleMsgView state
             ++ [ hr [] [], div [] [ text <| toString state ], allMsgView ]
         )
 
 
-stateView : ClientModel -> List (Html Msg)
-stateView state =
+manualMsgView : ClientModel -> List (Html Msg)
+manualMsgView state =
     case state.state of
         LandingArea_ landingAreaState landingArea ->
-            viewLandingArea state ( landingAreaState, landingArea )
+            manualMsgLandingArea state ( landingAreaState, landingArea )
 
         LoggedIn_ loggedInState loggedIn ->
-            viewLoggedIn state ( loggedInState, loggedIn )
+            manualMsgLoggedIn state ( loggedInState, loggedIn )
 
         InGame_ inGameState inGame ->
-            viewInGame state ( inGameState, inGame )
+            manualMsgInGame state ( inGameState, inGame )
 
         Disconnected disconnected ->
             [ serverHelloButton, toLandingPageButton ]
@@ -38,8 +40,97 @@ stateView state =
             [ connectionLostButton, serverHelloButton, playerHomeButton, loginFailButton ]
 
 
-viewLandingArea : ClientModel -> ( LandingAreaState, LandingArea ) -> List (Html Msg)
-viewLandingArea msg ( landingAreaState, _ ) =
+manualMsgLandingArea : ClientModel -> ( LandingAreaState, LandingArea ) -> List (Html Msg)
+manualMsgLandingArea msg ( landingAreaState, _ ) =
+    case landingAreaState of
+        Landing ->
+            [ text "Waiting for connection" ]
+
+        LandingConnected ->
+            [ loginButton
+            ]
+
+        LoginPending_ _ ->
+            [ text "waiting for login" ]
+
+        LoginFailed ->
+            [ toLandingPageButton
+            ]
+
+        LoggedOut ->
+                []
+
+
+manualMsgLoggedIn : ClientModel -> ( LoggedInState, LoggedIn ) -> List (Html Msg)
+manualMsgLoggedIn model ( loggedInState, _ ) =
+    [ toHomeButton, logoutButton ]
+        ++ case loggedInState of
+            InPlayerHome ->
+                [ gameConnectButton
+                , joinGameButton
+                , openNewGameButton
+                ]
+
+            GameConnectPending ->
+                []
+
+            NewGame ->
+                [ createGameButton
+                ]
+
+            NewGamePending ->
+                []
+
+            JoinGamePending ->
+                []
+
+            GameOver_ _ ->
+                []
+
+
+manualMsgInGame : ClientModel -> ( InGameState, InGame ) -> List (Html Msg)
+manualMsgInGame model ( inGameState, _ ) =
+    case inGameState of
+        InPreGameLobby_ _ ->
+            [ startGameButton ]
+
+        GameActive_ YourTurn _ ->
+            [ actionButton ]
+
+        GameActive_ ActionPending _ ->
+            [ text "waiting for action-response" ]
+
+        GameActive_ OthersTurn _ ->
+            [ text "waiting for others" ]
+
+        GameDisconnected ->
+            [ text "disconnected" ]
+
+        GameServerReconnected ->
+            [ text "reconnected" ]
+
+
+possibleMsgView : ClientModel -> List (Html Msg)
+possibleMsgView state =
+    case state.state of
+        LandingArea_ landingAreaState landingArea ->
+            possibleMsgLandingArea state ( landingAreaState, landingArea )
+
+        LoggedIn_ loggedInState loggedIn ->
+            possibleMsgLoggedIn state ( loggedInState, loggedIn )
+
+        InGame_ inGameState inGame ->
+            possibleMsgInGame state ( inGameState, inGame )
+
+        Disconnected disconnected ->
+            [ serverHelloButton, toLandingPageButton ]
+
+        Reconnected reconnected ->
+            [ connectionLostButton, serverHelloButton, playerHomeButton, loginFailButton ]
+
+
+possibleMsgLandingArea : ClientModel -> ( LandingAreaState, LandingArea ) -> List (Html Msg)
+possibleMsgLandingArea msg ( landingAreaState, _ ) =
     [ serverHelloButton ]
         ++ case landingAreaState of
             Landing ->
@@ -61,10 +152,13 @@ viewLandingArea msg ( landingAreaState, _ ) =
                 , toLandingPageButton
                 ]
 
+            LoggedOut ->
+                []
 
-viewLoggedIn : ClientModel -> ( LoggedInState, LoggedIn ) -> List (Html Msg)
-viewLoggedIn model ( loggedInState, _ ) =
-    [ serverHelloButton, connectionLostButton, toHomeButton ]
+
+possibleMsgLoggedIn : ClientModel -> ( LoggedInState, LoggedIn ) -> List (Html Msg)
+possibleMsgLoggedIn model ( loggedInState, _ ) =
+    [ serverHelloButton, connectionLostButton, toHomeButton, logoutButton ]
         ++ case loggedInState of
             InPlayerHome ->
                 [ gameConnectButton
@@ -89,31 +183,32 @@ viewLoggedIn model ( loggedInState, _ ) =
                 [ preGameLobbyButton
                 ]
 
-            InPreGameLobby ->
-                [ initialInfoForGameButton
-                ]
-
-            GameOver ->
+            GameOver_ _ ->
                 []
 
 
-viewInGame : ClientModel -> ( InGameState, InGame ) -> List (Html Msg)
-viewInGame model ( inGameState, _ ) =
+possibleMsgInGame : ClientModel -> ( InGameState, InGame ) -> List (Html Msg)
+possibleMsgInGame model ( inGameState, _ ) =
     [ serverHelloButton, connectionLostButton ]
         ++ case inGameState of
-            GameActive_ YourTurn ->
+            InPreGameLobby_ _ ->
+                [ startGameButton
+                , initialInfoForGameButton
+                ]
+
+            GameActive_ YourTurn _ ->
                 [ actionButton
                 , gameViewButton
                 , gameOverButton
                 ]
 
-            GameActive_ ActionPending ->
+            GameActive_ ActionPending _ ->
                 [ gameViewButton
                 , gameErrorButton
                 , gameOverButton
                 ]
 
-            GameActive_ OthersTurn ->
+            GameActive_ OthersTurn _ ->
                 [ gameViewButton
                 ]
 
@@ -146,6 +241,7 @@ allMsgView =
             , joinGameButton
             , openNewGameButton
             , preGameLobbyButton
+            , startGameButton
             ]
         , p []
             [ initialInfoForGameButton

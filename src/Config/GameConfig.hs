@@ -1,11 +1,12 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Config.GameConfig
   ( GameConfig(..)
   , defaultConfig
-  , defaultConfigWithRandomPositions
+  , defaultConfigForPlayers
   , getRogue
   ) where
 
@@ -23,35 +24,47 @@ data GameConfig =
         , maxRounds              :: Int
         , rogueShowsAt           :: [Int]
         , network                :: Network
+        , gameName               :: Text
         }
     deriving (Eq, Show, Read)
 
 getRogue :: GameConfig -> Player
 getRogue = head . players
 
--- |Generates gameConfig data from a generator from which to generate positions
-defaultConfigWithRandomPositions :: (RandomGen gen) => gen -> GameConfig
-defaultConfigWithRandomPositions gen =
-    defaultConfig { initialPlayerPositions = randomPositions (length $ nodes Network.network) gen }
-
 
 -- |Generates a playerPositions map from the given generator and the given max-amount of nodes
-randomPositions :: (RandomGen gen) => Int -> gen -> PlayerPositions
-randomPositions nodeNum =
-    mapFromList . zip defaultPlayers . map Node . nub . randomRs (1, nodeNum)
+randomPositions :: (RandomGen gen) => gen -> [Player] -> Int -> PlayerPositions
+randomPositions gen players nodeNum =
+    mapFromList . zip players . map Node . nub . randomRs (1, nodeNum) $ gen
 
-
+defaultConfigForPlayers :: (RandomGen gen) => gen -> Text -> NonNull (Seq Player) -> GameConfig
+defaultConfigForPlayers gen gameName players =
+    GameConfig
+        { players = players
+        , initialPlayerEnergies = defaultInitialPlayerEnergies players
+        , initialPlayerPositions = randomPositions gen (otoList players) . length $ nodes Network.network
+        , maxRounds = 10
+        , rogueShowsAt = [1,4,7,10]
+        , network = Network.network
+        , gameName = gameName
+        }
 
 -- | The default GameConfig
 defaultConfig :: GameConfig
-defaultConfig = GameConfig
-    { players = impureNonNull $ fromList defaultPlayers
-    , initialPlayerEnergies = defaultInitialPlayerEnergies
-    , initialPlayerPositions = defaultInitialPlayerPositions
-    , maxRounds = 10
-    , rogueShowsAt = [1,4,7,10]
-    , network = Network.network
-    }
+defaultConfig =
+    GameConfig
+        { players = impureNonNull $ fromList defaultPlayers
+        , initialPlayerEnergies = defaultInitialPlayerEnergies defaultPlayers
+        , initialPlayerPositions = defaultInitialPlayerPositions
+        , maxRounds = 10
+        , rogueShowsAt = [1,4,7,10]
+        , network = Network.network
+        , gameName = "Test Game"
+        }
+
+defaultInitialPlayerEnergies :: (MonoFoldable ps, Player ~ Element ps) => ps -> PlayerEnergies
+defaultInitialPlayerEnergies ps =
+    mapFromList . zip (otoList ps) . repeat $ initialEnergiesPerPlayer
 
 defaultPlayers :: [Player]
 defaultPlayers = map Player ["Alice", "Bob", "Charlie"]
@@ -60,10 +73,6 @@ defaultInitialPlayerPositions :: PlayerPositions
 defaultInitialPlayerPositions =
     mapFromList . zip defaultPlayers . map Node $ [1, 4, 12]
 
-
-defaultInitialPlayerEnergies :: PlayerEnergies
-defaultInitialPlayerEnergies =
-    mapFromList . zip defaultPlayers . repeat $ initialEnergiesPerPlayer
 
 initialEnergiesPerPlayer :: EnergyMap
 initialEnergiesPerPlayer =

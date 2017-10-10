@@ -33,6 +33,14 @@ data GameRunning =
 gameRunningRogueHistory :: GameRunning -> ShadowRogueHistory
 gameRunningRogueHistory = toShadowRogueHistory . gameRunningOpenRogueHistory
 
+gameStatePlayers :: GameState -> [Player]
+gameStatePlayers (GameLobby_ GameLobby{gameLobbyConnectedPlayers}) =
+    gameLobbyConnectedPlayers
+gameStatePlayers (GameRunning_ GameRunning{gameRunningGameConfig} ) =
+    toList $ players gameRunningGameConfig
+gameStatePlayers (GameOver_ GameOver{gameOverGameConfig} ) =
+    toList $ players gameOverGameConfig
+
 data GameOver =
     GameOver
         { gameOverGameConfig      :: GameConfig
@@ -101,7 +109,7 @@ getGameOverView GameOver
     , gameOverPlayerEnergies
     , gameOverRogueHistory
     , gameOverWinningPlayer
-    , gameOverGameConfig = GameConfig { network }
+    , gameOverGameConfig = GameConfig { network, players, gameName }
     } =
     GameOverView
         gameOverPlayerPositions
@@ -109,6 +117,11 @@ getGameOverView GameOver
         gameOverRogueHistory
         gameOverWinningPlayer
         network
+        (otoList players)
+        energies
+        gameName
+    where
+        energies = keys . overlays $ network
 
 getGameLobbyView :: GameLobby -> GameLobbyView
 getGameLobbyView GameLobby
@@ -133,18 +146,54 @@ viewForPlayer config views player =
     (if player == head (players config) then RogueView . fst else CatcherView . snd) views
 
 
+-- TODO: lift for multiple players (other function as well)
 initialInfoGameActive :: GameState -> Player -> Either GameOverView InitialInfoGameActive
 initialInfoGameActive (GameRunning_ gameRunning) player =
-    Right InitialInfoGameActive
-        { networkForGame = initialNetwork
+    Right $ initialInfoGameActiveFromGameRunning gameRunning player
+initialInfoGameActive (GameOver_ gameOver) _ = Left $ getGameOverView gameOver
+initialInfoGameActive (GameLobby_ _) _ = undefined -- TODO: fix this??
+
+
+initialInfoGameActiveFromGameRunning :: GameRunning -> Player -> InitialInfoGameActive
+initialInfoGameActiveFromGameRunning gameRunning player =
+    InitialInfoGameActive
+        { networkForGame = gameNetwork
         , initialGameView = initialView
-        , initialPlayer = player
-        , allPlayers = toList $ players config
-        , allEnergies = [Red, Blue, Orange]
+        , startingPlayer = head $ players config
+        , initialInfoAllPlayers = toList $ players config
+        , initialInfoAllEnergies = [Red, Blue, Orange]
+        , initialInfoGameName = gameName config
         }
     where
         config = gameRunningGameConfig gameRunning
         initialView = viewForPlayer config (getViews gameRunning) player
-        initialNetwork = network config
-initialInfoGameActive (GameOver_ gameOver) _ = Left $ getGameOverView gameOver
-initialInfoGameActive (GameLobby_ _) _ = undefined -- TODO: fix this??
+        gameNetwork = network config
+
+
+-- TODO: ADT for preview
+previewInfo :: GameId -> GameState -> Maybe (Either GameLobbyPreview GamePreview)
+previewInfo gameId (GameLobby_ GameLobby{gameLobbyGameName, gameLobbyConnectedPlayers}) =
+    Just . Left $ GameLobbyPreview gameId gameLobbyGameName gameLobbyConnectedPlayers
+previewInfo gameId (GameRunning_ GameRunning {gameRunningGameConfig = GameConfig{players, gameName}}) =
+    Just . Right . GamePreview gameId gameName $ toList players
+previewInfo _ (GameOver_ _) = Nothing
+
+
+allPreviewInfos :: [(GameId, GameState)] -> ([GameLobbyPreview], [GamePreview])
+allPreviewInfos [] = ([], [])
+allPreviewInfos ((gId,s):gs) =
+    case previewInfo gId s of
+        Just (Left lobby) -> (lobby:lobbies, previews)
+        Just (Right preview) -> (lobbies, preview:previews)
+        Nothing -> (lobbies, previews)
+    where
+        (lobbies, previews) = allPreviewInfos gs
+
+getGameLobby :: GameState -> Maybe GameLobby
+getGameLobby (GameLobby_ l) = Just l
+getGameLobby _ = Nothing
+
+
+lobbyAddPlayer :: Player -> GameLobby -> GameLobby
+lobbyAddPlayer p l@GameLobby{gameLobbyConnectedPlayers} =
+    l { gameLobbyConnectedPlayers = gameLobbyConnectedPlayers ++ [p] }

@@ -15,11 +15,7 @@ displayInfo =
     , edgeWidthMap = edgeWidthMap
     , nodeSizeMap = nodeSizeMap
     , nodeXyMap = nodeXyMap
-    , energyPriorityList =
-        [ Red
-        , Blue
-        , Orange
-        ]
+    , energyPriorityList = [ Red, Blue, Orange ]
     , playerColorMap = playerColorMap
     , mapWidth = 800
     , mapHeight = 600

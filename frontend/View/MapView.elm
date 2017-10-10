@@ -8,13 +8,12 @@ import Svg.Attributes exposing (..)
 import List exposing (..)
 import EveryDict exposing (..)
 import AllDict exposing (..)
-import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
 import Debug exposing (log)
 import View.PlayerAnimation exposing (..)
-
+import Experimental.ClientState exposing (..)
 
 {-
    TODO: how to implement animated player positions?
@@ -28,25 +27,32 @@ import View.PlayerAnimation exposing (..)
 -}
 
 
-mapView : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
-mapView network displayInfo gameState =
-    svg
-        [ height << toString <| displayInfo.mapHeight
-        , width << toString <| displayInfo.mapWidth
-        ]
-    -- elements of svg now
-    <|
-        []
-            ++ List.concatMap
-                -- overlays
-                (mapViewOfNetworkOverlayName displayInfo network)
-                (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) <| EveryDict.toList network.overlays)
-            -- base network
-            ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
-            ++ List.map (playerCircle displayInfo gameState)
-                (EveryDict.toList gameState.playerPositions.playerPositions)
-            ++ gameErrorText gameState.gameError
-            ++ gameOverText gameState.gameOver
+mapView : NetworkModel -> Html.Html Msg
+mapView networkModel =
+    let
+        network =
+            networkModel.network
+
+        displayInfo =
+            networkModel.displayInfo
+    in
+        svg
+            [ height << toString <| displayInfo.mapHeight
+            , width << toString <| displayInfo.mapWidth
+            ]
+        -- elements of svg now
+        <|
+            []
+                ++ List.concatMap
+                    -- overlays
+                    (mapViewOfNetworkOverlayName displayInfo network)
+                    (List.sortBy (\( transport, _ ) -> getPriority displayInfo transport) <| EveryDict.toList network.overlays)
+                -- base network
+                ++ List.map (nodeCircle displayInfo.nodeXyMap) network.nodes
+                ++ List.map (playerCircle networkModel)
+                    (EveryDict.toList networkModel.playerPositions.playerPositions)
+                ++ gameErrorText networkModel.gameError
+                ++ gameOverText networkModel.gameOver
 
 
 mapViewOfNetworkOverlayName :
@@ -117,7 +123,7 @@ nodeCircleStop nodeXyMap color size node =
         , cy << toString <| nodeY nodeXyMap node
         , r (toString size)
         , fill color
-        , onClick (Movement node)
+        , onClick (GameAction_ <| Movement node)
         , Html.style [ ( "cursor", "pointer" ) ]
         ]
         []
@@ -132,7 +138,7 @@ nodeCircle nodeXyMap node =
             , r "20"
             , fill "#111111"
             , Svg.Attributes.cursor "pointer"
-            , onClick (Movement node)
+            , onClick (GameAction_ <| Movement node)
             ]
             []
         , text_
@@ -140,18 +146,21 @@ nodeCircle nodeXyMap node =
             , y << toString <| 5 + nodeY nodeXyMap node
             , fill "#ffffff"
             , Svg.Attributes.cursor "pointer"
-            , onClick (Movement node)
+            , onClick (GameAction_ <| Movement node)
             , textAnchor "middle"
             ]
             [ text << toString <| node.nodeId ]
         ]
 
 
-playerCircle : GameViewDisplayInfo -> GameState -> ( Player, Node ) -> Svg Msg
-playerCircle displayInfo gameState ( player, node ) =
+playerCircle : NetworkModel -> ( Player, Node ) -> Svg Msg
+playerCircle networkModel ( player, node ) =
+
     let
+        displayInfo =
+            networkModel.displayInfo
         ( x, y ) =
-            positionInSvg displayInfo gameState player
+            positionInSvg networkModel player
     in
         circle
             [ cx << toString <| x
@@ -160,7 +169,7 @@ playerCircle displayInfo gameState ( player, node ) =
             , fill "none"
             , stroke << Maybe.withDefault "white" << AllDict.get player <| displayInfo.playerColorMap
             , Svg.Attributes.cursor "pointer"
-            , onClick (Movement node)
+            , onClick (GameAction_ <| Movement node)
             , strokeWidth "4"
             , Svg.Attributes.strokeDasharray "5,3.5"
             ]

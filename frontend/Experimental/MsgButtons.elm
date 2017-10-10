@@ -28,6 +28,11 @@ loginButton =
     button [ onClick <| DoLogin ] [ text "Login" ]
 
 
+logoutButton : Html Msg
+logoutButton =
+    button [ onClick DoLogout ] [ text "Logout" ]
+
+
 playerHomeButton : Html Msg
 playerHomeButton =
     button [ onClick <| MsgFromServer <| PlayerHome_ emptyPlayerHome ] [ text "Player Home" ]
@@ -43,6 +48,11 @@ toHomeButton =
     button [ onClick <| ToHome ] [ text "To Home" ]
 
 
+playerHomeRefreshButton : Html Msg
+playerHomeRefreshButton =
+    button [ onClick <| DoPlayerHomeRefresh ] [ text "Player Home Refresh" ]
+
+
 gameConnectButton : Html Msg
 gameConnectButton =
     button [ onClick <| DoGameConnect ] [ text "Game Connect" ]
@@ -50,7 +60,7 @@ gameConnectButton =
 
 joinGameButton : Html Msg
 joinGameButton =
-    button [ onClick <| DoJoinGame ] [ text "Join Game " ]
+    button [ onClick <| DoJoinGame emptyGameId ] [ text "Join Game " ]
 
 
 openNewGameButton : Html Msg
@@ -61,6 +71,11 @@ openNewGameButton =
 createGameButton : Html Msg
 createGameButton =
     button [ onClick <| DoCreateGame ] [ text "Create Game" ]
+
+
+startGameButton : Html Msg
+startGameButton =
+    button [ onClick <| DoStartGame ] [ text "Start Game" ]
 
 
 preGameLobbyButton : Html Msg
@@ -80,7 +95,7 @@ actionButton =
 
 gameErrorButton : Html Msg
 gameErrorButton =
-    button [ onClick <| MsgFromServer <| GameError_ emptyError ] [ text "Game Error" ]
+    button [ onClick <| MsgFromServer <| ServerError_ <| GameError_ emptyError ] [ text "Game Error" ]
 
 
 gameViewButton : Html Msg

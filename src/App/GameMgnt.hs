@@ -20,14 +20,13 @@ module App.GameMgnt (
 
 import           ClassyPrelude
 import           GameState
-
-type GameId = Int
+import           Network.Protocol
 
 -- TODO: instance MonoFoldable & MonoTraversable for GameStates
 data GameStates =
     GameStates
         { gameStates :: Map GameId GameState
-        , nextId     :: GameId
+        , nextId     :: Int
         }
 
 class HasGameStates state where
@@ -41,12 +40,13 @@ addGameState stateVar gameState = do
     let newStates =
             states
                 { gameStates =
-                    insertMap nextId gameState gameStates
+                    insertMap (GameId nextId) gameState gameStates
                 , nextId = 1 + nextId
                 }
     writeTVar stateVar $ setGameStates newStates state
-    return nextId
+    return $ GameId nextId
 
+-- TODO: for all STM functions, return the state after writing
 updateGameState :: HasGameStates state => TVar state -> GameId -> GameState -> STM ()
 updateGameState stateVar gameId gameState = do
     state <- readTVar stateVar

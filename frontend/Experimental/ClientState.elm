@@ -1,12 +1,10 @@
 module Experimental.ClientState exposing (..)
 
 import Protocol exposing (..)
-import ProtocolUtils exposing (..)
 import Time exposing (..)
 import AllDict exposing (..)
 import EveryDict exposing (..)
 import View.GameViewDisplay exposing (GameViewDisplayInfo)
-import Example.ExampleGameViewDisplay as Example
 
 
 -- TODO document messages
@@ -16,13 +14,16 @@ import Example.ExampleGameViewDisplay as Example
 type Msg
     = PlayerNameChange String
     | DoLogin
+    | DoLogout
     | GameAction_ GameAction
     | SelectEnergy Energy
     | MsgFromServer MessageForClient
     | Tick Time
+    | DoPlayerHomeRefresh
     | DoOpenNewGame
     | DoCreateGame
-    | DoJoinGame
+    | DoJoinGame GameId
+    | DoStartGame
     | DoGameConnect
     | ToHome
     | ToLandingPage
@@ -65,6 +66,7 @@ type LandingAreaState
     | LandingConnected
     | LoginPending_ LoginPending
     | LoginFailed
+    | LoggedOut
 
 
 type alias LandingArea =
@@ -90,6 +92,13 @@ type alias DisconnectReconnect =
 
 type alias LoggedIn =
     { player : Player
+    , playerHomeContent : PlayerHomeContent
+    }
+
+
+type alias PlayerHomeContent =
+    { activeLobbies : Maybe (List GameLobbyPreview)
+    , activeGames : Maybe (List GamePreview)
     }
 
 
@@ -103,19 +112,53 @@ type LoggedInState
     | JoinGamePending
     | NewGame
     | NewGamePending
-    | InPreGameLobby
     | GameConnectPending
-    | GameOver
+    | GameOver_ GameOver
 
 
 
 -- |Model for in-game. Contains state of the game and information to display the network.
 
 
+type alias GameOver =
+    { networkModel : NetworkModel }
+
+
 type alias InGame =
     { player : Player
+    , gameName : String
 
     --    , networkViewModel : NetworkModel
+    }
+
+
+type InGameState
+    = InPreGameLobby_ InPreGameLobby
+    | GameActive_ GameActiveState GameActive
+    | GameDisconnected
+    | GameServerReconnected
+
+
+type alias InPreGameLobby =
+    { players : List Player
+    }
+
+
+type GameActiveState
+    = YourTurn
+    | ActionPending
+    | OthersTurn
+
+
+type alias GameActive =
+    { networkModel : NetworkModel
+    }
+
+
+type alias PlayerMovementAnimation =
+    { fromNode : Node
+    , toNode : Node
+    , startTime : Time
     }
 
 
@@ -138,23 +181,4 @@ type alias NetworkModel =
     , animationTime : Time
     , activeAnimations : AllDict Player PlayerMovementAnimation String
     , displayInfo : GameViewDisplayInfo
-    }
-
-
-type InGameState
-    = GameActive_ GameActive
-    | GameDisconnected
-    | GameServerReconnected
-
-
-type GameActive
-    = YourTurn
-    | ActionPending
-    | OthersTurn
-
-
-type alias PlayerMovementAnimation =
-    { fromNode : Node
-    , toNode : Node
-    , startTime : Time
     }

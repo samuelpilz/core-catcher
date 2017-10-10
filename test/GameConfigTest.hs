@@ -18,26 +18,27 @@ import           Network.Protocol
 import           System.Random     (mkStdGen)
 import           Test.Framework
 
-prop_randomPlayerPositions_noOverlap :: Int -> Bool
-prop_randomPlayerPositions_noOverlap seed =
-    posNodes == nub posNodes
-    where
-        posNodes = posNodesOfRandom seed
-
-prop_randomPlayerPositions_noOutOfBound :: Int -> Bool
-prop_randomPlayerPositions_noOutOfBound seed =
-    all (\(Node n) -> 1 <= n && n <= defaultNodeNum) posNodes
-    where
-        posNodes = posNodesOfRandom seed
-
-defaultNodeNum :: Int
-defaultNodeNum = length . nodes $ Network.network
-
-posNodesOfRandom :: Int -> [Node]
-posNodesOfRandom =
-    map snd .
-    mapToList .
-    initialPlayerPositions .
-    defaultConfigWithRandomPositions .
-    mkStdGen
-
+-- TODO: redo
+-- prop_randomPlayerPositions_noOverlap :: Int -> Bool
+-- prop_randomPlayerPositions_noOverlap seed =
+--     posNodes == nub posNodes
+--     where
+--         posNodes = posNodesOfRandom seed
+--
+-- prop_randomPlayerPositions_noOutOfBound :: Int -> Bool
+-- prop_randomPlayerPositions_noOutOfBound seed =
+--     all (\(Node n) -> 1 <= n && n <= defaultNodeNum) posNodes
+--     where
+--         posNodes = posNodesOfRandom seed
+--
+-- defaultNodeNum :: Int
+-- defaultNodeNum = length . nodes $ Network.network
+--
+-- posNodesOfRandom :: Int -> [Node]
+-- posNodesOfRandom =
+--     map snd .
+--     mapToList .
+--     initialPlayerPositions .
+--     defaultConfigWithRandomPositions .
+--     mkStdGen
+--

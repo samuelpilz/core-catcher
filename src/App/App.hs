@@ -10,14 +10,26 @@ import           App.ConnectionMgnt
 import           App.GameMgnt
 import           App.State
 import           ClassyPrelude
-import qualified GameNg             as Game
+import           Config.GameConfig
+import           Control.Error.Safe         (tryRight)
+import           Control.Error.Util         ((??))
+import           Control.Monad.Extra        (whenJust)
+import           Control.Monad.Trans.Except
+import           Data.Easy                  (eitherToMaybe, mapLeft, mapRight)
+import qualified GameNg                     as Game
 import           GameState
 import           Network.Protocol
+import           System.Random              (RandomGen, newStdGen)
+
+import           App.AppUtils
 
 {- TODO: features
 * message for leaving a game??
 * validation playerId matches connection-origin
-* draw state diagrams for app / serverConnection
+* ban lists and use sequences or Foldable / MonoFoldable
+* exception handling using ExceptT in handleMsgStm
+* move the utils to own modules
+* maybe use state-monad instead of stm?
 -}
 
 handleClientMsg
@@ -27,106 +39,147 @@ handleClientMsg
     -> MessageForServer
     -> IO ()
 handleClientMsg stateVar cId msg = do
-    putStrLn $ tshow msg
-    toSend <- atomically $ handleMsgStm stateVar cId msg
+    putStrLn $ tshow cId ++ " -> " ++ tshow msg
+
+    gen <- newStdGen
+
+    handleResult <- atomically . runExceptT $ handleMsgStm gen stateVar cId msg
+    let toSend = either (msgForOne cId . ServerError_) id handleResult
+
     ServerState{serverStateConnections} <- readTVarIO stateVar
-    mapM_ (uncurry sendSendableMsg) .
+    mapM_
+        (\(connId, conn, m) -> do -- IO monad
+            putStrLn $ tshow connId ++ " <- " ++ tshow m
+            sendSendableMsg conn m
+        ) .
         mapMaybe
             (\(cIdToSend, m) -> do -- maybe monad
                 conn <- findConnectionById cIdToSend serverStateConnections
-                return (conn, m)
+                return (cIdToSend, conn, m)
             ) $
         toSend
 
+
 -- TODO: tests
 handleMsgStm
-    :: IsConnection conn
-    => TVar (ServerState conn)
+    :: (IsConnection conn, RandomGen gen)
+    => gen
+    -> TVar (ServerState conn)
     -> ConnectionId
     -> MessageForServer
-    -> STM [(ConnectionId, MessageForClient)]
-handleMsgStm serverStateVar cId msg = do
-    serverState <- readTVar serverStateVar
-    case findConnectionById cId serverState of
-        Nothing -> return [] -- TODO: fail
-        Just (_,connState) ->
-            case msg of
-                Action_ action ->
-                    case connectionInGame connState of
-                        Nothing ->
-                            case connectionLoggedInPlayer connState of
-                                Nothing ->
-                                    return [(cId, ServerError_ NotLoggedIn)]
-                                Just player ->
-                                    return [(cId, ServerError_ $ NotInGame player)]
-                        Just gameId -> do
-                            updateResult <- updateGame serverStateVar gameId action
-                            case updateResult of
-                                Right (Right newGameState) ->
-                                    return $ distributeGameViewsForGame serverState newGameState
-                                Right (Left gameError) ->
-                                    return [(cId, GameError_ gameError)]
-                                Left serverError ->
-                                    return [(cId, ServerError_ serverError)]
+    -> ExceptT ServerError STM [(ConnectionId, MessageForClient)]
+handleMsgStm gen serverStateVar cId msg = do
+    serverState <- lift $ readTVar serverStateVar
+    connState <- findConnectionStateById cId serverState ?? NoSuchConnection
+    case msg of
+        Action_ action -> do
+            gameId <- getGameIdFromConnection connState
 
-                Login_ Login{ loginPlayer } -> do
-                    modifyClientState serverStateVar cId (setConnectionLoggedInPlayer loginPlayer)
-                    modifyTVar serverStateVar $ insertPlayer cId loginPlayer
-                    return
-                        [ (cId
-                          , PlayerHome_ PlayerHome
-                                { playerHomePlayer = loginPlayer
-                                , activeGames = []
-                                , activeLobbies = []
-                                }
-                          )
-                          -- TODO: populate playerHome & general type for game-state-preview??
-                        ]
+            updatedState <- updateGameStm serverStateVar gameId action
+            return $ distributeGameViewsForGame serverState updatedState
 
-                CreateNewGame_ CreateNewGame{createGameName} -> do
-                    let gameLobby = GameLobby
-                            { gameLobbyGameName = createGameName
-                            , gameLobbyConnectedPlayers = maybeToList $ connectionLoggedInPlayer connState
-                            }
-                    gameId <- addGameState serverStateVar $ GameLobby_ gameLobby
-                    modifyClientState serverStateVar cId (setConnectionInGame gameId)
-                    return [(cId, GameLobbyView_ $ getGameLobbyView gameLobby)]
+        Login_ Login{ loginPlayer } -> do
+            lift $ modifyClientState serverStateVar cId (setConnectionLoggedInPlayer loginPlayer)
+            lift $ modifyTVar serverStateVar $ insertPlayer cId loginPlayer
+            let (lobbies, games) = allPreviewInfos . mapToList . gameStates . serverStateGameStates $ serverState
+            return $ msgForOne cId $
+                PlayerHome_ PlayerHome
+                    { playerHomePlayer = loginPlayer
+                    , activeLobbies = lobbies
+                    , activeGames = games
+                    }
 
-                _ -> return [] -- TODO: error for unexpected
+        Logout -> do
+            _ <- connectionLoggedInPlayer connState ?? NotLoggedIn
+            lift $ modifyClientState serverStateVar cId connectionLogoutPlayer
+            return []
+
+        PlayerHomeRefresh -> do
+            loginPlayer <- connectionLoggedInPlayer connState ?? NotLoggedIn
+            let (lobbies, games) = allPreviewInfos . mapToList . gameStates . serverStateGameStates $ serverState
+
+            return $ msgForOne cId $
+                PlayerHome_ PlayerHome
+                    { playerHomePlayer = loginPlayer
+                    , activeLobbies = lobbies
+                    , activeGames = games
+                    }
+
+        CreateNewGame_ CreateNewGame{createGameName} -> do
+            let gameLobby = GameLobby
+                    { gameLobbyGameName = createGameName
+                    , gameLobbyConnectedPlayers = maybeToList $ connectionLoggedInPlayer connState
+                    }
+            gameId <- lift $ addGameState serverStateVar $ GameLobby_ gameLobby
+            lift $ modifyClientState serverStateVar cId (setConnectionInGame gameId)
+            return [(cId, GameLobbyView_ $ getGameLobbyView gameLobby)]
+
+        StartGame -> do
+            gameId <- getGameIdFromConnection connState
+            gameState <- findGameStateById gameId serverState ?? NoSuchGame gameId
+
+            -- start game
+            lobby <- getGameLobby gameState ?? GameAlreadyStarted
+            gameRunning <- tryRight . mapLeft GameError_ . Game.startGame gen $ lobby
+            lift $ updateGameState serverStateVar gameId $ GameRunning_ gameRunning
+
+            return $ distributeInitialInfosForGameRunning serverState gameRunning
+
+        JoinGame_ joinGame -> do
+            player <- connectionLoggedInPlayer connState ?? NotLoggedIn
+            let gameId = joinGameId joinGame
+            gameState <- findGameStateById gameId serverState ?? NoSuchGame gameId
+            lift $ modifyClientState serverStateVar cId (setConnectionInGame gameId)
+
+            lobby <- getGameLobby gameState ?? GameAlreadyStarted
+            let newLobby = lobbyAddPlayer player lobby
+            let newGame = GameLobby_ newLobby
+            lift $ updateGameState serverStateVar gameId newGame
+
+            return $ distributeGameViewsForGame serverState newGame
+
 
 distributeGameViewsForGame
     :: IsConnection conn
     => ServerState conn
-    -> GameState -- TODO: gameId instead?
+    -> GameState -- TODO: gameId instead? analyze usage for that
     -> [(ConnectionId, MessageForClient)]
 distributeGameViewsForGame serverState gameState =
-    map
-        (\(player, cId) -> (cId, viewForGameState gameState player)) .
-        mapToList $
-        serverStatePlayerMap serverState
+    mapMaybe (\p -> do
+            cId <- lookup p $ serverStatePlayerMap serverState
+            return (cId, viewForGameState gameState p)) .
+        gameStatePlayers $ gameState
 
--- TODO: fix player-map (use players from state)
+distributeInitialInfosForGameRunning
+    :: ServerState conn
+    -> GameRunning
+    -> [(ConnectionId, MessageForClient)]
+distributeInitialInfosForGameRunning serverState gameRunning =
+    mapMaybe (\p -> do
+            cId <- lookup p $ serverStatePlayerMap serverState
+            return (cId, InitialInfoGameActive_ $ initialInfoGameActiveFromGameRunning gameRunning p)
+        ) .
+        toList .
+        toNullable .
+        players .
+        gameRunningGameConfig $
+        gameRunning
 
 
-updateGame
+updateGameStm
     :: IsConnection conn
     => TVar (ServerState conn)
     -> GameId
     -> Action
-    -> STM (Either ServerError (Either GameError GameState))
-updateGame stateVar gameId action = do
-    state <- readTVar stateVar
+    -> ExceptT ServerError STM GameState
+updateGameStm stateVar gameId action = do
+    state <- lift $ readTVar stateVar
 
-    let gameMay = findGameStateById gameId $ serverStateGameStates state
-    case gameMay of
-        Nothing ->
-            return . Left . NoSuchGame $ gameId
-        Just gameState -> do
-            let updateResult = Game.updateState action gameState
-            case updateResult of
-                Right newGameState ->
-                    updateGameState stateVar gameId newGameState
-                Left _ -> return ()
+    gameState <- maybe (throwE $ NoSuchGame gameId) return $
+        findGameStateById gameId $ serverStateGameStates state
 
-            return . Right $ updateResult
+    let updateResult = mapLeft GameError_ $ Game.updateState action gameState
+    newGameState <- tryRight updateResult
 
+    lift $ updateGameState stateVar gameId newGameState
+    return newGameState

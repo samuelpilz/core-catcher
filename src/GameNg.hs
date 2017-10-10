@@ -5,21 +5,31 @@
 module GameNg
     ( updateState
     , actionForGameRunning
+    , startGame
     ) where
 
 import           ClassyPrelude
 import           Config.GameConfig
 import           Control.Monad.Extra (whenJust)
-import           Data.Easy           (ifToMaybe, maybeToEither)
-import           Data.List           (cycle)
+import           Data.Easy           (maybeToEither)
 import           GameState
 import           Network.Protocol
+import           System.Random       (RandomGen)
+
 
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
 updateState :: Action -> GameState -> Either GameError GameState
+updateState _ (GameLobby_ _) = Left GameNotStarted
 updateState _ (GameOver_ _) = Left GameIsOver
 updateState action (GameRunning_ gameRunning) =
     map (either GameOver_ GameRunning_) $ actionForGameRunning action gameRunning
+
+startGame :: RandomGen gen => gen -> GameLobby -> Either GameError GameRunning
+startGame gen GameLobby{ gameLobbyGameName, gameLobbyConnectedPlayers } =
+    case fromNullable $ fromList gameLobbyConnectedPlayers of
+        Just ps ->
+            return . initialStateFromConfig $ defaultConfigForPlayers gen gameLobbyGameName ps
+        Nothing -> Left GameIsOver -- TODO: better err msg
 
 -- |Add an action for the running game.
 actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)

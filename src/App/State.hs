@@ -16,6 +16,7 @@ data ServerState conn =
         , serverStatePlayerMap   :: Map Player ConnectionId
         }
 
+-- TODO: ADT for connection states
 data ConnectionState =
     ConnectionState
         { connectionLoggedInPlayer :: Maybe Player
@@ -24,6 +25,9 @@ data ConnectionState =
 
 setConnectionLoggedInPlayer :: Player -> ConnectionState -> ConnectionState
 setConnectionLoggedInPlayer player state = state { connectionLoggedInPlayer = Just player }
+
+connectionLogoutPlayer :: ConnectionState -> ConnectionState
+connectionLogoutPlayer state = state { connectionLoggedInPlayer = Nothing }
 
 setConnectionInGame :: GameId -> ConnectionState -> ConnectionState
 setConnectionInGame gameId state = state { connectionInGame = Just gameId }

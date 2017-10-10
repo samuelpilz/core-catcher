@@ -8,43 +8,46 @@ import Svg.Attributes exposing (..)
 import List exposing (..)
 import AllDict exposing (..)
 import EveryDict exposing (..)
-import ClientState exposing (..)
 import Protocol exposing (..)
 import ProtocolUtils exposing (..)
 import View.GameViewDisplay exposing (..)
 import Maybe exposing (..)
 import Tuple as Tuple
+import Experimental.ClientState exposing (..)
 
 
-energyOverview : Network -> GameViewDisplayInfo -> GameState -> Html.Html Msg
-energyOverview _ displayInfo gameState =
-    svg
-        [ height (toString displayInfo.mapHeight)
-        , width "400"
-        , Html.style [ ( "border-size", "1" ) ]
-        ]
-    <|
-        playersView
-            displayInfo
-            gameState
-            ++ historyView
-                gameState.rogueHistory
-                displayInfo
+energyOverview : NetworkModel -> Html.Html Msg
+energyOverview networkModel =
+    let
+        displayInfo =
+            networkModel.displayInfo
+    in
+        svg
+            [ height (toString displayInfo.mapHeight)
+            , width "400"
+            , Html.style [ ( "border-size", "1" ) ]
+            ]
+        <|
+            playersView
+                networkModel
+                ++ historyView
+                    networkModel.rogueHistory
+                    displayInfo
 
 
-playersView : GameViewDisplayInfo -> GameState -> List (Svg.Svg Msg)
-playersView displayInfo gameState =
+playersView : NetworkModel -> List (Svg.Svg Msg)
+playersView networkModel =
     List.map2
-        (playerView displayInfo gameState)
-        (range 0 <| List.length gameState.players)
+        (playerView networkModel)
+        (range 0 <| List.length networkModel.players)
     <|
-        gameState.players
+        networkModel.players
 
 
-playerView : GameViewDisplayInfo -> GameState -> Int -> Player -> Svg.Svg Msg
-playerView displayInfo gameState pos player =
+playerView : NetworkModel -> Int -> Player -> Svg.Svg Msg
+playerView networkModel pos player =
     g [] <|
-        (if player == gameState.player then
+        (if player == networkModel.player then
             [ rect
                 [ x << toString <| 45
                 , y << toString <| 5 + pos * 60
@@ -57,42 +60,46 @@ playerView displayInfo gameState pos player =
          else
             []
         )
-            ++ energyForPlayerView displayInfo gameState pos player
-            ++ turnIcon displayInfo gameState pos player
+            ++ energyForPlayerView networkModel pos player
+            ++ turnIcon networkModel pos player
 
 
-energyForPlayerView : GameViewDisplayInfo -> GameState -> Int -> Player -> List (Svg.Svg Msg)
-energyForPlayerView displayInfo gameState pos player =
-    (List.map
-        (energyRecord gameState player)
-        << List.sortBy (\( ( priority, _ ), _, _, _ ) -> priority)
-        << List.map
-            (\energy ->
-                ( ( getPriority displayInfo energy, pos )
-                , energy
-                , Maybe.withDefault "white" <| AllDict.get energy displayInfo.colorMap
-                , Maybe.withDefault 0
-                    << Maybe.andThen (EveryDict.get energy)
-                    << Maybe.map .energyMap
-                    << EveryDict.get player
-                  <|
-                    gameState.playerEnergies.playerEnergies
+energyForPlayerView : NetworkModel -> Int -> Player -> List (Svg.Svg Msg)
+energyForPlayerView networkModel pos player =
+    let
+        displayInfo =
+            networkModel.displayInfo
+    in
+        (List.map
+            (energyRecord networkModel player)
+            << List.sortBy (\( ( priority, _ ), _, _, _ ) -> priority)
+            << List.map
+                (\energy ->
+                    ( ( getPriority displayInfo energy, pos )
+                    , energy
+                    , Maybe.withDefault "white" <| AllDict.get energy displayInfo.colorMap
+                    , Maybe.withDefault 0
+                        << Maybe.andThen (EveryDict.get energy)
+                        << Maybe.map .energyMap
+                        << EveryDict.get player
+                      <|
+                        networkModel.playerEnergies.playerEnergies
+                    )
                 )
-            )
-     <|
-        gameState.energies
-    )
-        ++ playerLabel gameState displayInfo pos player
+         <|
+            networkModel.energies
+        )
+            ++ playerLabel displayInfo pos player
 
 
-energyRecord : GameState -> Player -> ( ( Int, Int ), Energy, Color, Int ) -> Svg.Svg Msg
-energyRecord gameState forPlayer ( ( posX, posY ), energy, color, count ) =
+energyRecord : NetworkModel -> Player -> ( ( Int, Int ), Energy, Color, Int ) -> Svg.Svg Msg
+energyRecord networkModel forPlayer ( ( posX, posY ), energy, color, count ) =
     let
         ownPlayer =
-            gameState.player == forPlayer
+            networkModel.player == forPlayer
 
         highlightEnergy =
-            ownPlayer && gameState.selectedEnergy == Just energy
+            ownPlayer && networkModel.selectedEnergy == Just energy
     in
         g []
             [ rect
@@ -133,8 +140,8 @@ energyRecord gameState forPlayer ( ( posX, posY ), energy, color, count ) =
             ]
 
 
-playerLabel : GameState -> GameViewDisplayInfo -> Int -> Player -> List (Svg.Svg Msg)
-playerLabel gameState displayInfo posY player =
+playerLabel : GameViewDisplayInfo -> Int -> Player -> List (Svg.Svg Msg)
+playerLabel displayInfo posY player =
     [ text_
         [ x << toString <| 210
         , y << toString <| 60 * posY + 40
@@ -161,73 +168,82 @@ playerLabel gameState displayInfo posY player =
     ]
 
 
-turnIcon : GameViewDisplayInfo -> GameState -> Int -> Player -> List (Svg.Svg Msg)
-turnIcon displayInfo gameState posY forPlayer =
-    if gameState.nextPlayer == Just forPlayer then
-        [ g []
-            [ circle
-                [ cx << toString <| 30
-                , cy << toString <| 60 * posY + 30
-                , r "8"
+turnIcon : NetworkModel -> Int -> Player -> List (Svg.Svg Msg)
+turnIcon networkModel posY forPlayer =
+    let
+        displayInfo =
+            networkModel.displayInfo
+    in
+        if networkModel.nextPlayer == Just forPlayer then
+            [ g []
+                [ circle
+                    [ cx << toString <| 30
+                    , cy << toString <| 60 * posY + 30
+                    , r "8"
+                    , stroke
+                        << Maybe.withDefault "white"
+                        << AllDict.get forPlayer
+                      <|
+                        displayInfo.playerColorMap
+                    , strokeWidth "2.5"
+                    , fill "none"
+                    , Svg.Attributes.strokeDasharray "3,2.7"
+                    ]
+                    []
+                ]
+            , line
+                [ x1 << toString <| 4
+                , y1 << toString <| 60 * posY + 30
+                , x2 << toString <| 18
+                , y2 << toString <| 60 * posY + 26
+                , strokeWidth "1.5"
                 , stroke
                     << Maybe.withDefault "white"
                     << AllDict.get forPlayer
                   <|
                     displayInfo.playerColorMap
-                , strokeWidth "2.5"
-                , fill "none"
-                , Svg.Attributes.strokeDasharray "3,2.7"
+                ]
+                []
+            , line
+                [ x1 << toString <| 5
+                , y1 << toString <| 60 * posY + 34
+                , x2 << toString <| 18
+                , y2 << toString <| 60 * posY + 30
+                , strokeWidth "1.5"
+                , stroke
+                    << Maybe.withDefault "white"
+                    << AllDict.get forPlayer
+                  <|
+                    displayInfo.playerColorMap
+                ]
+                []
+            , line
+                [ x1 << toString <| 6
+                , y1 << toString <| 60 * posY + 38
+                , x2 << toString <| 18
+                , y2 << toString <| 60 * posY + 34
+                , strokeWidth "1.5"
+                , stroke
+                    << Maybe.withDefault "white"
+                    << AllDict.get forPlayer
+                  <|
+                    displayInfo.playerColorMap
                 ]
                 []
             ]
-        , line
-            [ x1 << toString <| 4
-            , y1 << toString <| 60 * posY + 30
-            , x2 << toString <| 18
-            , y2 << toString <| 60 * posY + 26
-            , strokeWidth "1.5"
-            , stroke
-                << Maybe.withDefault "white"
-                << AllDict.get forPlayer
-              <|
-                displayInfo.playerColorMap
-            ]
+        else
             []
-        , line
-            [ x1 << toString <| 5
-            , y1 << toString <| 60 * posY + 34
-            , x2 << toString <| 18
-            , y2 << toString <| 60 * posY + 30
-            , strokeWidth "1.5"
-            , stroke
-                << Maybe.withDefault "white"
-                << AllDict.get forPlayer
-              <|
-                displayInfo.playerColorMap
-            ]
-            []
-        , line
-            [ x1 << toString <| 6
-            , y1 << toString <| 60 * posY + 38
-            , x2 << toString <| 18
-            , y2 << toString <| 60 * posY + 34
-            , strokeWidth "1.5"
-            , stroke
-                << Maybe.withDefault "white"
-                << AllDict.get forPlayer
-              <|
-                displayInfo.playerColorMap
-            ]
-            []
-        ]
-    else
-        []
+
 
 historyView : RogueHistory -> GameViewDisplayInfo -> List (Svg.Svg Msg)
 historyView rogueHistory =
     case rogueHistory of
-        ShadowHistory h -> shadowHistoryView h
-        OpenHistory h -> openHistoryView h
+        ShadowHistory h ->
+            shadowHistoryView h
+
+        OpenHistory h ->
+            openHistoryView h
+
 
 shadowHistoryView : ShadowRogueHistory -> GameViewDisplayInfo -> List (Svg.Svg Msg)
 shadowHistoryView rogueHistory displayInfo =
@@ -242,8 +258,12 @@ shadowHistoryView rogueHistory displayInfo =
     <|
         rogueHistory.shadowRogueHistory
 
+
 openHistoryView : OpenRogueHistory -> GameViewDisplayInfo -> List (Svg.Svg msg)
-openHistoryView rogueHistory displayInfo = [] -- TODO: implement
+openHistoryView rogueHistory displayInfo =
+    -- TODO: implement
+    []
+
 
 historyRecord : Int -> ( Color, Maybe Node ) -> Svg.Svg Msg
 historyRecord pos ( color, nodeMay ) =
