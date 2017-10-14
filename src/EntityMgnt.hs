@@ -12,6 +12,7 @@
 module EntityMgnt where
 
 import           ClassyPrelude
+import           Control.Monad.State
 
 -- TODO: instance MonoFoldable & MonoTraversable for e
 data Entities i e =
@@ -31,17 +32,28 @@ class Ord i => EntityId i where
     getFirstId :: i
     getNextId :: i -> i
 
-class EntityId i => HasEntities state i where
-    type Entity state i :: *
+class EntityId i => HasEntities container i where
+    type Entity container i :: *
 
-    getEntities :: state -> Entities i (Entity state i)
-    setEntities :: Entities i (Entity state i) -> state -> state
+    getEntities :: container -> Entities i (Entity container i)
+
+    setEntities :: Entities i (Entity container i) -> container -> container
+
+    entityMap :: container -> Map i (Entity container i)
+    entityMap = entities . getEntities
+
+    entityAssocs :: container -> [(i, Entity container i)]
+    entityAssocs = mapToList . entityMap
+
+    findEntityById :: i -> container -> Maybe (Entity container i)
+    findEntityById gId =
+        lookup gId . entities . getEntities
 
     -- |add an entity with the next id. The given id is returned.
-    addEntity :: Entity state i -> state -> (i, state)
-    addEntity entity state =
+    addEntity :: Entity container i -> container -> (i, container)
+    addEntity entity container =
         let
-            es@Entities{entities, nextId} = getEntities state
+            es@Entities{entities, nextId} = getEntities container
             newEntities =
                 es
                     { entities =
@@ -50,29 +62,29 @@ class EntityId i => HasEntities state i where
                     }
         in
             ( nextId
-            , setEntities newEntities state
+            , setEntities newEntities container
             )
 
 
     -- |set an entity value. The entity should already exist in the map.
-    updateEntity :: i -> Entity state i -> state -> state
-    updateEntity eId entity state =
+    updateEntity :: i -> Entity container i -> container -> container
+    updateEntity eId entity container =
         let
-            es@Entities{entities} = getEntities state
+            es@Entities{entities} = getEntities container
             newEntities =
                 es
                     { entities =
                         insertMap eId entity entities
                     }
         in
-            setEntities newEntities state
+            setEntities newEntities container
 
     -- |Modifies an entity according to a given function.
-    modifyEntity :: i -> (Entity state i -> Entity state i) -> state -> state
-    modifyEntity eId f state =
+    modifyEntity :: i -> (Entity container i -> Entity container i) -> container -> container
+    modifyEntity eId f container =
         let
-            es@Entities{entities} = getEntities state
-            newEntities = case findEntityById eId state of
+            es@Entities{entities} = getEntities container
+            newEntities = case findEntityById eId container of
                 Nothing -> es
                 Just e ->
                     es
@@ -80,32 +92,40 @@ class EntityId i => HasEntities state i where
                             insertMap eId (f e) entities
                         }
         in
-            setEntities newEntities state
+            setEntities newEntities container
 
-    -- TODO: split into remove and removeAndGet
     -- |Remove an entity from the map and return the assigned connection
-    removeEntity :: i -> state -> (state, Maybe (Entity state i))
-    removeEntity eId state =
+    removeEntity :: i -> container -> container
+    removeEntity eId container =
         let
-            es@Entities{entities} = getEntities state
-            (oldValMay, newMap) = updateLookupWithKey (\_ _ -> Nothing) eId entities
+            es@Entities{entities} = getEntities container
+            newMap = deleteMap eId entities
             newEntities = es { entities = newMap }
         in
-            (setEntities newEntities state, oldValMay)
+            setEntities newEntities container
 
-    -- extra functions
-    findEntityById :: i -> state -> Maybe (Entity state i)
-    findEntityById gId =
-        lookup gId . entities . getEntities
-
-    entityMap :: state -> Map i (Entity state i)
-    entityMap = entities . getEntities
-
-    entityAssocs :: state -> [(i, Entity state i)]
-    entityAssocs = mapToList . entityMap
 
 -- implement HasEntities for Entities themselves
--- instance EntityId i => HasEntities (Entities i e) i where
---     type Entity (Entities i e) i = e
---     getEntities = id
---     setEntities = flip const
+instance EntityId i => HasEntities (Entities i e) i where
+    type Entity (Entities i e) i = e
+    getEntities = id
+    setEntities = flip const
+
+-- Entity methods for stateT monad
+
+addEntityS :: (MonadState state m, HasEntities state i) => Entity state i -> m i
+addEntityS newEntity = state $ addEntity newEntity
+
+updateEntityS :: (MonadState state m, HasEntities state i) => i -> Entity state i -> m ()
+updateEntityS eId newEntity = modify $ updateEntity eId newEntity
+
+modifyEntityS
+    :: (MonadState state m, HasEntities state i)
+    => i -> (Entity state i -> Entity state i) -> m ()
+modifyEntityS eId f = modify $ modifyEntity eId f
+
+removeEntityS :: (MonadState state m, HasEntities state i) => i -> m ()
+removeEntityS eId = modify $ removeEntity eId
+
+findEntityByIdS :: (MonadState state m, HasEntities state i) => i -> m (Maybe (Entity state i))
+findEntityByIdS = gets . findEntityById

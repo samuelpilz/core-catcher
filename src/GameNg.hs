@@ -16,6 +16,7 @@ import           GameState
 import           Network.Protocol
 import           System.Random       (RandomGen)
 
+-- TODO: use Except instead of Either
 
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
 updateState :: Action -> GameState -> Either GameError GameState
@@ -31,7 +32,6 @@ startGame gen GameLobby{ gameLobbyGameName, gameLobbyConnectedPlayers } =
             return . initialStateFromConfig $ defaultConfigForPlayers gen gameLobbyGameName ps
         Nothing -> Left GameIsOver -- TODO: better err msg
 
--- TODO: lift to ExceptT
 -- |Add an action for the running game.
 actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
 actionForGameRunning

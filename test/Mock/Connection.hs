@@ -4,31 +4,20 @@
 {-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-module Mock.Connection (
-    FakeConnection,
-    newFakeConnection,
-    prepareMsgToRead,
-    getSentMsg,
-    FakeConnections,
-    sendBuffer,
-    recvBuffer,
-    resetSendBuffer
-    ) where
+module Mock.Connection where
 
-import           App.ConnectionMgnt
+import           App.Connection
+import           App.ConnectionState
 import           ClassyPrelude
 import           Control.Monad.Extra (whenJust)
 import           Network.Protocol
 import           Test.Framework
-import App.State (ConnectionState(..))
 
 data FakeConnection =
     FakeConnection
         { sendBuffer :: TVar (Maybe MessageForClient)
         , recvBuffer :: TVar (Maybe MessageForServer)
         }
-
-type FakeConnections = ClientConnections FakeConnection ConnectionState
 
 newFakeConnection :: IO FakeConnection
 newFakeConnection = do

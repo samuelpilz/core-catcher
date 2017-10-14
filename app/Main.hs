@@ -80,7 +80,7 @@ cleanOnCloseConnection :: TVar (ServerState WsConnection) -> ConnectionId -> IO 
 cleanOnCloseConnection stateVar cId = do
     atomically $ do
         state <- readTVar stateVar
-        let (newState, _) = removeEntity cId state
+        let newState = removeEntity cId state
         writeTVar stateVar newState
 
     putStrLn $ "disconnect " ++ tshow cId

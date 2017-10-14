@@ -6,12 +6,14 @@
 
 module ConnectionMgntTest where
 
-import           App.ConnectionMgnt
+import           App.Connection
 import           ClassyPrelude
 import           Mock.Connection
 import           Network.Protocol
 import           Test.Framework
 import           Test.HUnit.Base
+
+-- TODO: reuse tests for EntityMgnt
 
 emptyFakeConnectionsTVar :: IO (TVar FakeConnections)
 emptyFakeConnectionsTVar = newTVarIO $ ClientConnections  mempty 0
