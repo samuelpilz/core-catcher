@@ -5,7 +5,7 @@
 -}
 module WsConnection (WsConnection(..)) where
 
-import           App.ConnectionMgnt
+import           App.Connection
 import           ClassyPrelude
 import qualified Data.Aeson         as Aeson
 import qualified Network.WebSockets as WS

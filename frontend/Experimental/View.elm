@@ -76,10 +76,10 @@ landingAreaView msg ( landingAreaState, _ ) =
                 ]
 
             LoginFailed ->
-                [ text "Login Failed" ]
+                [ text "Login Failed", toLandingPageButton ]
 
             LoggedOut ->
-                [text "Logged Out"]
+                [ text "Logged Out", br [] [], toLandingPageButton ]
 
 
 loggedInView : ClientModel -> ( LoggedInState, LoggedIn ) -> List (Html Msg)
@@ -105,7 +105,12 @@ loggedInView model ( loggedInState, loggedIn ) =
                                    ]
                     )
                 ]
-                    ++ [ openNewGameButton, br [] [], playerHomeRefreshButton ]
+                    ++ [ openNewGameButton
+                       , br [] []
+                       , playerHomeRefreshButton
+                       , br [] []
+                       , logoutButton
+                       ]
 
             GameConnectPending ->
                 []

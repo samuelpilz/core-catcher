@@ -24,7 +24,10 @@ library
                      , App.App
                      , App.AppUtils
                      , App.State
+                     , App.ConnectionState
+                     , App.Connection
                      , App.ConnectionMgnt
+                     , EntityMgnt
                      , App.GameMgnt
                      , TH.MonoDerive
                      , TH.TypeFamily

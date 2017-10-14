@@ -63,6 +63,9 @@ update msg state =
 updateLandingArea : Msg -> ClientModel -> ( LandingAreaState, LandingArea ) -> ( ClientModel, Cmd Msg )
 updateLandingArea msg state ( landingAreaState, landingArea ) =
     case ( msg, landingAreaState ) of
+        ( ToLandingPage, _ ) ->
+            { state | state = LandingArea_ LandingConnected landingArea } ! []
+
         ( MsgFromServer ServerHello, Landing ) ->
             { state | state = LandingArea_ LandingConnected landingArea } ! []
 
@@ -107,9 +110,6 @@ updateLandingArea msg state ( landingAreaState, landingArea ) =
         ( _, LoginPending_ loginPending ) ->
             updateLoginPending msg state landingArea loginPending
 
-        ( ToLandingPage, LoginFailed ) ->
-            { state | state = LandingArea_ LandingConnected landingArea } ! []
-
         ( _, _ ) ->
             state ! []
 
@@ -151,6 +151,10 @@ updateLoggedIn msg state ( loggedInState, loggedIn ) =
 
         ( ToHome, _ ) ->
             { state | state = LoggedIn_ InPlayerHome loggedIn } ! []
+
+        ( DoLogout, _ ) ->
+            { state | state = LandingArea_ LoggedOut { playerNameField = "" } }
+                ! [ sendProtocolMsg state.server Logout ]
 
         ( _, InPlayerHome ) ->
             updatePlayerHome msg state ( loggedInState, loggedIn )
@@ -437,15 +441,32 @@ updateInGame msg state ( inGameState, inGame ) =
         ( MsgFromServer (ServerError_ (GameError_ err)), GameActive_ ActionPending gameActive ) ->
             { state | state = InGame_ (GameActive_ YourTurn gameActive) inGame } ! []
 
-        ( MsgFromServer (GameOverView_ _), GameActive_ _ gameActive ) ->
-            { state
-                | state =
-                    LoggedIn_ (GameOver_ { networkModel = gameActive.networkModel })
-                        { player = inGame.player
-                        , playerHomeContent = emptyPlayerHomeContent
-                        }
-            }
-                ! []
+        ( MsgFromServer (GameOverView_ gameOverView), GameActive_ _ gameActive ) ->
+            let
+                networkModel =
+                    gameActive.networkModel
+
+                newNetworkModel =
+                    { networkModel
+                        | playerPositions = gameOverView.gameOverViewPlayerPositions
+                        , playerEnergies = gameOverView.gameOverViewPlayerEnergies
+                        , rogueHistory = OpenHistory gameOverView.gameOverViewRogueHistory
+                        , nextPlayer = Nothing
+                        , selectedEnergy = Nothing
+                        , activeAnimations =
+                            updateActiveAnimations
+                                networkModel
+                                gameOverView.gameOverViewPlayerPositions
+                    }
+            in
+                { state
+                    | state =
+                        LoggedIn_ (GameOver_ { networkModel = gameActive.networkModel })
+                            { player = inGame.player
+                            , playerHomeContent = emptyPlayerHomeContent
+                            }
+                }
+                    ! []
 
         ( MsgFromServer ServerHello, GameActive_ _ _ ) ->
             { state | state = InGame_ GameServerReconnected inGame } ! []
@@ -494,7 +515,6 @@ updateInGame msg state ( inGameState, inGame ) =
         --            }
         --                ! []
         ( _, _ ) ->
-            -- TODO: handle internal error?
             state ! []
 
 
@@ -521,6 +541,7 @@ sendProtocolMsg server msg =
         << jsonEncMessageForServer
     <|
         log "ws-send" msg
+
 
 
 --sendProtocolMsgMay : Maybe MessageForServer -> Cmd a

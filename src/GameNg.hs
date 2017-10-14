@@ -31,6 +31,7 @@ startGame gen GameLobby{ gameLobbyGameName, gameLobbyConnectedPlayers } =
             return . initialStateFromConfig $ defaultConfigForPlayers gen gameLobbyGameName ps
         Nothing -> Left GameIsOver -- TODO: better err msg
 
+-- TODO: lift to ExceptT
 -- |Add an action for the running game.
 actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
 actionForGameRunning

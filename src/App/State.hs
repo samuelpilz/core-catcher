@@ -1,59 +1,51 @@
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module App.State where
 
-import           App.ConnectionMgnt
-import           App.GameMgnt
+import           App.ConnectionState
 import           ClassyPrelude
-import           Network.Protocol   (Player)
+import           EntityMgnt
+import           GameState
+import           Network.Protocol
 
+newtype ConnectionId = ConnectionId Int
+    deriving (Show, Eq, Ord)
+
+-- TODO: think about multi-connections
 data ServerState conn =
     ServerState
-        { serverStateConnections :: ClientConnections conn ConnectionState
-        , serverStateGameStates  :: GameStates
+        { serverStateConnections :: Entities ConnectionId (ConnectionInfo conn)
+        , serverStateGameStates  :: Entities GameId GameState
         , serverStatePlayerMap   :: Map Player ConnectionId
         }
 
--- TODO: ADT for connection states
-data ConnectionState =
-    ConnectionState
-        { connectionLoggedInPlayer :: Maybe Player
-        , connectionInGame         :: Maybe GameId
-        }
+instance EntityId GameId where
+    getFirstId = GameId 0
+    getNextId (GameId n) = GameId $ n+1
 
-setConnectionLoggedInPlayer :: Player -> ConnectionState -> ConnectionState
-setConnectionLoggedInPlayer player state = state { connectionLoggedInPlayer = Just player }
+instance EntityId ConnectionId where
+    getFirstId = ConnectionId 0
+    getNextId (ConnectionId n) = ConnectionId $ n+1
 
-connectionLogoutPlayer :: ConnectionState -> ConnectionState
-connectionLogoutPlayer state = state { connectionLoggedInPlayer = Nothing }
+instance HasEntities (ServerState conn) ConnectionId where
+    type Entity (ServerState conn) ConnectionId = ConnectionInfo conn
+    getEntities = serverStateConnections
+    setEntities conns state = state { serverStateConnections = conns }
 
-setConnectionInGame :: GameId -> ConnectionState -> ConnectionState
-setConnectionInGame gameId state = state { connectionInGame = Just gameId }
-
-instance IsConnection conn => HasConnections (ServerState conn) where
-    type Conn (ServerState conn) = conn
-    type ConnState (ServerState conn) = ConnectionState
-
-    getConnections =
-        serverStateConnections
-
-    setConnections conns state =
-        state { serverStateConnections = conns }
-
-instance HasGameStates (ServerState conn) where
-    getGameStates = serverStateGameStates
-    setGameStates states state = state { serverStateGameStates = states }
-
-instance IsConnectionState ConnectionState where
-    newConnectionState = ConnectionState Nothing Nothing
+instance HasEntities (ServerState conn) GameId where
+    type Entity (ServerState conn) GameId = GameState
+    getEntities = serverStateGameStates
+    setEntities states state = state { serverStateGameStates = states }
 
 defaultInitialState :: ServerState conn
 defaultInitialState =
     ServerState
-        { serverStateConnections = ClientConnections mempty 0
-        , serverStateGameStates = GameStates mempty 0
+        { serverStateConnections = emptyEntities
+        , serverStateGameStates = emptyEntities
         , serverStatePlayerMap = mempty
         }
 

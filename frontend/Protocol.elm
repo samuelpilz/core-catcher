@@ -477,6 +477,7 @@ type MessageForServer  =
     | StartGame 
     | JoinGame_ JoinGame
     | PlayerHomeRefresh 
+    | Logout 
 
 jsonDecMessageForServer : Json.Decode.Decoder ( MessageForServer )
 jsonDecMessageForServer =
@@ -487,6 +488,7 @@ jsonDecMessageForServer =
             , ("StartGame", Json.Decode.succeed StartGame)
             , ("JoinGame_", Json.Decode.map JoinGame_ (jsonDecJoinGame))
             , ("PlayerHomeRefresh", Json.Decode.succeed PlayerHomeRefresh)
+            , ("Logout", Json.Decode.succeed Logout)
             ]
     in  decodeSumObjectWithSingleField  "MessageForServer" jsonDecDictMessageForServer
 
@@ -499,6 +501,7 @@ jsonEncMessageForServer  val =
                     StartGame  -> ("StartGame", encodeValue (Json.Encode.list []))
                     JoinGame_ v1 -> ("JoinGame_", encodeValue (jsonEncJoinGame v1))
                     PlayerHomeRefresh  -> ("PlayerHomeRefresh", encodeValue (Json.Encode.list []))
+                    Logout  -> ("Logout", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 

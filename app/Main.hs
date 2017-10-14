@@ -12,10 +12,12 @@ https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
 module Main where
 
 import           App.App
-import           App.ConnectionMgnt
+import           App.Connection
+import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
 import qualified Control.Exception              as Exception
+import           EntityMgnt
 import qualified Network.Protocol               as Protocol
 import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Application.Static as WaiStatic
@@ -46,23 +48,26 @@ wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
     let wsConn = WsConnection conn
     WS.forkPingThread conn 30
-    cId <- atomically $ connectClient stateVar wsConn -- call to ConnectionMgnt
+    -- TODO: replace
+    cId <- atomically $ do
+        state <- readTVar stateVar
+        let (cId, newState) = addEntity (newConnectionInfo wsConn) state
+        writeTVar stateVar newState
+        return cId
     putStrLn $ "connect " ++ tshow cId
     sendSendableMsg wsConn Protocol.ServerHello
 
     Exception.finally
         (wsListen (cId, wsConn) stateVar)
-        (cleanOnCloseConnection stateVar cId) -- call to ConnectionMgnt
-
+        (cleanOnCloseConnection stateVar cId)
 
 wsListen :: IsConnection conn => (ConnectionId, conn) -> TVar (ServerState conn) -> IO ()
 wsListen (cId, client) stateVar =
     handle handler . forever $ do
         maybeMsg <- recvMsg client
         case maybeMsg of
-            Just msg -> do
+            Just msg ->
                 handleClientMsg stateVar cId msg
-                return ()
 
             Nothing -> do
                 sendSendableMsg client Protocol.ClientMsgError
@@ -73,5 +78,9 @@ wsListen (cId, client) stateVar =
 
 cleanOnCloseConnection :: TVar (ServerState WsConnection) -> ConnectionId -> IO ()
 cleanOnCloseConnection stateVar cId = do
-    atomically $ disconnectClient stateVar cId
+    atomically $ do
+        state <- readTVar stateVar
+        let (newState, _) = removeEntity cId state
+        writeTVar stateVar newState
+
     putStrLn $ "disconnect " ++ tshow cId
