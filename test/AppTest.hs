@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
 {- |Module for testing the app module.
@@ -34,21 +35,72 @@ import           Test.HUnit.Base
 
 
 
-test_loginRogue_initialInfo :: IO ()
-test_loginRogue_initialInfo =
+test_login_playerHome :: IO ()
+test_login_playerHome =
     appTestCase
-        initialStateWith3Connections
+        initialStateWithConnection
         [(ConnectionId 0, Login_ . Login $ alice)]
         assertions
     where
-        assertions (msgs, _) = do
+        assertions (msgs, state) = do
             [ConnectionId 0] @?= map fst msgs
+            mapFromList [(alice, ConnectionId 0)] @?= serverStatePlayerMap state
             case snd . headEx $ msgs of
-                PlayerHome_ _ ->return ()
+                PlayerHome_ playerHome ->
+                    PlayerHome
+                        { playerHomePlayer = alice
+                        , activeLobbies = []
+                        , activeGames = []}
+                        @?=
+                        playerHome
                 msg ->
                     assertFailure $
                         "should have sent PlayerHome to alice, but sent "
                         ++ show msg
+
+
+test_logout_notLoggedIn :: IO ()
+test_logout_notLoggedIn =
+    appTestCase
+        initialStateWithConnection
+        [(ConnectionId 0, Logout)]
+        assertions
+    where
+        assertions (msgs, _) =
+            [(ConnectionId 0, ServerError_ NotLoggedIn)] @?= msgs
+
+
+test_logout_loggedOut :: IO ()
+test_logout_loggedOut =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, Logout)
+        , (ConnectionId 0, Logout) -- to test that logout worked
+        ]
+        assertions
+    where
+        assertions (msgs, _) =
+            [(ConnectionId 0, ServerError_ NotLoggedIn)] @?= msgs
+
+test_createGame :: IO ()
+test_createGame =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"}) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            [(ConnectionId 0, GameLobbyView_ $ GameLobbyView "new-game" [alice])] @?= msgs
+
+test_createGame_notLoggedIn :: IO ()
+test_createGame_notLoggedIn =
+    appTestCase
+        initialStateWithConnection
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"}) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            [(ConnectionId 0, ServerError_ NotLoggedIn)] @?= msgs
 
 -- TODO: reuse assertions for other cases
 --         assertions state = do
@@ -218,9 +270,9 @@ handleMultipleMsgs gen initialState =
             => ([(ConnectionId, MessageForClient)], ServerState conn, gen)
             -> (ConnectionId, MessageForServer)
             -> ([(ConnectionId, MessageForClient)], ServerState conn, gen)
-        foldF (clientMsg, state, gen) (cId,msg) =
+        foldF (clientMsg, state, g) (cId,msg) =
             let
-                (g1, g2) = Random.split gen
+                (g1, g2) = Random.split g
                 (newClientMsgs, newState) = handleOneMsg g1 cId msg state
             in (clientMsg ++ newClientMsgs, newState, g2)
 
@@ -240,6 +292,19 @@ handleOneMsg gen cId msg serverState =
        Right toSend ->
            (toSend, newServerState)
 
+
+initialStateWithConnection :: ServerState ()
+initialStateWithConnection = State.execState (do
+        ConnectionId _ <- addEntityS $ newConnectionInfo ()
+        return ()
+    ) defaultInitialState
+
+initialStateWithLogin :: ServerState ()
+initialStateWithLogin =
+    modifyEntity
+        (ConnectionId 0)
+        (setConnectionLoggedInPlayer alice)
+        initialStateWithConnection
 
 initialStateWith3Connections :: ServerState ()
 initialStateWith3Connections = State.execState (do

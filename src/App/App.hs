@@ -28,50 +28,8 @@ import           App.AppUtils
 * message for leaving a game??
 * validation playerId matches connection-origin
 * ban lists and use sequences or Foldable / MonoFoldable
-* exception handling using ExceptT in handleMsgStm
 * move the utils to own modules
-* maybe use state-monad instead of stm?
 -}
-
--- TODO: rename to handleMsgIO
--- handleClientMsg
---     :: IsConnection conn
---     => TVar (ServerState conn)
---     -> ConnectionId
---     -> MessageForServer
---     -> IO ()
--- handleClientMsg serverStateVar cId msg = do
---     putStrLn $ tshow cId ++ " -> " ++ tshow msg
---
---     gen <- newStdGen
---     (toSend, serverState) <- atomically $ handleMsgStm gen serverStateVar cId msg
---
---     mapM_
---         (\(connId, connInfo, m) -> do -- IO monad
---             putStrLn $ tshow connId ++ " <- " ++ tshow m
---             sendSendableMsg (connection connInfo) m
---         ) .
---         mapMaybe
---             (\(cIdToSend, m) -> do -- maybe monad
---                 connInfo :: ConnectionInfo conn <- findEntityById cIdToSend serverState
---                 return (cIdToSend, connInfo, m)
---             ) $
---         toSend
---
--- -- |handles a single message and saves the new state
--- handleMsgStm :: RandomGen gen => gen -> TVar (ServerState conn) -> ConnectionId -> MessageForServer
---     -> STM ([(ConnectionId, MessageForClient)], ServerState conn)
--- handleMsgStm gen serverStateVar cId msg = do -- STM monad
---     serverState <- readTVar serverStateVar
---     let (updateResult, newServerState) =
---             runState (runExceptT $ handleMsgState gen cId msg) serverState
---     case updateResult of
---         Left err ->
---             return (msgForOne cId $ ServerError_ err, serverState)
---         Right toSend -> do
---             writeTVar serverStateVar newServerState
---             return (toSend, newServerState)
-
 
 -- TODO: tests
 handleMsgState
