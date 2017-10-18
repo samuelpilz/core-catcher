@@ -4,15 +4,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
-module App.App (handleClientMsg, handleMsgStm) where
+module App.App (handleMsgState) where
 
 import           App.Connection
 import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
 import           Control.Error.Safe         (tryRight)
-import           Control.Error.Util         ((??), (!?))
-import           Control.Monad.State        (State, runState)
+import           Control.Error.Util         ((!?), (??))
+import           Control.Monad.State        (State)
 import qualified Control.Monad.State        as State
 import           Control.Monad.Trans.Except
 import           Data.Easy                  (mapLeft)
@@ -20,7 +20,7 @@ import           EntityMgnt
 import qualified GameNg                     as Game
 import           GameState
 import           Network.Protocol
-import           System.Random              (RandomGen, newStdGen)
+import           System.Random              (RandomGen)
 
 import           App.AppUtils
 
@@ -33,43 +33,45 @@ import           App.AppUtils
 * maybe use state-monad instead of stm?
 -}
 
-handleClientMsg
-    :: IsConnection conn
-    => TVar (ServerState conn)
-    -> ConnectionId
-    -> MessageForServer
-    -> IO ()
-handleClientMsg serverStateVar cId msg = do
-    putStrLn $ tshow cId ++ " -> " ++ tshow msg
+-- TODO: rename to handleMsgIO
+-- handleClientMsg
+--     :: IsConnection conn
+--     => TVar (ServerState conn)
+--     -> ConnectionId
+--     -> MessageForServer
+--     -> IO ()
+-- handleClientMsg serverStateVar cId msg = do
+--     putStrLn $ tshow cId ++ " -> " ++ tshow msg
+--
+--     gen <- newStdGen
+--     (toSend, serverState) <- atomically $ handleMsgStm gen serverStateVar cId msg
+--
+--     mapM_
+--         (\(connId, connInfo, m) -> do -- IO monad
+--             putStrLn $ tshow connId ++ " <- " ++ tshow m
+--             sendSendableMsg (connection connInfo) m
+--         ) .
+--         mapMaybe
+--             (\(cIdToSend, m) -> do -- maybe monad
+--                 connInfo :: ConnectionInfo conn <- findEntityById cIdToSend serverState
+--                 return (cIdToSend, connInfo, m)
+--             ) $
+--         toSend
+--
+-- -- |handles a single message and saves the new state
+-- handleMsgStm :: RandomGen gen => gen -> TVar (ServerState conn) -> ConnectionId -> MessageForServer
+--     -> STM ([(ConnectionId, MessageForClient)], ServerState conn)
+-- handleMsgStm gen serverStateVar cId msg = do -- STM monad
+--     serverState <- readTVar serverStateVar
+--     let (updateResult, newServerState) =
+--             runState (runExceptT $ handleMsgState gen cId msg) serverState
+--     case updateResult of
+--         Left err ->
+--             return (msgForOne cId $ ServerError_ err, serverState)
+--         Right toSend -> do
+--             writeTVar serverStateVar newServerState
+--             return (toSend, newServerState)
 
-    gen <- newStdGen
-    (toSend, serverState) <- atomically $ handleMsgStm gen serverStateVar cId msg
-
-    mapM_
-        (\(connId, connInfo, m) -> do -- IO monad
-            putStrLn $ tshow connId ++ " <- " ++ tshow m
-            sendSendableMsg (connection connInfo) m
-        ) .
-        mapMaybe
-            (\(cIdToSend, m) -> do -- maybe monad
-                connInfo :: ConnectionInfo conn <- findEntityById cIdToSend serverState
-                return (cIdToSend, connInfo, m)
-            ) $
-        toSend
-
--- |handles a single message and saves the new state
-handleMsgStm :: RandomGen gen => gen -> TVar (ServerState conn) -> ConnectionId -> MessageForServer
-    -> STM ([(ConnectionId, MessageForClient)], ServerState conn)
-handleMsgStm gen serverStateVar cId msg = do -- STM monad
-    serverState <- readTVar serverStateVar
-    let (updateResult, newServerState) =
-            runState (runExceptT $ handleMsgState gen cId msg) serverState
-    case updateResult of
-        Left err ->
-            return (msgForOne cId $ ServerError_ err, serverState)
-        Right toSend -> do
-            writeTVar serverStateVar newServerState
-            return (toSend, newServerState)
 
 -- TODO: tests
 handleMsgState

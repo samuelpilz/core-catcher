@@ -22,6 +22,7 @@ library
                      , Config.Network
                      , Config.GameConfig
                      , App.App
+                     , App.AppRunner
                      , App.AppUtils
                      , App.State
                      , App.ConnectionState
@@ -109,6 +110,8 @@ test-suite core-catcher-test
                      , data-easy
                      , extra
                      , random
+                     , mtl
+                     , transformers
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

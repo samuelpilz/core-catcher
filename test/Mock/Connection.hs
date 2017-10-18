@@ -13,6 +13,7 @@ import           Control.Monad.Extra (whenJust)
 import           Network.Protocol
 import           Test.Framework
 
+
 data FakeConnection =
     FakeConnection
         { sendBuffer :: TVar (Maybe MessageForClient)

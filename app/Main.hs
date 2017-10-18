@@ -11,7 +11,7 @@ https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
 
 module Main where
 
-import           App.App
+import           App.AppRunner
 import           App.Connection
 import           App.ConnectionState
 import           App.State
@@ -67,7 +67,7 @@ wsListen (cId, client) stateVar =
         maybeMsg <- recvMsg client
         case maybeMsg of
             Just msg ->
-                handleClientMsg stateVar cId msg
+                handleMsgIO stateVar cId msg
 
             Nothing -> do
                 sendSendableMsg client Protocol.ClientMsgError
