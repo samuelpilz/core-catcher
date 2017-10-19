@@ -44,7 +44,6 @@ distributeInitialInfosForGameRunning gameRunning serverState =
             return (cId, InitialInfoGameActive_ $ initialInfoGameActiveFromGameRunning gameRunning p)
         ) .
         toList .
-        toNullable .
         players .
         gameRunningGameConfig $
         gameRunning

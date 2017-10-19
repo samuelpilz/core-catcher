@@ -11,6 +11,7 @@ import           Data.List         (cycle)
 import           Network.Protocol
 
 data GameState = GameLobby_ GameLobby | GameRunning_ GameRunning | GameOver_ GameOver
+    deriving (Eq, Show)
 
 data GameLobby =
     GameLobby

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -24,9 +25,8 @@ import           Control.Monad.State        (runState)
 import qualified Control.Monad.State        as State
 import           Control.Monad.Trans.Except
 import           Data.Easy                  (tripleToPair)
-import           Data.Maybe                 (fromJust)
 import           EntityMgnt
-import           Mock.Connection
+import           GameState
 import           Network.Protocol
 import           System.Random              (RandomGen, mkStdGen)
 import qualified System.Random              as Random
@@ -39,7 +39,7 @@ test_login_playerHome :: IO ()
 test_login_playerHome =
     appTestCase
         initialStateWithConnection
-        [(ConnectionId 0, Login_ . Login $ alice)]
+        [(ConnectionId 0, Login_ $ Login alice)]
         assertions
     where
         assertions (msgs, state) = do
@@ -89,8 +89,16 @@ test_createGame =
         [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"}) ]
         assertions
     where
-        assertions (msgs, _) =
+        assertions (msgs, state) = do
             [(ConnectionId 0, GameLobbyView_ $ GameLobbyView "new-game" [alice])] @?= msgs
+            Just (GameLobby_
+                GameLobby
+                    { gameLobbyGameName = "new-game"
+                    , gameLobbyConnectedPlayers = [alice]
+                     }
+                )
+                @?= findEntityById (GameId 0) state
+
 
 test_createGame_notLoggedIn :: IO ()
 test_createGame_notLoggedIn =
@@ -101,6 +109,48 @@ test_createGame_notLoggedIn =
     where
         assertions (msgs, _) =
             [(ConnectionId 0, ServerError_ NotLoggedIn)] @?= msgs
+
+test_startGame :: IO ()
+test_startGame =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
+        , (ConnectionId 0, StartGame)
+        ]
+        assertions
+    where
+        assertions (msgs, state) =do
+            case headEx msgs of
+                (ConnectionId 0, GameLobbyView_ _) ->
+                    return ()
+                _ -> assertFailure "not sent lobby view"
+
+-- TODO: extract to own test
+            case findEntityById (GameId 0) state :: Maybe GameState of
+                Just (GameRunning_ gameRunning) -> do
+                    [alice] @?= (toList . players . gameRunningGameConfig $ gameRunning)
+                    [ConnectionId 0] @?=
+                        (map fst .
+                            distributeInitialInfosForGameRunning gameRunning $
+                            state
+                        )
+                Just game ->
+                    assertFailure $ "game in wrong state" ++ show game
+                Nothing -> assertFailure "no game added"
+
+            case msgs of
+                [_, _] -> return ()
+                [_] -> assertFailure "only got lobby-view-message"
+                _ -> assertFailure $ "expected exactly 2 messages but got: " ++ show msgs
+
+            case lastEx msgs of
+                (ConnectionId 0, InitialInfoGameActive_ _) -> return ()
+                (ConnectionId cId, msg) -> assertFailure $
+                    "expect initial info to client 0 but got "
+                    ++ show msg
+                    ++ " to client "
+                    ++ show cId
+
 
 -- TODO: reuse assertions for other cases
 --         assertions state = do
@@ -292,6 +342,13 @@ handleOneMsg gen cId msg serverState =
        Right toSend ->
            (toSend, newServerState)
 
+prepareState
+    :: RandomGen gen
+    => gen
+    -> [(ConnectionId, MessageForServer)]
+    -> ServerState conn
+    -> ServerState conn
+prepareState gen msgs state = snd . handleMultipleMsgs gen state $ msgs
 
 initialStateWithConnection :: ServerState ()
 initialStateWithConnection = State.execState (do
@@ -301,9 +358,8 @@ initialStateWithConnection = State.execState (do
 
 initialStateWithLogin :: ServerState ()
 initialStateWithLogin =
-    modifyEntity
-        (ConnectionId 0)
-        (setConnectionLoggedInPlayer alice)
+    prepareState (mkStdGen 44)
+        [(ConnectionId 0, Login_ $ Login alice)]
         initialStateWithConnection
 
 initialStateWith3Connections :: ServerState ()
