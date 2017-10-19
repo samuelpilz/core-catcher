@@ -92,12 +92,10 @@ test-suite core-catcher-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             TestMain.hs
-  other-modules:       ProtocolTest
-                     , ConnectionMgntTest
+  other-modules:       ConnectionMgntTest
                      , Mock.Connection
                      , GameNgTest
                      , AppTest
-                     , GameConfigTest
   build-depends:       base
                      , core-catcher
                      , classy-prelude

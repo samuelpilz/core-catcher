@@ -28,25 +28,25 @@ This class is a semantic protocol definition. The data-types are sent in json fo
 -- |Players have names
 newtype Player =
     Player { playerName :: Text }
-    deriving (Show, Read, Eq, Ord, Generic)
+    deriving (Show, Eq, Ord, Generic)
 
 -- |Nodes are ints (ids)
 newtype Node =
     Node { nodeId :: Int }
-    deriving (Show, Read, Eq, Ord, Generic)
+    deriving (Show, Eq, Ord, Generic)
 
 -- |Edge is a tuple of two Nodes
 newtype Edge =
     Edge { edge :: (Node, Node) }
-    deriving (Show, Read, Eq, Ord, Generic)
+    deriving (Show, Eq, Ord, Generic)
 
 -- |Energy is a enum of possible energies.
 data Energy = Red | Blue | Orange
-    deriving (Show, Read, Eq, Ord, Generic, Enum, Bounded)
+    deriving (Show, Eq, Ord, Generic, Enum, Bounded)
 
 -- TODO: implement Num for that
 newtype GameId = GameId { gameId :: Int }
-    deriving (Show, Read, Eq, Ord, Generic)
+    deriving (Show, Eq, Ord, Generic)
 
 {- |An energy-map keeps track how much energy per energy a player has left.
 -}
@@ -54,7 +54,7 @@ newtype EnergyMap =
     EnergyMap
         { energyMap :: Map Energy Int
         }
-        deriving (Show, Read, Eq, Generic)
+        deriving (Show, Eq, Generic)
 
 -- |A GameError is a enum of possible errors
 data GameError
@@ -66,7 +66,7 @@ data GameError
     | NotEnoughEnergy
     | GameIsOver
     | GameNotStarted
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
 -}
@@ -74,7 +74,7 @@ newtype PlayerEnergies =
     PlayerEnergies
         { playerEnergies :: Map Player EnergyMap
         }
-        deriving (Show, Read, Eq, Generic)
+        deriving (Show, Eq, Generic)
 
 {- |An action is something one of the players can do.
 Currently this is only a move, but this may be expanded in the future.
@@ -85,7 +85,7 @@ data Action =
         , actionEnergy :: Energy
         , actionNode   :: Node
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |The playerPositions map keeps track of the current nodes each player is on.
 
@@ -96,7 +96,7 @@ newtype PlayerPositions =
     PlayerPositions
         { playerPositions :: Map Player Node -- ^player 0 is the rogue core
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |The history of energies used by the rouge core where the position is sometimes revealed.
 
@@ -107,7 +107,7 @@ newtype ShadowRogueHistory =
     ShadowRogueHistory
         { shadowRogueHistory :: [(Energy, Maybe Node)]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |The history of energies used by the rogue together with all nodes
 
@@ -118,13 +118,13 @@ newtype OpenRogueHistory =
     OpenRogueHistory
         { openRogueHistory :: [(Energy, Node, Bool)]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 
 data RogueHistory
     = OpenHistory OpenRogueHistory
     | ShadowHistory ShadowRogueHistory
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |A game view as seen by the rouge-core.
 -}
@@ -135,7 +135,7 @@ data RogueGameView =
         , rogueOwnHistory      :: ShadowRogueHistory
         , rogueNextPlayer      :: Player
         }
-    deriving (Show, Read,  Eq, Generic)
+    deriving (Show,  Eq, Generic)
 
 {- |A game view as seen by the catchers
 -}
@@ -146,7 +146,7 @@ data CatcherGameView =
         , catcherRogueHistory    :: ShadowRogueHistory
         , catcherNextPlayer      :: Player
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |A view for the game-over screen
 -}
@@ -161,7 +161,7 @@ data GameOverView =
         , gameOverViewAllEnergies     :: [Energy]
         , gameOverViewGameName        :: Text
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state.
@@ -171,7 +171,7 @@ Views can contain different information based on the receiver.
 -}
 data GameView =
     RogueView RogueGameView | CatcherView CatcherGameView
-    deriving (Show, Read,  Eq, Generic)
+    deriving (Show,  Eq, Generic)
 
 viewPlayerPositions :: GameView -> PlayerPositions
 viewPlayerPositions (CatcherView view) = catcherPlayerPositions view
@@ -202,7 +202,7 @@ data Network =
         { nodes    :: [Node]
         , overlays :: Map Energy NetworkOverlay
         }
-        deriving (Show, Read, Eq, Generic)
+        deriving (Show, Eq, Generic)
 
 
 {- |NetworkOverlay: Sub-Graph that contains several nodes
@@ -213,7 +213,7 @@ data NetworkOverlay =
         { overlayNodes :: [Node] -- ^the contained nodes in the Overlay.
         , overlayEdges :: [Edge] -- ^The edges must only connect the nodes contained in the first list.
         }
-        deriving (Show, Read, Eq, Generic)
+        deriving (Show, Eq, Generic)
 
 {- | InitialDataForClient the initial info the client gets after login
 
@@ -229,28 +229,28 @@ data InitialInfoGameActive =
         , initialInfoAllEnergies :: [Energy]
         , initialInfoGameName    :: Text
         }
-        deriving (Show, Read, Eq, Generic)
+        deriving (Show, Eq, Generic)
 
 
 newtype Login =
     Login
         { loginPlayer :: Player
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 
 newtype LoginFail =
     LoginFail
         { loginFailPlayer :: Player
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data GameLobbyView =
     GameLobbyView
         { gameLobbyViewGameName :: Text
         , gameLobbyViewPlayers  :: [Player]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data GameLobbyPreview =
     GameLobbyPreview
@@ -258,7 +258,7 @@ data GameLobbyPreview =
         , gameLobbyPreviewGameName :: Text
         , gameLobbyPreviewPlayers  :: [Player]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data GamePreview =
     GamePreview
@@ -266,7 +266,7 @@ data GamePreview =
         , gamePreviewGameName :: Text
         , gamePreviewPlayers  :: [Player]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data PlayerHome =
     PlayerHome
@@ -274,19 +274,19 @@ data PlayerHome =
         , activeGames      :: [GamePreview]
         , activeLobbies    :: [GameLobbyPreview]
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 newtype CreateNewGame =
     CreateNewGame
         { createGameName :: Text
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 newtype JoinGame =
     JoinGame
         { joinGameId :: GameId
         }
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data ServerError
     = NoSuchGame GameId
@@ -296,7 +296,7 @@ data ServerError
     | GameAlreadyStarted
     | NoSuchConnection
     | GameError_ GameError
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 
 data MessageForServer
@@ -307,7 +307,7 @@ data MessageForServer
     | JoinGame_ JoinGame
     | PlayerHomeRefresh
     | Logout
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 data MessageForClient
     = ServerHello
@@ -318,7 +318,7 @@ data MessageForClient
     | GameOverView_ GameOverView
     | GameLobbyView_ GameLobbyView
     | ServerError_ ServerError
-    deriving (Show, Read, Eq, Generic)
+    deriving (Show, Eq, Generic)
 
 -- |class for messages sendable to the client
 class SendableToClient msg where

@@ -18,7 +18,7 @@ data GameLobby =
         { gameLobbyGameName         :: Text
         , gameLobbyConnectedPlayers :: [Player]
         }
-    deriving (Eq, Show, Read)
+    deriving (Eq, Show)
 
 data GameRunning =
     GameRunning
@@ -28,7 +28,7 @@ data GameRunning =
         , gameRunningOpenRogueHistory :: OpenRogueHistory
         , gameRunningNextPlayers      :: [Player]
         }
-    deriving (Eq, Show, Read)
+    deriving (Eq, Show)
 
 -- |Function to access the shadowed version of the rogueHistory
 gameRunningRogueHistory :: GameRunning -> ShadowRogueHistory
@@ -50,7 +50,7 @@ data GameOver =
         , gameOverRogueHistory    :: OpenRogueHistory
         , gameOverWinningPlayer   :: Player
         }
-    deriving (Eq, Show, Read)
+    deriving (Eq, Show)
 
 -- |The initial state of the game
 initialStateFromConfig :: GameConfig -> GameRunning

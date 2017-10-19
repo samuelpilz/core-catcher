@@ -26,7 +26,7 @@ data GameConfig =
         , network                :: Network
         , gameName               :: Text
         }
-    deriving (Eq, Show, Read)
+    deriving (Eq, Show)
 
 getRogue :: GameConfig -> Player
 getRogue = head . players

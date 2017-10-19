@@ -6,7 +6,6 @@
 
 module App.App (handleMsgState) where
 
-import           App.Connection
 import           App.ConnectionState
 import           App.State
 import           ClassyPrelude

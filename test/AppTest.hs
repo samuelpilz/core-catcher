@@ -166,7 +166,6 @@ test_startGame_gameStartedInState =
                 Nothing -> assertFailure "no game added"
 
 
-
 test_joinGame_lobbySentToAll :: IO ()
 test_joinGame_lobbySentToAll =
     appTestCase
@@ -188,6 +187,17 @@ test_joinGame_lobbySentToAll =
                 )
                 msgs
             map fst msgs @?= [ConnectionId 0, ConnectionId 1]
+
+
+test_joinGame_notLoggedIn_serverErrorMsg :: IO ()
+test_joinGame_notLoggedIn_serverErrorMsg =
+    appTestCase
+        initialStateWithConnection
+        [ (ConnectionId 0, JoinGame_ . JoinGame $ GameId 0) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 0, ServerError_ NotLoggedIn)]
 
 
 test_joinGame_playerAddedToLobby :: IO ()
