@@ -68,7 +68,7 @@ after_script:
   - export TRAVIS_JOB_ID=${TRAVIS_BUILD_ID}
   # ignore coverage in module Network.Protocol
   - export TIX_FILE=`stack path --local-hpc-root`/core-catcher/core-catcher-test/core-catcher-test.tix
-  - hpc map --exclude="Network.Protocol" --output="$TIX_FILE~" $TIX_FILE
+  - hpc map --exclude="Network.Protocol" --exclude="GameState" --output="$TIX_FILE~" $TIX_FILE
   - mv $TIX_FILE~ $TIX_FILE
   - ~/.local/bin/shc --repo-token=${repo_token} core-catcher core-catcher-test
 

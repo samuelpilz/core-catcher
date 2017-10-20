@@ -115,56 +115,6 @@ test_createGame_notLoggedIn =
         assertions (msgs, _) =
             msgs @?= [(ConnectionId 0, ServerError_ NotLoggedIn)]
 
-test_startGame_initialInfoSent :: IO ()
-test_startGame_initialInfoSent =
-    appTestCase
-        initialStateWithLogin
-        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
-        , (ConnectionId 0, StartGame)
-        ]
-        assertions
-    where
-        assertions (msgs, _) =do
-            case headEx msgs of
-                (ConnectionId 0, GameLobbyView_ _) ->
-                    return ()
-                _ -> assertFailure "not sent lobby view"
-
-            case msgs of
-                [_, _] -> return ()
-                [_] -> assertFailure "only got lobby-view-message"
-                _ -> assertFailure $ "expected exactly 2 messages but got: " ++ show msgs
-
-            case lastEx msgs of
-                (ConnectionId 0, InitialInfoGameActive_ _) -> return ()
-                (ConnectionId cId, msg) -> assertFailure $
-                    "expect initial info to client 0 but got "
-                    ++ show msg
-                    ++ " to client "
-                    ++ show cId
-
-test_startGame_gameStartedInState :: IO ()
-test_startGame_gameStartedInState =
-    appTestCase
-        initialStateWithLogin
-        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
-        , (ConnectionId 0, StartGame)
-        ]
-        assertions
-    where
-        assertions (_, state) =
-            case findEntityById (GameId 0) state :: Maybe GameState of
-                Just (GameRunning_ gameRunning) -> do
-                    (toList . players . gameRunningGameConfig $ gameRunning) @?= [alice]
-                    [ConnectionId 0] @?=
-                        (map fst .
-                            distributeInitialInfosForGameRunning gameRunning $
-                            state
-                        )
-                Just game ->
-                    assertFailure $ "game in wrong state" ++ show game
-                Nothing -> assertFailure "no game added"
-
 
 test_joinGame_lobbySentToAll :: IO ()
 test_joinGame_lobbySentToAll =
@@ -187,6 +137,17 @@ test_joinGame_lobbySentToAll =
                 )
                 msgs
             map fst msgs @?= [ConnectionId 0, ConnectionId 1]
+
+
+test_joinGame_NoSuchGame :: IO ()
+test_joinGame_NoSuchGame =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, JoinGame_ . JoinGame $ GameId 0) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 0, ServerError_ $ NoSuchGame $ GameId 0)]
 
 
 test_joinGame_notLoggedIn_serverErrorMsg :: IO ()
@@ -216,6 +177,59 @@ test_joinGame_playerAddedToLobby =
                     gameLobbyConnectedPlayers lobby @?= [alice, bob]
                 _ ->
                     assertFailure $ "game with id 0 should be in lobby-state, but is " ++ show game
+
+
+test_startGame_initialInfoSent :: IO ()
+test_startGame_initialInfoSent =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
+        , (ConnectionId 0, StartGame)
+        ]
+        assertions
+    where
+        assertions (msgs, _) =do
+            case headEx msgs of
+                (ConnectionId 0, GameLobbyView_ _) ->
+                    return ()
+                _ -> assertFailure "not sent lobby view"
+
+            case msgs of
+                [_, _] -> return ()
+                [_] -> assertFailure "only got lobby-view-message"
+                _ -> assertFailure $ "expected exactly 2 messages but got: " ++ show msgs
+
+            case lastEx msgs of
+                (ConnectionId 0, InitialInfoGameActive_ _) -> return ()
+                (ConnectionId cId, msg) -> assertFailure $
+                    "expect initial info to client 0 but got "
+                    ++ show msg
+                    ++ " to client "
+                    ++ show cId
+
+
+test_startGame_gameStartedInServerState :: IO ()
+test_startGame_gameStartedInServerState =
+    appTestCase
+        initialStateWithLogin
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
+        , (ConnectionId 0, StartGame)
+        ]
+        assertions
+    where
+        assertions (_, state) =
+            case findEntityById (GameId 0) state :: Maybe GameState of
+                Just (GameRunning_ gameRunning) -> do
+                    (toList . players . gameRunningGameConfig $ gameRunning) @?= [alice]
+                    [ConnectionId 0] @?=
+                        (map fst .
+                            distributeInitialInfosForGameRunning gameRunning $
+                            state
+                        )
+                Just game ->
+                    assertFailure $ "game in wrong state" ++ show game
+                Nothing -> assertFailure "no game added"
+
 
 
 -- test_startGame_multiplePlayers_initialInfoSentToAll :: IO ()
