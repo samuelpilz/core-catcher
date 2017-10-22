@@ -54,13 +54,13 @@ data GameOver =
 
 -- |The initial state of the game
 initialStateFromConfig :: GameConfig -> GameRunning
-initialStateFromConfig config =
+initialStateFromConfig config@GameConfig{players, initialPlayerPositions, initialPlayerEnergies} =
     GameRunning
         config
-        (initialPlayerPositions config)
-        (initialPlayerEnergies config)
+        initialPlayerPositions
+        initialPlayerEnergies
         (OpenRogueHistory [])
-        (cycle . toList . players $ config)
+        (take (length players * maxRounds config + 1) . cycle . toList $ players)
 
 -- |Converts the GameState into the 2 Views
 getViews :: GameRunning -> (RogueGameView, CatcherGameView)

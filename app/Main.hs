@@ -2,13 +2,6 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{-
-code taken from tutorial
-https://www.paramander.com/blog/playing-with-websockets-in-haskell-and-elm
-and code from
-https://gitlab.com/paramander/typesafe-websockets/blob/master/src/Main.hs
--}
-
 module Main where
 
 import           App.AppRunner
@@ -24,13 +17,21 @@ import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
--- import           System.Random                  (newStdGen)
 import           WsConnection
+
+import           Data.Text.IO                        (getLine)
 
 main :: IO ()
 main = do
     let initialState = defaultInitialState
     stateVar <- newTVarIO initialState
+
+    _ <- fork $ forever $ do
+        _ <- getLine
+        state <- readTVarIO stateVar
+        print . entities . serverStateGameStates $ state
+
+
     let port = 7999
     putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
 
