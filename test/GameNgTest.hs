@@ -22,12 +22,12 @@ import           Test.HUnit.Base
 -- (@?=) = assertEqual
 test_defaultInitialStateHasStartingPlayer0 :: IO ()
 test_defaultInitialStateHasStartingPlayer0 =
-    alice @?= (headEx . gameRunningNextPlayers . initialStateFromConfig $ defaultConfig)
+    (headEx . gameRunningNextPlayers . initialStateFromConfig $ defaultConfig) @?= alice
 
 test_defaultInitialStateHasEmptyHistory :: IO ()
 test_defaultInitialStateHasEmptyHistory = do
-    ShadowRogueHistory [] @?= (gameRunningRogueHistory . initialStateFromConfig $ defaultConfig)
-    OpenRogueHistory [] @?= (gameRunningOpenRogueHistory . initialStateFromConfig $ defaultConfig)
+    (gameRunningRogueHistory . initialStateFromConfig $ defaultConfig) @?= ShadowRogueHistory []
+    (gameRunningOpenRogueHistory . initialStateFromConfig $ defaultConfig) @?= OpenRogueHistory []
 
 test_player0ValidMove_playerPositionUpdated :: IO ()
 test_player0ValidMove_playerPositionUpdated =
@@ -44,7 +44,7 @@ test_player0ValidMove_playerPositionUpdated =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
-            Just (Node 6) @?= lookup alice gameRunningPlayerPositions
+            lookup alice gameRunningPlayerPositions @?= Just (Node 6)
 
 test_player0ValidMove_energyDrained :: IO ()
 test_player0ValidMove_energyDrained =
@@ -61,7 +61,7 @@ test_player0ValidMove_energyDrained =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) =
-            Just 1 @?= remainingEnergy game
+            remainingEnergy game @?= Just 1
 
         remainingEnergy GameRunning {gameRunningPlayerEnergies} = do -- maybe monad
             eMap <- lookup alice gameRunningPlayerEnergies
@@ -83,8 +83,8 @@ test_player0ValidMove_historyUpdated =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
-            OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
+            gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
+            gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
 
 
 test_player0ValidMove_historyUpdatedWithShow :: IO ()
@@ -103,8 +103,8 @@ test_player0ValidMove_historyUpdatedWithShow =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            ShadowRogueHistory [(Red, Just $ Node 6)] @?= gameRunningRogueHistory game
-            OpenRogueHistory [(Red, Node 6, True)] @?= gameRunningOpenRogueHistory game
+            gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Just $ Node 6)]
+            gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, True)]
 
 
 test_player0ValidMove_historyUpdate :: IO ()
@@ -121,8 +121,8 @@ test_player0ValidMove_historyUpdate =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
-            OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
+            gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
+            gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
 
 test_player1ValidMove_historyNotUpdated :: IO ()
 test_player1ValidMove_historyNotUpdated =
@@ -140,8 +140,8 @@ test_player1ValidMove_historyNotUpdated =
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
-            ShadowRogueHistory [(Red, Nothing)] @?= gameRunningRogueHistory game
-            OpenRogueHistory [(Red, Node 6, False)] @?= gameRunningOpenRogueHistory game
+            gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
+            gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
 
 
 test_notPlayer1Turn :: IO ()
@@ -152,7 +152,7 @@ test_notPlayer1Turn =
         assertions
     where
         moves = [ Move bob Orange (Node 5) ]
-        assertions (Left err) = NotTurn alice @?= err
+        assertions (Left err) = err @?= NotTurn alice
         assertions (Right _) = assertFailure "should not be player 1's turn"
 
 -- game over tests
@@ -175,7 +175,7 @@ test_rogueCaught_gameOverWinningPlayer1 =
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
-            bob @?= gameOverWinningPlayer
+            gameOverWinningPlayer @?= bob
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -191,7 +191,7 @@ test_rogueWins_gameOverWinningPlayer0 =
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
-            alice @?= gameOverWinningPlayer
+            gameOverWinningPlayer @?= alice
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -214,12 +214,12 @@ test_gameOver_fieldsTakenFromGame =
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ gameOver)) = do
-            Just (Node 6) @?= lookup alice (gameOverPlayerPositions gameOver)
-            Just (Node 6) @?= lookup bob (gameOverPlayerPositions gameOver)
-            Just 1 @?= (join . map (lookup Red) . lookup alice . gameOverPlayerEnergies $ gameOver)
-            config @?= gameOverGameConfig gameOver
-            OpenRogueHistory [(Red, Node 6, False)] @?= gameOverRogueHistory gameOver
-            bob @?= gameOverWinningPlayer gameOver
+            lookup alice (gameOverPlayerPositions gameOver) @?= Just (Node 6)
+            lookup bob (gameOverPlayerPositions gameOver) @?= Just (Node 6)
+            (join . map (lookup Red) . lookup alice . gameOverPlayerEnergies $ gameOver) @?= Just 1
+            gameOverGameConfig gameOver @?= config
+            gameOverRogueHistory gameOver @?= OpenRogueHistory [(Red, Node 6, False)]
+            gameOverWinningPlayer gameOver @?= bob
 
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
@@ -251,8 +251,8 @@ test_getGameOverView_fieldsSet =
                     , gameOverViewWinningPlayer
                     } = getGameOverView gameOver
             in do
-                OpenRogueHistory [ (Red, Node 6, False) ] @?= gameOverViewRogueHistory
-                bob @?= gameOverViewWinningPlayer
+                gameOverViewRogueHistory @?= OpenRogueHistory [ (Red, Node 6, False) ]
+                gameOverViewWinningPlayer @?= bob
                 when (gameOverViewPlayerPositions == mempty) $ assertFailure "player positions empty"
                 when (gameOverViewPlayerEnergies == mempty) $ assertFailure "player energies empty"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
@@ -272,7 +272,7 @@ test_playerNotFoundInPositions =
             { initialPlayerPositions = mempty }
         moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            PlayerNotFound alice @?= err
+            err @?= PlayerNotFound alice
         assertions (Right _) =
             assertFailure "should not find player"
 
@@ -287,7 +287,7 @@ test_playerNotFoundInEnergies =
             { initialPlayerEnergies = mempty }
         moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            PlayerNotFound alice @?= err
+            err @?= PlayerNotFound alice
         assertions (Right _) =
             assertFailure "should not find player"
 
@@ -303,7 +303,7 @@ test_energyNotFound =
             { initialPlayerEnergies = singletonMap alice mempty }
         moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            EnergyNotFound Red @?= err
+            err @?= EnergyNotFound Red
         assertions (Right _) =
             assertFailure "should not find energy"
 
@@ -316,7 +316,7 @@ test_cannotMoveTo =
     where
         moves = [ Move alice Orange (Node 13) ]
         assertions (Left err) =
-            NotReachable (Node 1) Orange (Node 13) @?= err
+            err @?= NotReachable (Node 1) Orange (Node 13)
         assertions (Right _) =
             assertFailure "should not be allowed to move"
 
@@ -336,7 +336,7 @@ test_noEnergyLeft =
         moves =
             [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            NotEnoughEnergy @?= err
+            err @?= NotEnoughEnergy
         assertions (Right _) =
             assertFailure "should not allow move with no energy"
 
@@ -356,7 +356,7 @@ test_nodeBlocked =
             [ Move alice Red (Node 6) -- mandatory first move from rogue
             , Move bob Blue (Node 15) ]
         assertions (Left err) =
-            NodeBlocked charlie @?= err
+            err @?= NodeBlocked charlie
         assertions (Right _) =
             assertFailure "should not allow move to blocked node"
 
@@ -375,7 +375,7 @@ test_nodeBlockedForRogue =
         moves =
             [ Move alice Red (Node 6) ]
         assertions (Left err) =
-            NodeBlocked bob @?= err
+            err @?= NodeBlocked bob
         assertions (Right _) =
             assertFailure "should not allow move to blocked node"
 
@@ -385,31 +385,31 @@ test_getViews_rogueViewEqualToFieldInGameState :: IO ()
 test_getViews_rogueViewEqualToFieldInGameState = do
     let game = initialStateFromConfig defaultConfig
     let (rogueView, _) = getViews game
-    roguePlayerPositions rogueView @?= gameRunningPlayerPositions game
-    rogueEnergies rogueView @?= gameRunningPlayerEnergies game
-    rogueOwnHistory rogueView @?= gameRunningRogueHistory game
-    rogueNextPlayer rogueView @?= headEx (gameRunningNextPlayers game)
+    gameRunningPlayerPositions game @?= roguePlayerPositions rogueView
+    gameRunningPlayerEnergies game @?= rogueEnergies rogueView
+    gameRunningRogueHistory game @?= rogueOwnHistory rogueView
+    headEx (gameRunningNextPlayers game) @?= rogueNextPlayer rogueView
 
 
 test_getViews_catcherViewDoesNotContainRogue :: IO ()
 test_getViews_catcherViewDoesNotContainRogue = do
     let (_, catcherView) = getViews $ initialStateFromConfig defaultConfig
-    Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
+    (lookup alice . catcherPlayerPositions $ catcherView) @?= Nothing
 
 
 test_getViews_someFieldsEqualToGameState :: IO ()
 test_getViews_someFieldsEqualToGameState = do
     let game = initialStateFromConfig defaultConfig
     let (_, catcherView) = getViews game
-    catcherEnergies catcherView @?= gameRunningPlayerEnergies game
-    catcherRogueHistory catcherView @?= gameRunningRogueHistory game
-    catcherNextPlayer catcherView @?= headEx (gameRunningNextPlayers game)
+    gameRunningPlayerEnergies game @?= catcherEnergies catcherView
+    gameRunningRogueHistory game @?= catcherRogueHistory catcherView
+    headEx (gameRunningNextPlayers game) @?= catcherNextPlayer catcherView
 
 
 test_getViews_rogueHiddenInCatcherView :: IO ()
 test_getViews_rogueHiddenInCatcherView = do
     let (_, catcherView) = getViews $ initialStateFromConfig defaultConfig
-    Nothing @?= (lookup alice . catcherPlayerPositions $ catcherView)
+    (lookup alice . catcherPlayerPositions $ catcherView) @?= Nothing
 
 
 test_getViews_rogueShownAtCurrentPositionInCatcherView :: IO ()
@@ -429,7 +429,7 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
-            Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
+            (lookup alice . catcherPlayerPositions $ catcherView) @?= Just (Node 6)
 
 
 test_getViews_rogueShownAtLastPositionInCatcherView :: IO ()
@@ -452,7 +452,7 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
-            Just (Node 6) @?= (lookup alice . catcherPlayerPositions $ catcherView)
+            (lookup alice . catcherPlayerPositions $ catcherView) @?= Just (Node 6)
 
 
 test_gameRound :: IO ()
@@ -483,7 +483,7 @@ test_gameRound =
                 (lookup bob . playerPositions $ gameRunningPlayerPositions)
             Just (Node 13) @?=
                 (lookup charlie . playerPositions $ gameRunningPlayerPositions)
-            alice @?= headEx gameRunningNextPlayers
+            headEx gameRunningNextPlayers @?= alice
 
 
 
