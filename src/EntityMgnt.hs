@@ -104,6 +104,9 @@ class EntityId i => HasEntities container i where
         in
             setEntities newEntities container
 
+    -- |Method for retrieving all entites
+    allEntities :: container -> [(i, Entity container i)]
+    allEntities = mapToList . entities . getEntities
 
 -- implement HasEntities for Entities themselves
 instance EntityId i => HasEntities (Entities i e) i where

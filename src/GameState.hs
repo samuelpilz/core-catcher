@@ -13,6 +13,9 @@ import           Network.Protocol
 data GameState = GameLobby_ GameLobby | GameRunning_ GameRunning | GameOver_ GameOver
     deriving (Eq, Show)
 
+data GameStateEnum = GameLobbyState | GameRunningState | GameOverState
+    deriving (Eq, Show)
+
 data GameLobby =
     GameLobby
         { gameLobbyGameName         :: Text
@@ -190,10 +193,27 @@ allPreviewInfos ((gId,s):gs) =
     where
         (lobbies, previews) = allPreviewInfos gs
 
+
 getGameLobby :: GameState -> Maybe GameLobby
 getGameLobby (GameLobby_ l) = Just l
 getGameLobby _ = Nothing
 
+
+getGameName :: GameState -> Text
+getGameName (GameLobby_ GameLobby{gameLobbyGameName}) = gameLobbyGameName
+getGameName (GameRunning_ GameRunning{gameRunningGameConfig = GameConfig{gameName}}) = gameName
+getGameName (GameOver_ GameOver{gameOverGameConfig = GameConfig{gameName}}) = gameName
+
+
+getGameStateEnum :: GameState -> GameStateEnum
+getGameStateEnum (GameLobby_ _) = GameLobbyState
+getGameStateEnum (GameRunning_ _) = GameRunningState
+getGameStateEnum (GameOver_ _) = GameOverState
+
+getGamePlayers :: GameState -> Seq Player
+getGamePlayers (GameLobby_ GameLobby{gameLobbyConnectedPlayers}) = fromList gameLobbyConnectedPlayers
+getGamePlayers (GameRunning_ GameRunning{gameRunningGameConfig = GameConfig{players}}) = toNullable players
+getGamePlayers (GameOver_ GameOver{gameOverGameConfig = GameConfig{players}}) = toNullable players
 
 lobbyAddPlayer :: Player -> GameLobby -> GameLobby
 lobbyAddPlayer p l@GameLobby{gameLobbyConnectedPlayers} =

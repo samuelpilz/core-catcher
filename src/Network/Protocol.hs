@@ -46,7 +46,7 @@ data Energy = Red | Blue | Orange
 
 -- TODO: implement Num for that
 newtype GameId = GameId { gameId :: Int }
-    deriving (Show, Eq, Ord, Generic)
+    deriving (Show, Read, Eq, Ord, Generic)
 
 {- |An energy-map keeps track how much energy per energy a player has left.
 -}

@@ -18,27 +18,23 @@ import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           WsConnection
-
-import           Data.Text.IO                        (getLine)
+import           App.Cli
 
 main :: IO ()
 main = do
     let initialState = defaultInitialState
     stateVar <- newTVarIO initialState
 
-    _ <- fork $ forever $ do
-        _ <- getLine
-        state <- readTVarIO stateVar
-        print . entities . serverStateGameStates $ state
-
-
     let port = 7999
     putStrLn $ "Starting Core-Catcher server on port " ++ tshow port
 
-    Warp.run port $ WS.websocketsOr
+    serverThreadId <- fork $ Warp.run port $ WS.websocketsOr
         WS.defaultConnectionOptions
         (wsApp stateVar)
         httpApp
+
+    cliIO stateVar serverThreadId
+
 
 httpApp :: Wai.Application
 httpApp = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings "web")

@@ -14,7 +14,7 @@ import View.PlayerAnimation exposing (..)
 
 
 -- TODO: import view in update??
-
+-- TODO: serverHello in GameLobby
 
 update : Msg -> ClientModel -> ( ClientModel, Cmd Msg )
 update msg state =
