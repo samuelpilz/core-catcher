@@ -22,18 +22,17 @@ import           App.App
 import           App.AppUtils
 import           App.ConnectionState
 import           App.State
-import           ClassyPrelude              hiding (handle)
+import           ClassyPrelude             hiding (handle)
 import           Config.GameConfig
-import           Control.Monad.State        (runState)
-import qualified Control.Monad.State        as State
-import           Control.Monad.Trans.Except
-import           Data.Easy                  (tripleToPair)
-import           Data.Maybe                 (fromJust)
+import           Control.Monad.Error       (runErrorT)
+import           Control.Monad.Trans.State
+import           Data.Easy                 (tripleToPair)
+import           Data.Maybe                (fromJust)
 import           EntityMgnt
 import           GameState
 import           Network.Protocol
-import           System.Random              (RandomGen, mkStdGen)
-import qualified System.Random              as Random
+import           System.Random             (RandomGen, mkStdGen)
+import qualified System.Random             as Random
 import           Test.Framework
 import           Test.HUnit.Base
 
@@ -428,7 +427,7 @@ handleOneMsg
     -> ([(ConnectionId, MessageForClient)], ServerState conn)
 handleOneMsg gen cId msg serverState =
     let (updateResult, newServerState) =
-            runState (runExceptT $ handleMsgState gen cId msg) serverState
+            runState (runErrorT $ handleMsgState gen cId msg) serverState
     in case updateResult of
        Left err ->
            (msgForOne cId $ ServerError_ err, serverState)
@@ -446,7 +445,7 @@ prepareState gen msgs state = snd . handleMultipleMsgs gen state $ msgs
 
 
 initialStateWithConnection :: ServerState ()
-initialStateWithConnection = State.execState (do
+initialStateWithConnection = execState (do
         ConnectionId _ <- addEntityS $ newConnectionInfo ()
         return ()
     ) defaultInitialState
@@ -479,7 +478,7 @@ initialStateWith2Logins =
 
 
 initialStateWith3Connections :: ServerState ()
-initialStateWith3Connections = State.execState (do
+initialStateWith3Connections = execState (do
         ConnectionId _ <- addEntityS $ newConnectionInfo ()
         ConnectionId _ <- addEntityS $ newConnectionInfo ()
         ConnectionId _ <- addEntityS $ newConnectionInfo ()

@@ -12,6 +12,7 @@
 module Network.Protocol where
 
 import           ClassyPrelude
+import           Control.Monad.Error.Class (Error(..))
 import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
@@ -66,6 +67,8 @@ data GameError
     | NotEnoughEnergy
     | GameIsOver
     | GameNotStarted
+    | NoPlayersConnected
+    | OtherGameError String
     deriving (Show, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
@@ -296,8 +299,8 @@ data ServerError
     | GameAlreadyStarted
     | NoSuchConnection
     | GameError_ GameError
+    | OtherServerError String
     deriving (Show, Eq, Generic)
-
 
 data MessageForServer
     = Login_ Login
@@ -494,6 +497,11 @@ instance Arbitrary MessageForClient where
             , PlayerHome_ <$> arbitrary
             ]
 
+instance Error ServerError where
+    strMsg = OtherServerError
+
+instance Error GameError where
+    strMsg = OtherGameError
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions

@@ -1,7 +1,7 @@
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module App.AppUtils where
 
@@ -9,13 +9,19 @@ import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
 import           Config.GameConfig
-import           Control.Error.Util         ((??))
-import           Control.Monad.Trans.Except
+import           Control.Error.Util  ((??))
+import           Control.Monad.Error
 import           GameState
 import           Network.Protocol
 
 -- TODO: refine these functions
-getGameIdFromConnection :: Monad m => ConnectionState -> ExceptT ServerError m GameId
+getGameIdFromConnection ::
+    ( Monad m
+    , MonadError m
+    , ErrorType m ~ ServerError
+    )
+    => ConnectionState
+    -> m GameId
 getGameIdFromConnection connState =
     connectionInGame connState ??
         maybe NotLoggedIn NotInGame (connectionLoggedInPlayer connState)

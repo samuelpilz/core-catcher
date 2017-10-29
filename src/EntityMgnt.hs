@@ -116,19 +116,30 @@ instance EntityId i => HasEntities (Entities i e) i where
 
 -- Entity methods for stateT monad
 
-addEntityS :: (MonadState state m, HasEntities state i) => Entity state i -> m i
-addEntityS newEntity = state $ addEntity newEntity
+addEntityS
+    :: (MonadState m, StateType m ~ state, HasEntities state i)
+    => Entity state i -> m i
+addEntityS newEntity = do
+    state <- get
+    let (eId, newState) = addEntity newEntity state
+    put newState
+    return eId
 
-updateEntityS :: (MonadState state m, HasEntities state i) => i -> Entity state i -> m ()
+updateEntityS
+    :: (MonadState m, StateType m ~ state, HasEntities state i)
+    => i -> Entity state i -> m ()
 updateEntityS eId newEntity = modify $ updateEntity eId newEntity
 
 modifyEntityS
-    :: (MonadState state m, HasEntities state i)
+    :: (MonadState m, StateType m ~ state, HasEntities state i)
     => i -> (Entity state i -> Entity state i) -> m ()
 modifyEntityS eId f = modify $ modifyEntity eId f
 
-removeEntityS :: (MonadState state m, HasEntities state i) => i -> m ()
+removeEntityS :: (MonadState m, StateType m ~ state, HasEntities state i) => i -> m ()
 removeEntityS eId = modify $ removeEntity eId
 
-findEntityByIdS :: (MonadState state m, HasEntities state i) => i -> m (Maybe (Entity state i))
+findEntityByIdS
+    :: (MonadState m, StateType m ~ state, HasEntities state i)
+    => i
+    -> m (Maybe (Entity state i))
 findEntityByIdS = gets . findEntityById

@@ -8,7 +8,6 @@ module App.Cli where
 
 import           App.State
 import           ClassyPrelude
-import           Control.Monad.Extra      (whenJust)
 import           EntityMgnt
 import           GameState
 import           Network.Protocol

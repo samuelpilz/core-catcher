@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module GameNg
     ( updateState
@@ -10,30 +10,51 @@ module GameNg
 
 import           ClassyPrelude
 import           Config.GameConfig
-import           Control.Monad.Extra (whenJust)
-import           Data.Easy           (maybeToEither)
+import           Control.Error.Util         ((??))
+import           Control.Monad.Extra        (whenJust)
+import           Control.Monad.Error
 import           GameState
 import           Network.Protocol
-import           System.Random       (RandomGen)
+import           System.Random              (RandomGen)
 
 -- TODO: use Except instead of Either
 
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
-updateState :: Action -> GameState -> Either GameError GameState
-updateState _ (GameLobby_ _) = Left GameNotStarted
-updateState _ (GameOver_ _) = Left GameIsOver
+updateState ::
+    ( Monad m
+    , MonadError m
+    , ErrorType m ~ GameError
+    )
+    => Action
+    -> GameState
+    -> m GameState
+updateState _ (GameLobby_ _) = throwError GameNotStarted
+updateState _ (GameOver_ _) = throwError GameIsOver
 updateState action (GameRunning_ gameRunning) =
     map (either GameOver_ GameRunning_) $ actionForGameRunning action gameRunning
 
-startGame :: RandomGen gen => gen -> GameLobby -> Either GameError GameRunning
-startGame gen GameLobby{ gameLobbyGameName, gameLobbyConnectedPlayers } =
-    case fromNullable $ fromList gameLobbyConnectedPlayers of
-        Just ps ->
-            return . initialStateFromConfig $ defaultConfigForPlayers gen gameLobbyGameName ps
-        Nothing -> Left GameIsOver -- TODO: better err msg
+startGame ::
+    ( Monad m
+    , MonadError m
+    , ErrorType m ~ GameError
+    , RandomGen gen
+    )
+    => gen
+    -> GameLobby
+    -> m GameRunning
+startGame gen GameLobby{ gameLobbyGameName, gameLobbyConnectedPlayers } = do
+    players <- fromNullable (fromList gameLobbyConnectedPlayers) ?? NoPlayersConnected
+    return . initialStateFromConfig $ defaultConfigForPlayers gen gameLobbyGameName players
 
 -- |Add an action for the running game.
-actionForGameRunning :: Action -> GameRunning -> Either GameError (Either GameOver GameRunning)
+actionForGameRunning ::
+    ( Monad m
+    , MonadError m
+    , ErrorType m ~ GameError
+    )
+    => Action
+    -> GameRunning
+    -> m (Either GameOver GameRunning)
 actionForGameRunning
     Move { actionPlayer, actionEnergy, actionNode }
     state@GameRunning
@@ -53,15 +74,13 @@ actionForGameRunning
     let nextPlayer = headEx gameRunningNextPlayers
     let otherNextPlayers = tailEx gameRunningNextPlayers
 
-    unless (actionPlayer == nextPlayer) . Left $ NotTurn nextPlayer
+    unless (actionPlayer == nextPlayer) $ throwError $ NotTurn nextPlayer
 
-    previousNode <-
-        maybeToEither (PlayerNotFound actionPlayer) .
-        lookup actionPlayer $
-        gameRunningPlayerPositions
+    previousNode <- lookup actionPlayer gameRunningPlayerPositions
+            ?? PlayerNotFound actionPlayer
 
     unless (canMoveBetween network previousNode actionEnergy actionNode) .
-        Left $ NotReachable previousNode actionEnergy actionNode
+        throwError $ NotReachable previousNode actionEnergy actionNode
 
     newPlayerEnergies <-
         nextPlayerEnergies gameRunningPlayerEnergies actionPlayer actionEnergy
@@ -69,7 +88,7 @@ actionForGameRunning
 
     whenJust
         (isBlocked gameRunningPlayerPositions roguePlayer actionNode)
-        $ Left . NodeBlocked
+        $ throwError . NodeBlocked
 
     let newNextPlayers = otherNextPlayers -- TODO: implement skipping
 
@@ -87,9 +106,8 @@ actionForGameRunning
 
     -- game over checking
     roguePosition <-
-        maybeToEither (PlayerNotFound roguePlayer) .
-        lookup roguePlayer $
-        newPlayerPositions
+        lookup roguePlayer newPlayerPositions ?? PlayerNotFound roguePlayer
+
     let rogueWonMay = do -- maybe monad
             unless (actionPlayer == roguePlayer) Nothing
             -- check not necessary because checked implicitly above, but here for clarity
@@ -144,11 +162,18 @@ isBlocked pos roguePlayer node =
     pos
 
 nextPlayerEnergies ::
-       PlayerEnergies -> Player -> Energy -> Either GameError PlayerEnergies
+    ( Monad m
+    , MonadError m
+    , ErrorType m ~ GameError
+    )
+    => PlayerEnergies
+    -> Player
+    -> Energy
+    -> m PlayerEnergies
 nextPlayerEnergies pEnergies player energy = do
     eMap <-
-        maybeToEither (PlayerNotFound player) . lookup player $ pEnergies
+        lookup player pEnergies ?? PlayerNotFound player
     energyCount <-
-        maybeToEither (EnergyNotFound energy) . lookup energy $ eMap
-    unless (energyCount >= 1) . Left $ NotEnoughEnergy
+        lookup energy eMap ?? EnergyNotFound energy
+    unless (energyCount >= 1) $ throwError NotEnoughEnergy
     return $ insertMap player (insertMap energy (energyCount - 1) eMap) pEnergies

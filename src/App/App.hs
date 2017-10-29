@@ -9,12 +9,9 @@ module App.App (handleMsgState) where
 import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
-import           Control.Error.Safe         (tryRight)
 import           Control.Error.Util         ((!?), (??))
-import           Control.Monad.State        (State)
-import qualified Control.Monad.State        as State
-import           Control.Monad.Trans.Except
-import           Data.Easy                  (mapLeft)
+import           Control.Monad.State.Class
+import           Control.Monad.Error
 import           EntityMgnt
 import qualified GameNg                     as Game
 import           GameState
@@ -31,12 +28,18 @@ import           App.AppUtils
 -}
 
 -- TODO: tests
-handleMsgState
-    :: RandomGen gen
+handleMsgState ::
+    ( RandomGen gen
+    , Monad m
+    , MonadState m
+    , StateType m ~ ServerState conn
+    , MonadError m
+    , ErrorType m ~ ServerError
+    )
     => gen
     -> ConnectionId
     -> MessageForServer
-    -> ExceptT ServerError (State (ServerState conn)) [(ConnectionId, MessageForClient)]
+    -> m [(ConnectionId, MessageForClient)]
 handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
     connInfo <- findEntityByIdS cId !? NoSuchConnection
     let connState = connectionState connInfo
@@ -47,17 +50,21 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             gameState <- findEntityByIdS gameId !? NoSuchGame gameId
 
             -- update game
-            newGameState :: GameState <- tryRight . mapLeft GameError_ $ Game.updateState action gameState
+            -- TODO: use of explicit ErrorT really necessary?
+            newGameState <-
+                either (throwError . GameError_) return .
+                runIdentity . runErrorT $
+                Game.updateState action gameState
             updateEntityS gameId newGameState
-            State.gets $ distributeGameViewsForGame newGameState
+            gets $ distributeGameViewsForGame newGameState
 
         Login_ Login{ loginPlayer } -> do
             -- register login player
             modifyEntityS cId $ setConnectionLoggedInPlayer loginPlayer
-            State.modify $ insertPlayer cId loginPlayer
+            modify $ insertPlayer cId loginPlayer
 
             -- get playerHome info
-            (lobbies, games) <- State.gets $ allPreviewInfos . entityAssocs
+            (lobbies, games) <- gets $ allPreviewInfos . entityAssocs
             return $ msgForOne cId $
                 PlayerHome_ PlayerHome
                     { playerHomePlayer = loginPlayer
@@ -66,13 +73,13 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
                     }
 
         Logout -> do
-            when (isNothing $ connectionLoggedInPlayer connState) $ throwE NotLoggedIn
+            when (isNothing $ connectionLoggedInPlayer connState) $ throwError NotLoggedIn
             modifyEntityS cId connectionLogoutPlayer
             return []
 
         PlayerHomeRefresh -> do
             loginPlayer <- connectionLoggedInPlayer connState ?? NotLoggedIn
-            (lobbies, games) <- State.gets $ allPreviewInfos . entityAssocs
+            (lobbies, games) <- gets $ allPreviewInfos . entityAssocs
 
             return $ msgForOne cId $
                 PlayerHome_ PlayerHome
@@ -102,10 +109,14 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
 
             -- start game
             lobby <- getGameLobby gameState ?? GameAlreadyStarted
-            gameRunning <- tryRight . mapLeft GameError_ . Game.startGame gen $ lobby
+
+            gameRunning <-
+                either (throwError . GameError_) return .
+                runIdentity . runErrorT $
+                Game.startGame gen lobby
             updateEntityS gameId $ GameRunning_ gameRunning
 
-            State.gets $ distributeInitialInfosForGameRunning gameRunning
+            gets $ distributeInitialInfosForGameRunning gameRunning
 
         JoinGame_ joinGame -> do
             -- get player and game information
@@ -122,5 +133,5 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             let newGame = GameLobby_ newLobby
             updateEntityS gameId newGame
 
-            State.gets $ distributeGameViewsForGame newGame
+            gets $ distributeGameViewsForGame newGame
 

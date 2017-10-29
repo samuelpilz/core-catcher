@@ -32,7 +32,7 @@ library
                      , TH.MonoDerive
                      , TH.TypeFamily
                      , TH.MonoFunctions
-
+                     , Control.Error.Util
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
@@ -52,10 +52,9 @@ library
                      , either
                      , random
                      , template-haskell
-                     , transformers
-                     , errors
-                     , mtl
+                     , monads-tf
                      , haskeline
+                     , transformers
   default-language:    Haskell2010
 
 executable core-catcher-exe
@@ -76,7 +75,7 @@ executable core-catcher-exe
                      , aeson
                      , stm
                      , random
-                     , transformers
+                     , monads-tf
                      , bytestring
   default-language:    Haskell2010
 
@@ -109,8 +108,8 @@ test-suite core-catcher-test
                      , data-easy
                      , extra
                      , random
-                     , mtl
                      , transformers
+                     , monads-tf
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
