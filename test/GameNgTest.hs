@@ -13,6 +13,8 @@ module GameNgTest where
 
 import           ClassyPrelude
 import           Config.GameConfig
+import           Control.Error.MonadErrorInstance ()
+import           Control.Monad.Trans.Except
 import           GameNg
 import           GameState
 import           Network.Protocol
@@ -153,7 +155,7 @@ test_notPlayer1Turn =
     where
         moves = [ Move bob Orange (Node 5) ]
         assertions (Left err) = err @?= NotTurn alice
-        assertions (Right _) = assertFailure "should not be player 1's turn"
+        assertions (Right _)  = assertFailure "should not be player 1's turn"
 
 -- game over tests
 
@@ -496,7 +498,7 @@ the assertions evaluate the result.
 -}
 gameNgTestCase :: GameConfig -> [Action] -> (Either GameError GameState -> IO ()) -> IO ()
 gameNgTestCase config  moves assertions =
-    assertions $
+    assertions . runExcept $
         foldM
             (flip updateState)
             (GameRunning_ $ initialStateFromConfig config)

@@ -52,7 +52,6 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             gameState <- findEntityByIdS gameId !? NoSuchGame gameId
 
             -- update game
-            -- TODO: use of explicit ErrorT really necessary?
             newGameState <-
                 runExcept (Game.updateState action gameState) ?? GameError_
             updateEntityS gameId newGameState
