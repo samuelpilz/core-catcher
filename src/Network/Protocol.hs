@@ -12,7 +12,6 @@
 module Network.Protocol where
 
 import           ClassyPrelude
-import           Control.Monad.Error.Class (Error(..))
 import           Data.Aeson                as Aeson
 import           Elm.Derive
 import           GHC.Generics              ()
@@ -68,7 +67,6 @@ data GameError
     | GameIsOver
     | GameNotStarted
     | NoPlayersConnected
-    | OtherGameError String
     deriving (Show, Eq, Generic)
 
 {- |The playerEnergies Map keeps track of the EnergyMaps for all players.
@@ -169,7 +167,7 @@ data GameOverView =
 {- |A game view is a subset of the game-State as seen by one of the players.
 A game view should be determined by the player it is constructed for and a game state.
 GameView is glue code for the game state. No actual game state is sent between
-the fronend and the backend but only the views.
+the frontend and the backend but only the views.
 Views can contain different information based on the receiver.
 -}
 data GameView =
@@ -299,7 +297,6 @@ data ServerError
     | GameAlreadyStarted
     | NoSuchConnection
     | GameError_ GameError
-    | OtherServerError String
     deriving (Show, Eq, Generic)
 
 data MessageForServer
@@ -496,12 +493,6 @@ instance Arbitrary MessageForClient where
             , GameLobbyView_ <$> arbitrary
             , PlayerHome_ <$> arbitrary
             ]
-
-instance Error ServerError where
-    strMsg = OtherServerError
-
-instance Error GameError where
-    strMsg = OtherGameError
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions

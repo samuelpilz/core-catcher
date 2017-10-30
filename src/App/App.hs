@@ -9,14 +9,16 @@ module App.App (handleMsgState) where
 import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
-import           Control.Error.Util         ((!?), (??))
+import           Control.Error.MonadErrorInstance ()
+import           Control.Error.Util               ((!?), (??))
+import           Control.Monad.Error.Class
 import           Control.Monad.State.Class
-import           Control.Monad.Error
+import           Control.Monad.Trans.Except       (runExcept)
 import           EntityMgnt
-import qualified GameNg                     as Game
+import qualified GameNg                           as Game
 import           GameState
 import           Network.Protocol
-import           System.Random              (RandomGen)
+import           System.Random                    (RandomGen)
 
 import           App.AppUtils
 
@@ -52,9 +54,7 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             -- update game
             -- TODO: use of explicit ErrorT really necessary?
             newGameState <-
-                either (throwError . GameError_) return .
-                runIdentity . runErrorT $
-                Game.updateState action gameState
+                runExcept (Game.updateState action gameState) ?? GameError_
             updateEntityS gameId newGameState
             gets $ distributeGameViewsForGame newGameState
 
@@ -111,9 +111,7 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             lobby <- getGameLobby gameState ?? GameAlreadyStarted
 
             gameRunning <-
-                either (throwError . GameError_) return .
-                runIdentity . runErrorT $
-                Game.startGame gen lobby
+                runExcept (Game.startGame gen lobby) ?? GameError_
             updateEntityS gameId $ GameRunning_ gameRunning
 
             gets $ distributeInitialInfosForGameRunning gameRunning

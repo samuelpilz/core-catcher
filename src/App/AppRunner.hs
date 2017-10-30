@@ -12,11 +12,13 @@ import           App.Connection
 import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
-import           Control.Monad.Error (runErrorT)
-import           Control.Monad.State (runState)
+import           Control.Error.MonadErrorInstance ()
+import           Control.Monad.Error.Class
+import           Control.Monad.State              (runState)
+import           Control.Monad.Trans.Except       (runExceptT)
 import           EntityMgnt
 import           Network.Protocol
-import           System.Random       (RandomGen, newStdGen)
+import           System.Random                    (RandomGen, newStdGen)
 
 {- TODO: features
 * message for leaving a game??
@@ -58,7 +60,7 @@ handleMsgStm :: RandomGen gen => gen -> TVar (ServerState conn) -> ConnectionId 
 handleMsgStm gen serverStateVar cId msg = do -- STM monad
     serverState <- readTVar serverStateVar
     let (updateResult, newServerState) =
-            runState (runErrorT $ handleMsgState gen cId msg) serverState
+            runState (runExceptT $ handleMsgState gen cId msg) serverState
     case updateResult of
         Left err ->
             return (msgForOne cId $ ServerError_ err, serverState)

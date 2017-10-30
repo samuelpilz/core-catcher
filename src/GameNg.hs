@@ -10,12 +10,12 @@ module GameNg
 
 import           ClassyPrelude
 import           Config.GameConfig
-import           Control.Error.Util         ((??))
-import           Control.Monad.Extra        (whenJust)
-import           Control.Monad.Error
+import           Control.Error.Util        ((??))
+import           Control.Monad.Error.Class
+import           Control.Monad.Extra       (whenJust)
 import           GameState
 import           Network.Protocol
-import           System.Random              (RandomGen)
+import           System.Random             (RandomGen)
 
 -- TODO: use Except instead of Either
 

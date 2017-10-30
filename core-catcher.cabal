@@ -33,6 +33,7 @@ library
                      , TH.TypeFamily
                      , TH.MonoFunctions
                      , Control.Error.Util
+                     , Control.Error.MonadErrorInstance
   ghc-options:         -Wall
   build-depends:       base >= 4.7 && < 5
                      , classy-prelude
