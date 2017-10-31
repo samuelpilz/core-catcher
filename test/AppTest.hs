@@ -229,6 +229,29 @@ test_joinGame_playerAddedToLobby =
                     assertFailure $ "game with id 0 should be in lobby-state, but is " ++ show game
 
 
+test_joinGame_gameAlreadyStarted_errorMsg :: IO ()
+test_joinGame_gameAlreadyStarted_errorMsg =
+    appTestCase
+        initialStateWithGame
+        [ (ConnectionId 0, JoinGame_ . JoinGame $ GameId 0) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 0, ServerError_ GameAlreadyStarted)]
+
+
+test_startGame_gameAlreadyStarted_errorMsg :: IO ()
+test_startGame_gameAlreadyStarted_errorMsg =
+    appTestCase
+        initialStateWithGame
+        [ (ConnectionId 0, StartGame) ]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 0, ServerError_ GameAlreadyStarted)]
+
+
+
 test_startGame_initialInfoSent :: IO ()
 test_startGame_initialInfoSent =
     appTestCase
@@ -536,6 +559,21 @@ initialStateWith3Connections = execState (do
         return ()
     ) defaultInitialState
 
+initialStateWithGame :: ServerState ()
+initialStateWithGame =
+    prepareState (mkStdGen 44)
+        [ (ConnectionId 0, StartGame)
+        ]
+        initialStateWithLobby
+
+initialStateWithLobby :: ServerState ()
+initialStateWithLobby =
+    prepareState (mkStdGen 44)
+        [ (ConnectionId 0, CreateNewGame_ CreateNewGame{createGameName="new-game"})
+        , (ConnectionId 1, JoinGame_ . JoinGame $ GameId 0)
+        , (ConnectionId 2, JoinGame_ . JoinGame $ GameId 0)
+        ]
+        initialStateWith3Logins
 
 getEntityById :: HasEntities container i => i -> container -> Entity container i
 getEntityById eId = fromJust . findEntityById eId
