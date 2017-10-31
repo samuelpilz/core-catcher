@@ -37,12 +37,62 @@ import           Test.Framework
 import           Test.HUnit.Base
 
 
+test_noSuchConnection :: IO ()
+test_noSuchConnection =
+    appTestCase
+        initialStateWithConnection
+        [(ConnectionId 1, StartGame)]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 1, ServerError_ NoSuchConnection)]
 
-test_login_playerHome :: IO ()
-test_login_playerHome =
+
+test_login_playerHomeSent :: IO ()
+test_login_playerHomeSent =
     appTestCase
         initialStateWithConnection
         [(ConnectionId 0, Login_ $ Login alice)]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?=
+                [
+                    ( ConnectionId 0
+                    , PlayerHome_ PlayerHome
+                        { playerHomePlayer = alice
+                        , activeLobbies = []
+                        , activeGames = []}
+                    )
+                ]
+
+test_login_playerMapIncludesNewPlayer :: IO ()
+test_login_playerMapIncludesNewPlayer =
+    appTestCase
+        initialStateWithConnection
+        [(ConnectionId 0, Login_ $ Login alice)]
+        assertions
+    where
+        assertions (_, state) =
+            serverStatePlayerMap state @?= mapFromList [(alice, ConnectionId 0)]
+
+
+test_playerHomeRefresh_notLoggedIn_errorMsg :: IO ()
+test_playerHomeRefresh_notLoggedIn_errorMsg =
+    appTestCase
+        initialStateWithConnection
+        [(ConnectionId 0, PlayerHomeRefresh)]
+        assertions
+    where
+        assertions (msgs, _) =
+            msgs @?= [(ConnectionId 0, ServerError_ NotLoggedIn)]
+
+
+test_playerHomeRefresh :: IO ()
+test_playerHomeRefresh =
+    appTestCase
+        initialStateWithLogin
+        [(ConnectionId 0, PlayerHomeRefresh)]
         assertions
     where
         assertions (msgs, state) = do
@@ -84,6 +134,7 @@ test_logout_loggedOut =
     where
         assertions (msgs, _) =
             msgs @?= [(ConnectionId 0, ServerError_ NotLoggedIn)]
+
 
 test_createGame :: IO ()
 test_createGame =

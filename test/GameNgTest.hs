@@ -45,6 +45,8 @@ test_player0ValidMove_playerPositionUpdated =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             lookup alice gameRunningPlayerPositions @?= Just (Node 6)
 
@@ -62,6 +64,8 @@ test_player0ValidMove_energyDrained =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) =
             remainingEnergy game @?= Just 1
 
@@ -84,6 +88,8 @@ test_player0ValidMove_historyUpdated =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
             gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
@@ -104,6 +110,8 @@ test_player0ValidMove_historyUpdatedWithShow =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Just $ Node 6)]
             gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, True)]
@@ -122,6 +130,8 @@ test_player0ValidMove_historyUpdate =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
             gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
@@ -141,6 +151,8 @@ test_player1ValidMove_historyNotUpdated =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             gameRunningRogueHistory game @?= ShadowRogueHistory [(Red, Nothing)]
             gameRunningOpenRogueHistory game @?= OpenRogueHistory [(Red, Node 6, False)]
@@ -178,6 +190,8 @@ test_rogueCaught_gameOverWinningPlayer1 =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             gameOverWinningPlayer @?= bob
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -194,6 +208,8 @@ test_rogueWins_gameOverWinningPlayer0 =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             gameOverWinningPlayer @?= alice
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -222,7 +238,8 @@ test_gameOver_fieldsTakenFromGame =
             gameOverGameConfig gameOver @?= config
             gameOverRogueHistory gameOver @?= OpenRogueHistory [(Red, Node 6, False)]
             gameOverWinningPlayer gameOver @?= bob
-
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ GameRunning {gameRunningPlayerPositions})) =
             assertFailure $ "game should be over, was: " ++ show gameRunningPlayerPositions
 
@@ -244,6 +261,8 @@ test_getGameOverView_fieldsSet =
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameOver_ gameOver)) =
             let
                 GameOverView
@@ -275,6 +294,8 @@ test_playerNotFoundInPositions =
         moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
             err @?= PlayerNotFound alice
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right _) =
             assertFailure "should not find player"
 
@@ -306,6 +327,8 @@ test_energyNotFound =
         moves = [ Move alice Red (Node 6) ]
         assertions (Left err) =
             err @?= EnergyNotFound Red
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right _) =
             assertFailure "should not find energy"
 
@@ -429,6 +452,8 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
             (lookup alice . catcherPlayerPositions $ catcherView) @?= Just (Node 6)
@@ -452,6 +477,8 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right (GameRunning_ game)) = do
             let (_, catcherView) = getViews game
             (lookup alice . catcherPlayerPositions $ catcherView) @?= Just (Node 6)
@@ -473,6 +500,8 @@ test_gameRound =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
             assertFailure $ "Game Over by " ++ show gameOverWinningPlayer
+        assertions (Right (GameLobby_ _)) =
+            assertFailure "Game still in lobby"
         assertions (Right
             (GameRunning_ GameRunning
                 { gameRunningPlayerPositions

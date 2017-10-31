@@ -13,7 +13,6 @@ import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
 import           Control.Error.MonadErrorInstance ()
-import           Control.Monad.Error.Class
 import           Control.Monad.State              (runState)
 import           Control.Monad.Trans.Except       (runExceptT)
 import           EntityMgnt
