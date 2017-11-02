@@ -5,7 +5,7 @@ import           ClassyPrelude
 
 import           Test.Framework
 
---import {-@ HTF_TESTS @-} ConnectionMgntTest
+import {-@ HTF_TESTS @-} EntityMgntTest
 import {-@ HTF_TESTS @-} GameNgTest
 import {-@ HTF_TESTS @-} AppTest
 

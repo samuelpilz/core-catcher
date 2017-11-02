@@ -32,6 +32,10 @@ class Ord i => EntityId i where
     getFirstId :: i
     getNextId :: i -> i
 
+instance EntityId Int where
+    getFirstId = 0
+    getNextId = (+1)
+
 class EntityId i => HasEntities container i where
     type Entity container i :: *
 
@@ -113,6 +117,9 @@ instance EntityId i => HasEntities (Entities i e) i where
     type Entity (Entities i e) i = e
     getEntities = id
     setEntities = flip const
+
+instance (Show i, Show e) => Show (Entities i e) where
+    show = show . entities
 
 -- Entity methods for stateT monad
 

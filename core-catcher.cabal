@@ -93,9 +93,9 @@ test-suite core-catcher-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             TestMain.hs
-  other-modules:       ConnectionMgntTest
-                     , Mock.Connection
+  other-modules:       Mock.Connection
                      , GameNgTest
+                     , EntityMgntTest
                      , AppTest
   build-depends:       base
                      , core-catcher
