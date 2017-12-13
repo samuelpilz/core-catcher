@@ -2,7 +2,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
--- TODO: comment
+{-|
+
+Module for connections, which can send and receive messages
+
+-}
+
 module App.Connection where
 
 import           ClassyPrelude
@@ -11,17 +16,20 @@ import           Network.Protocol
 class IsConnection c where
     type Pending c :: *
 
-    sendMsg :: c -> MessageForClient -> IO ()
+    -- |send a message
+    sendMsg :: MonadIO m => c -> MessageForClient -> m ()
 
-    recvMsg :: c -> IO (Maybe MessageForServer)
+    -- |send
+    recvMsg :: MonadIO m => c -> m (Maybe MessageForServer)
 
-    sendSendableMsg :: SendableToClient msg => c -> msg -> IO ()
+    sendSendableMsg :: MonadIO m => SendableToClient msg => c -> msg -> m ()
     sendSendableMsg c msg = sendMsg c $ wrapSendable msg
 
--- TODO: necessary??
-    acceptRequest ::  Pending c -> IO c
-
     multicastMsg ::
-        (SendableToClient msg, MonoFoldable conns, c ~ Element conns)
-        => msg -> conns -> IO ()
+        ( SendableToClient msg
+        , MonoFoldable conns
+        , c ~ Element conns
+        , MonadIO m
+        )
+        => msg -> conns -> m ()
     multicastMsg msg = omapM_ (`sendSendableMsg` msg)

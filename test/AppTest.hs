@@ -11,9 +11,7 @@
 {- |Module for testing the app module.
 
 The main function to execute test cases is the gameNgTestCase function defined in this module.
-TODO: fix documentation
-
-TODO: fix tests with new app interface
+TODO: fix documentation & test structure
 
 -}
 module AppTest where
@@ -74,7 +72,7 @@ test_login_playerMapIncludesNewPlayer =
         assertions
     where
         assertions (_, state) =
-            serverStatePlayerMap state @?= mapFromList [(alice, ConnectionId 0)]
+            playerConnectionsList state @?= [(alice, ConnectionId 0)]
 
 
 test_playerHomeRefresh_notLoggedIn_errorMsg :: IO ()
@@ -97,10 +95,10 @@ test_playerHomeRefresh =
     where
         assertions (msgs, state) = do
             map fst msgs @?= [ConnectionId 0]
-            serverStatePlayerMap state @?= mapFromList [(alice, ConnectionId 0)]
-            case snd . headEx $ msgs of
-                PlayerHome_ playerHome ->
-                    PlayerHome
+            playerConnectionsList  state @?= [(alice, ConnectionId 0)]
+            case msgs of
+                [(_, PlayerHome_ playerHome)] ->
+                    PlayerHome -- TODO: simplify this using only one @?=
                         { playerHomePlayer = alice
                         , activeLobbies = []
                         , activeGames = []}
@@ -229,15 +227,15 @@ test_joinGame_playerAddedToLobby =
                     assertFailure $ "game with id 0 should be in lobby-state, but is " ++ show game
 
 
-test_joinGame_gameAlreadyStarted_errorMsg :: IO ()
-test_joinGame_gameAlreadyStarted_errorMsg =
+test_joinGame_alreadyInGame_errorMsg :: IO ()
+test_joinGame_alreadyInGame_errorMsg =
     appTestCase
         initialStateWithGame
         [ (ConnectionId 0, JoinGame_ . JoinGame $ GameId 0) ]
         assertions
     where
         assertions (msgs, _) =
-            msgs @?= [(ConnectionId 0, ServerError_ GameAlreadyStarted)]
+            msgs @?= [(ConnectionId 0, ServerError_ . AlreadyInGame $ GameId 0)]
 
 
 test_startGame_gameAlreadyStarted_errorMsg :: IO ()

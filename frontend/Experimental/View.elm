@@ -84,10 +84,11 @@ landingAreaView msg ( landingAreaState, _ ) =
 
 loggedInView : ClientModel -> ( LoggedInState, LoggedIn ) -> List (Html Msg)
 loggedInView model ( loggedInState, loggedIn ) =
-    [ h1 [] [ text "Core Catcher -- Home" ]
-    , p [] [ text <| "Logged in as " ++ loggedIn.player.playerName ]
-    ]
-        ++ case loggedInState of
+--    [ h1 [] [ text "Core Catcher -- Home" ]
+--    , p [] [ text <| "Logged in as " ++ loggedIn.player.playerName ]
+--    ] -- TODO: good replacement
+--        ++
+        case loggedInState of
             InPlayerHome ->
                 [ div []
                     -- game lobbies

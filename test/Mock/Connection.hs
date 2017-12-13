@@ -44,8 +44,3 @@ instance IsConnection FakeConnection where
 
     recvMsg (FakeConnection _ rb) =
         atomically $ swapTVar rb Nothing
-
-    acceptRequest msgForServer = do
-        conn <- newFakeConnection
-        whenJust msgForServer (prepareMsgToRead conn)
-        return conn

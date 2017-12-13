@@ -4,6 +4,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
+{-|
+
+This module contain the main App-logic function.
+
+The update-function is called every time the a client sends a message.
+
+The return value is a monad which may contain an error and a state-transformation.
+
+TODO: improve documentation
+
+-}
+
 module App.App (handleMsgState) where
 
 import           App.ConnectionState
@@ -22,14 +34,16 @@ import           System.Random                    (RandomGen)
 
 import           App.AppUtils
 
-{- TODO: features
+{- TODO: further features
 * message for leaving a game??
-* validation playerId matches connection-origin
-* ban lists and use sequences or Foldable / MonoFoldable
-* move the utils to own modules
 -}
 
--- TODO: tests
+
+{- |basic update-function for the app.
+
+This function handles a single message by a client.
+
+-}
 handleMsgState ::
     ( RandomGen gen
     , Monad m
@@ -42,14 +56,19 @@ handleMsgState ::
     -> ConnectionId
     -> MessageForServer
     -> m [(ConnectionId, MessageForClient)]
-handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
+handleMsgState gen cId msg = do
     connInfo <- findEntityByIdS cId !? NoSuchConnection
     let connState = connectionState connInfo
 
     case msg of
-        Action_ action -> do
-            gameId <- getGameIdFromConnection connState
+        Action_ action@Action{actionPlayer} -> do
+            loginPlayer <- connectionLoggedInPlayer connState ?? NotLoggedIn
+            gameId <- getConnectionInGameIdM connState
             gameState <- findEntityByIdS gameId !? NoSuchGame gameId
+
+            -- check action integrity
+            unless (loginPlayer == actionPlayer) $
+                throwError $ ActionPlayerNotLoggedIn loginPlayer actionPlayer
 
             -- update game
             newGameState <-
@@ -59,7 +78,7 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
 
         Login_ Login{ loginPlayer } -> do
             -- register login player
-            modifyEntityS cId $ setConnectionLoggedInPlayer loginPlayer
+            modifyEntityM cId $ connectionLoginPlayer loginPlayer
             modify $ insertPlayer cId loginPlayer
 
             -- get playerHome info
@@ -73,7 +92,7 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
 
         Logout -> do
             when (isNothing $ connectionLoggedInPlayer connState) $ throwError NotLoggedIn
-            modifyEntityS cId connectionLogoutPlayer
+            modifyEntityM cId connectionLogoutPlayer
             return []
 
         PlayerHomeRefresh -> do
@@ -98,17 +117,16 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             gameId <- addEntityS (GameLobby_ gameLobby)
 
             -- set game in connection-state
-            modifyEntityS cId (setConnectionInGame gameId)
+            modifyEntityM cId (connectionJoinGame gameId)
 
             return [(cId, GameLobbyView_ $ getGameLobbyView gameLobby)]
 
         StartGame -> do
-            gameId <- getGameIdFromConnection connState
+            gameId <- getConnectionInGameIdM connState
             gameState <- findEntityByIdS gameId !? NoSuchGame gameId
-
-            -- start game
             lobby <- getGameLobby gameState ?? GameAlreadyStarted
 
+            -- start game
             gameRunning <-
                 runExcept (Game.startGame gen lobby) ?? GameError_
             updateEntityS gameId $ GameRunning_ gameRunning
@@ -122,7 +140,7 @@ handleMsgState gen cId msg = do -- monad: ExceptT ServerError (..) [..]
             gameState <- findEntityByIdS gameId !? NoSuchGame gameId
 
             -- modify connection
-            modifyEntityS cId $ setConnectionInGame gameId
+            modifyEntityM cId $ connectionJoinGame gameId
 
             -- alter lobby
             lobby <- getGameLobby gameState ?? GameAlreadyStarted

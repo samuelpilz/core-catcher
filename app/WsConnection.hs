@@ -17,11 +17,8 @@ instance IsConnection WsConnection where
     type Pending WsConnection = WS.PendingConnection
 
     sendMsg (WsConnection conn) =
-        WS.sendTextData conn . Aeson.encode
+        liftIO . WS.sendTextData conn . Aeson.encode
 
-    recvMsg (WsConnection conn) = do
+    recvMsg (WsConnection conn) = liftIO $ do
         wsData <- WS.receiveData conn
         return $ Aeson.decode wsData
-
-    acceptRequest =
-        map WsConnection . WS.acceptRequest

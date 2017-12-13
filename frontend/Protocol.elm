@@ -370,6 +370,7 @@ type GameError  =
     | NotEnoughEnergy 
     | GameIsOver 
     | GameNotStarted 
+    | NoPlayersConnected 
 
 jsonDecGameError : Json.Decode.Decoder ( GameError )
 jsonDecGameError =
@@ -382,6 +383,7 @@ jsonDecGameError =
             , ("NotEnoughEnergy", Json.Decode.succeed NotEnoughEnergy)
             , ("GameIsOver", Json.Decode.succeed GameIsOver)
             , ("GameNotStarted", Json.Decode.succeed GameNotStarted)
+            , ("NoPlayersConnected", Json.Decode.succeed NoPlayersConnected)
             ]
     in  decodeSumObjectWithSingleField  "GameError" jsonDecDictGameError
 
@@ -396,6 +398,7 @@ jsonEncGameError  val =
                     NotEnoughEnergy  -> ("NotEnoughEnergy", encodeValue (Json.Encode.list []))
                     GameIsOver  -> ("GameIsOver", encodeValue (Json.Encode.list []))
                     GameNotStarted  -> ("GameNotStarted", encodeValue (Json.Encode.list []))
+                    NoPlayersConnected  -> ("NoPlayersConnected", encodeValue (Json.Encode.list []))
     in encodeSumObjectWithSingleField keyval val
 
 
@@ -707,9 +710,12 @@ type ServerError  =
     | NotInGame Player
     | ClientMsgError 
     | NotLoggedIn 
+    | AlreadyLoggedIn Player
+    | AlreadyInGame GameId
     | GameAlreadyStarted 
     | NoSuchConnection 
     | GameError_ GameError
+    | ActionPlayerNotLoggedIn Player Player
 
 jsonDecServerError : Json.Decode.Decoder ( ServerError )
 jsonDecServerError =
@@ -718,9 +724,12 @@ jsonDecServerError =
             , ("NotInGame", Json.Decode.map NotInGame (jsonDecPlayer))
             , ("ClientMsgError", Json.Decode.succeed ClientMsgError)
             , ("NotLoggedIn", Json.Decode.succeed NotLoggedIn)
+            , ("AlreadyLoggedIn", Json.Decode.map AlreadyLoggedIn (jsonDecPlayer))
+            , ("AlreadyInGame", Json.Decode.map AlreadyInGame (jsonDecGameId))
             , ("GameAlreadyStarted", Json.Decode.succeed GameAlreadyStarted)
             , ("NoSuchConnection", Json.Decode.succeed NoSuchConnection)
             , ("GameError_", Json.Decode.map GameError_ (jsonDecGameError))
+            , ("ActionPlayerNotLoggedIn", Json.Decode.map2 ActionPlayerNotLoggedIn (Json.Decode.index 0 (jsonDecPlayer)) (Json.Decode.index 1 (jsonDecPlayer)))
             ]
     in  decodeSumObjectWithSingleField  "ServerError" jsonDecDictServerError
 
@@ -731,8 +740,11 @@ jsonEncServerError  val =
                     NotInGame v1 -> ("NotInGame", encodeValue (jsonEncPlayer v1))
                     ClientMsgError  -> ("ClientMsgError", encodeValue (Json.Encode.list []))
                     NotLoggedIn  -> ("NotLoggedIn", encodeValue (Json.Encode.list []))
+                    AlreadyLoggedIn v1 -> ("AlreadyLoggedIn", encodeValue (jsonEncPlayer v1))
+                    AlreadyInGame v1 -> ("AlreadyInGame", encodeValue (jsonEncGameId v1))
                     GameAlreadyStarted  -> ("GameAlreadyStarted", encodeValue (Json.Encode.list []))
                     NoSuchConnection  -> ("NoSuchConnection", encodeValue (Json.Encode.list []))
                     GameError_ v1 -> ("GameError_", encodeValue (jsonEncGameError v1))
+                    ActionPlayerNotLoggedIn v1 v2 -> ("ActionPlayerNotLoggedIn", encodeValue (Json.Encode.list [jsonEncPlayer v1, jsonEncPlayer v2]))
     in encodeSumObjectWithSingleField keyval val
 

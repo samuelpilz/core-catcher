@@ -2,9 +2,10 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Main where
+module Main (main) where
 
 import           App.AppRunner
+import           App.Cli
 import           App.Connection
 import           App.ConnectionState
 import           App.State
@@ -18,7 +19,7 @@ import qualified Network.Wai.Handler.Warp       as Warp
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           WsConnection
-import           App.Cli
+
 
 main :: IO ()
 main = do
@@ -45,18 +46,14 @@ wsApp stateVar pendingConn = do
     conn <- WS.acceptRequest pendingConn
     let wsConn = WsConnection conn
     WS.forkPingThread conn 30
-    -- TODO: replace
-    cId <- atomically $ do
-        state <- readTVar stateVar
-        let (cId, newState) = addEntity (newConnectionInfo wsConn) state
-        writeTVar stateVar newState
-        return cId
+    cId <- atomically $ stateToStm stateVar $ addEntityS (newConnectionInfo wsConn)
     putStrLn $ "connect " ++ tshow cId
     sendSendableMsg wsConn Protocol.ServerHello
 
     Exception.finally
         (wsListen (cId, wsConn) stateVar)
         (cleanOnCloseConnection stateVar cId)
+
 
 wsListen :: IsConnection conn => (ConnectionId, conn) -> TVar (ServerState conn) -> IO ()
 wsListen (cId, client) stateVar =
@@ -72,6 +69,7 @@ wsListen (cId, client) stateVar =
     where
         handler :: WS.ConnectionException -> IO ()
         handler _ = return ()
+
 
 cleanOnCloseConnection :: TVar (ServerState WsConnection) -> ConnectionId -> IO ()
 cleanOnCloseConnection stateVar cId = do

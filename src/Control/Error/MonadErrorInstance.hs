@@ -12,7 +12,6 @@ import           Control.Monad.State.Class
 import           Control.Monad.Trans        (lift)
 import           Control.Monad.Trans.Except
 
-
 instance Monad m => MonadError (ExceptT e m) where
     type ErrorType (ExceptT e m) = e
     throwError = throwE

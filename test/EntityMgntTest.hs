@@ -66,6 +66,16 @@ test_addEntity =
         nextId (getIntEntities es) @?= 1
 
 
+test_add2Entities :: IO ()
+test_add2Entities =
+    let
+        (_, es) = addIntEntity 1 . snd . addIntEntity 3 $ emptyIntEntities
+    in do
+        nextId (getIntEntities es)  @?= 2
+        findEntityByIntId 0 es @?= Just 3
+        findEntityByIntId 1 es @?= Just 1
+
+
 test_removeEntity :: IO ()
 test_removeEntity =
     let
@@ -89,6 +99,8 @@ test_findEntityById_notContained =
     findEntityByIntId 1 (singletonEntities 2) @?= Nothing
 
 
+-- TODO: expand tests
+
 -- test_addMultipleConnections :: IO ()
 -- test_addMultipleConnections = do
 --     conns <- emptyFakeConnectionsTVar
@@ -106,10 +118,3 @@ test_findEntityById_notContained =
 --
 --     newConns <- readTVarIO conns
 --     3 @?= length (connections newConns)
---
---
---
--- test_withoutClientNotContained = do
---     connsTVar <- fakeConnectionsTVar
---     conns <- readTVarIO connsTVar
---     [0,1,2] @?= (map fst . mapToList . connections . withoutClient 3 $ conns)

@@ -13,6 +13,7 @@ import           GameState
 import           Network.Protocol
 import           System.Console.Haskeline
 
+
 cliIO :: TVar (ServerState conn) -> ThreadId -> IO ()
 cliIO stateVar serverThreadId =
     runInputT defaultSettings loop
@@ -45,9 +46,11 @@ cliF state "game" [gameId] =
 cliF _ cmd _ =
     "command not found: " ++ cmd
 
+
 prettyPrintGameSummary :: (GameId, GameState) -> Text
 prettyPrintGameSummary (GameId gId, gState) =
     tshow gId ++ ": " ++ getGameName gState ++ " " ++ tshow (getGameStateEnum gState)
+
 
 prettyPrintGameDetails :: GameId -> GameState -> Text
 prettyPrintGameDetails (GameId gId) gState =

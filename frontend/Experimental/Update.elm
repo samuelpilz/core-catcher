@@ -16,6 +16,7 @@ import View.PlayerAnimation exposing (..)
 -- TODO: import view in update??
 -- TODO: serverHello in GameLobby
 
+
 update : Msg -> ClientModel -> ( ClientModel, Cmd Msg )
 update msg state =
     case log2 "msg" msg state.state of
@@ -461,7 +462,8 @@ updateInGame msg state ( inGameState, inGame ) =
             in
                 { state
                     | state =
-                        LoggedIn_ (GameOver_ { networkModel = gameActive.networkModel })
+                        LoggedIn_
+                            (GameOver_ { networkModel = newNetworkModel } )
                             { player = inGame.player
                             , playerHomeContent = emptyPlayerHomeContent
                             }

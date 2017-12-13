@@ -30,9 +30,11 @@ instance WithError Maybe where
             Nothing -> throwError e
             Just a  -> return a
 
+
 instance WithError (Either e) where
     type ErrorHandlerType (Either e') e = e' -> e
     aEither ?? eF =
         case aEither of
             Left e  -> throwError $ eF e
             Right a -> return a
+

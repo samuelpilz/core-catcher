@@ -30,21 +30,25 @@ newtype Player =
     Player { playerName :: Text }
     deriving (Show, Eq, Ord, Generic)
 
+
 -- |Nodes are ints (ids)
 newtype Node =
     Node { nodeId :: Int }
     deriving (Show, Eq, Ord, Generic)
+
 
 -- |Edge is a tuple of two Nodes
 newtype Edge =
     Edge { edge :: (Node, Node) }
     deriving (Show, Eq, Ord, Generic)
 
+
 -- |Energy is a enum of possible energies.
 data Energy = Red | Blue | Orange
     deriving (Show, Eq, Ord, Generic, Enum, Bounded)
 
--- TODO: implement Num for that
+
+-- |ids for games
 newtype GameId = GameId { gameId :: Int }
     deriving (Show, Read, Eq, Ord, Generic)
 
@@ -81,7 +85,7 @@ newtype PlayerEnergies =
 Currently this is only a move, but this may be expanded in the future.
 -}
 data Action =
-    Move
+    Action
         { actionPlayer :: Player
         , actionEnergy :: Energy
         , actionNode   :: Node
@@ -294,9 +298,12 @@ data ServerError
     | NotInGame Player
     | ClientMsgError
     | NotLoggedIn
+    | AlreadyLoggedIn Player
+    | AlreadyInGame GameId
     | GameAlreadyStarted
     | NoSuchConnection
     | GameError_ GameError
+    | ActionPlayerNotLoggedIn Player Player
     deriving (Show, Eq, Generic)
 
 data MessageForServer
@@ -383,7 +390,7 @@ instance Arbitrary Energy  where
 
 instance Arbitrary Action where
     arbitrary =
-        Move <$> arbitrary <*> arbitrary <*> arbitrary
+        Action <$> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary PlayerPositions where
     arbitrary =
@@ -422,6 +429,8 @@ instance Arbitrary GameError where
             , NodeBlocked <$> arbitrary
             , return NotEnoughEnergy
             , return GameIsOver
+            , return GameNotStarted
+            , return NoPlayersConnected
             ]
 
 instance Arbitrary CatcherGameView where
@@ -461,10 +470,15 @@ instance Arbitrary GameView where
         else
             CatcherView <$> arbitrary
 
-
 instance Arbitrary InitialInfoGameActive where
     arbitrary = InitialInfoGameActive <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary Login where
+    arbitrary = Login <$> arbitrary
+
+
+instance Arbitrary LoginFail where
+    arbitrary = LoginFail <$> arbitrary
 
 instance Arbitrary GameLobbyView where
     arbitrary = GameLobbyView <$> arbitrary <*> arbitrary
@@ -475,24 +489,56 @@ instance Arbitrary GameLobbyPreview where
 instance Arbitrary PlayerHome where
     arbitrary = PlayerHome <$> arbitrary <*> arbitrary <*> arbitrary
 
+instance Arbitrary CreateNewGame where
+    arbitrary = CreateNewGame <$> arbitrary
+
+instance Arbitrary JoinGame where
+    arbitrary = JoinGame <$> arbitrary
+
 instance Arbitrary GamePreview where
     arbitrary = GamePreview <$> arbitrary <*> arbitrary <*> arbitrary
 
--- TODO: update arbitraries
 instance Arbitrary MessageForServer where
-    arbitrary = Action_ <$> arbitrary
+    arbitrary =
+        oneof
+            [ Login_ <$> arbitrary
+            , CreateNewGame_ <$> arbitrary
+            , Action_ <$> arbitrary
+            , return StartGame
+            , JoinGame_ <$> arbitrary
+            , return PlayerHomeRefresh
+            , return Logout
+            ]
 
+
+instance Arbitrary ServerError where
+    arbitrary =
+        oneof
+            [ NoSuchGame <$> arbitrary
+            , NotInGame <$> arbitrary
+            , return ClientMsgError
+            , return NotLoggedIn
+            , AlreadyLoggedIn <$> arbitrary
+            , AlreadyInGame <$> arbitrary
+            , return GameAlreadyStarted
+            , return NoSuchConnection
+            , GameError_ <$> arbitrary
+            , ActionPlayerNotLoggedIn <$> arbitrary <*> arbitrary
+            ]
 
 instance Arbitrary MessageForClient where
     arbitrary =
         oneof
             [ return ServerHello
+            , LoginFail_ <$> arbitrary
+            , PlayerHome_ <$> arbitrary
             , InitialInfoGameActive_ <$> arbitrary
             , GameView_ <$> arbitrary
             , GameOverView_ <$> arbitrary
             , GameLobbyView_ <$> arbitrary
-            , PlayerHome_ <$> arbitrary
+            , ServerError_ <$> arbitrary
             ]
+
 
 deriveBoth Elm.Derive.defaultOptions ''Action
 deriveBoth Elm.Derive.defaultOptions ''PlayerPositions

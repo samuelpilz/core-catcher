@@ -5,27 +5,14 @@
 
 module App.AppUtils where
 
-import           App.ConnectionState
 import           App.State
 import           ClassyPrelude
 import           Config.GameConfig
-import           Control.Error.Util  ((??))
-import           Control.Monad.Error
 import           GameState
 import           Network.Protocol
 
--- TODO: refine these functions
-getGameIdFromConnection ::
-    ( Monad m
-    , MonadError m
-    , ErrorType m ~ ServerError
-    )
-    => ConnectionState
-    -> m GameId
-getGameIdFromConnection connState =
-    connectionInGame connState ??
-        maybe NotLoggedIn NotInGame (connectionLoggedInPlayer connState)
 
+-- |create a singleton-list with one clientId-message pair
 msgForOne :: ConnectionId -> MessageForClient -> [(ConnectionId, MessageForClient)]
 msgForOne = singletonMap
 
@@ -36,9 +23,10 @@ distributeGameViewsForGame
     -> [(ConnectionId, MessageForClient)]
 distributeGameViewsForGame gameState serverState =
     mapMaybe (\p -> do
-            cId <- lookup p $ serverStatePlayerMap serverState
+            cId <- lookupPlayerConnection p serverState
             return (cId, viewForGameState gameState p)) .
         gameStatePlayers $ gameState
+
 
 distributeInitialInfosForGameRunning
     :: GameRunning
@@ -46,7 +34,7 @@ distributeInitialInfosForGameRunning
     -> [(ConnectionId, MessageForClient)]
 distributeInitialInfosForGameRunning gameRunning serverState =
     mapMaybe (\p -> do
-            cId <- lookup p $ serverStatePlayerMap serverState
+            cId <- lookupPlayerConnection p serverState
             return (cId, InitialInfoGameActive_ $ initialInfoGameActiveFromGameRunning gameRunning p)
         ) .
         toList .

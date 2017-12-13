@@ -17,8 +17,6 @@ import           GameState
 import           Network.Protocol
 import           System.Random             (RandomGen)
 
--- TODO: use Except instead of Either
-
 -- |Update the state with an action. returns the error GameIsOver if the state is in game-over state
 updateState ::
     ( Monad m
@@ -56,7 +54,7 @@ actionForGameRunning ::
     -> GameRunning
     -> m (Either GameOver GameRunning)
 actionForGameRunning
-    Move { actionPlayer, actionEnergy, actionNode }
+    Action { actionPlayer, actionEnergy, actionNode }
     state@GameRunning
         { gameRunningGameConfig =
             gameRunningGameConfig@GameConfig

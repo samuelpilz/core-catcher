@@ -6,21 +6,28 @@
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TypeFamilies          #-}
 
+
+{-|
+
+
 -- TODO: remake comment
--- TODO: test
+
+-}
 
 module EntityMgnt where
 
 import           ClassyPrelude
+import           Control.Monad.Extra (whenJust)
 import           Control.Monad.State
 
--- TODO: instance MonoFoldable & MonoTraversable for e
+-- |type for holding Entities and a counter for next ids.
 data Entities i e =
     Entities
         { entities :: Map i e
         , nextId   :: i
         }
 
+-- | empty entities for initialization
 emptyEntities :: EntityId i => Entities i e
 emptyEntities =
     Entities
@@ -28,19 +35,26 @@ emptyEntities =
         , nextId = getFirstId
         }
 
+-- |Type for ids.
+-- A container may contain different types of Entities with different types of ids
 class Ord i => EntityId i where
     getFirstId :: i
     getNextId :: i -> i
 
+-- int is a basic id, but it raises a lot of problems with ambiguous types when used.
 instance EntityId Int where
     getFirstId = 0
     getNextId = (+1)
 
+-- |Class for specifying that a container contains entities of a given kind with a given id.
+-- it is only necessary to implement the functions getEntities and setEntities.
 class EntityId i => HasEntities container i where
     type Entity container i :: *
 
+    -- |gets the entities in the container
     getEntities :: container -> Entities i (Entity container i)
 
+    -- |sets (and replaces) the entities in the container
     setEntities :: Entities i (Entity container i) -> container -> container
 
     entityMap :: container -> Map i (Entity container i)
@@ -137,16 +151,45 @@ updateEntityS
     => i -> Entity state i -> m ()
 updateEntityS eId newEntity = modify $ updateEntity eId newEntity
 
-modifyEntityS
-    :: (MonadState m, StateType m ~ state, HasEntities state i)
-    => i -> (Entity state i -> Entity state i) -> m ()
+
+modifyEntityS ::
+    ( MonadState m
+    , StateType m ~ state
+    , HasEntities state i
+    )
+    => i
+    -> (Entity state i -> Entity state i)
+    -> m ()
 modifyEntityS eId f = modify $ modifyEntity eId f
+
 
 removeEntityS :: (MonadState m, StateType m ~ state, HasEntities state i) => i -> m ()
 removeEntityS eId = modify $ removeEntity eId
 
-findEntityByIdS
-    :: (MonadState m, StateType m ~ state, HasEntities state i)
+
+-- |find an entity by id within the monad-state
+findEntityByIdS ::
+    ( MonadState m
+    , StateType m ~ state
+    , HasEntities state i
+    )
     => i
     -> m (Maybe (Entity state i))
 findEntityByIdS = gets . findEntityById
+
+
+-- |Modify an entity with a monadic modify-function
+modifyEntityM ::
+    ( MonadState m
+    , StateType m ~ state
+    , HasEntities state i
+    )
+    => i
+    -> (Entity state i -> m (Entity state i))
+    -> m ()
+modifyEntityM eId f = do
+    eMay <- findEntityByIdS eId
+    whenJust eMay $ \e -> do
+        newE <- f e
+        updateEntityS eId newE
+

@@ -5,8 +5,9 @@
 
 {- |Module for testing the gameNg module.
 
-The main function to execute test cases is the gameNgTestCase function defined in this module.
-TODO: documentation
+The main function to define test cases is the gameNgTestCase defined in this module.
+This function combines configuration and actions to execute using the GameNg module
+together with assertions that perform checks on the result of updates
 
 -}
 module GameNgTest where
@@ -39,7 +40,7 @@ test_player0ValidMove_playerPositionUpdated =
         assertions
     where
         moves =
-            [ Move alice Red (Node 6)
+            [ Action alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -58,7 +59,7 @@ test_player0ValidMove_energyDrained =
         assertions
     where
         moves =
-            [ Move alice Red (Node 6)
+            [ Action alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -82,7 +83,7 @@ test_player0ValidMove_historyUpdated =
         assertions
     where
         moves =
-            [ Move alice Red (Node 6)
+            [ Action alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -104,7 +105,7 @@ test_player0ValidMove_historyUpdatedWithShow =
     where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move alice Red (Node 6)
+            [ Action alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -125,7 +126,7 @@ test_player0ValidMove_historyUpdate =
             assertions
     where
         moves =
-            [ Move alice Red (Node 6) ]
+            [ Action alice Red (Node 6) ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
@@ -144,8 +145,8 @@ test_player1ValidMove_historyNotUpdated =
             assertions
     where
         moves =
-            [ Move alice Red (Node 6)
-            , Move bob Blue (Node 3)
+            [ Action alice Red (Node 6)
+            , Action bob Blue (Node 3)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -165,7 +166,7 @@ test_notPlayer1Turn =
         moves
         assertions
     where
-        moves = [ Move bob Orange (Node 5) ]
+        moves = [ Action bob Orange (Node 5) ]
         assertions (Left err) = err @?= NotTurn alice
         assertions (Right _)  = assertFailure "should not be player 1's turn"
 
@@ -183,8 +184,8 @@ test_rogueCaught_gameOverWinningPlayer1 =
                 insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move alice Red (Node 6)
-            , Move bob Orange (Node 6)
+            [ Action alice Red (Node 6)
+            , Action bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -203,7 +204,7 @@ test_rogueWins_gameOverWinningPlayer0 =
         assertions
     where
         config = defaultConfig { maxRounds = 0 }
-        moves = [ Move alice Red (Node 6) ]
+        moves = [ Action alice Red (Node 6) ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
         assertions (Right (GameOver_ GameOver {gameOverWinningPlayer})) =
@@ -226,8 +227,8 @@ test_gameOver_fieldsTakenFromGame =
                 insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move alice Red (Node 6)
-            , Move bob Orange (Node 6)
+            [ Action alice Red (Node 6)
+            , Action bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -256,8 +257,8 @@ test_getGameOverView_fieldsSet =
                 insertMap bob (Node 3) $ initialPlayerPositions defaultConfig
             }
         moves =
-            [ Move alice Red (Node 6)
-            , Move bob Orange (Node 6)
+            [ Action alice Red (Node 6)
+            , Action bob Orange (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -291,7 +292,7 @@ test_playerNotFoundInPositions =
     where
         config = defaultConfig
             { initialPlayerPositions = mempty }
-        moves = [ Move alice Red (Node 6) ]
+        moves = [ Action alice Red (Node 6) ]
         assertions (Left err) =
             err @?= PlayerNotFound alice
         assertions (Right (GameLobby_ _)) =
@@ -308,7 +309,7 @@ test_playerNotFoundInEnergies =
     where
         config = defaultConfig
             { initialPlayerEnergies = mempty }
-        moves = [ Move alice Red (Node 6) ]
+        moves = [ Action alice Red (Node 6) ]
         assertions (Left err) =
             err @?= PlayerNotFound alice
         assertions (Right _) =
@@ -324,7 +325,7 @@ test_energyNotFound =
     where
         config = defaultConfig
             { initialPlayerEnergies = singletonMap alice mempty }
-        moves = [ Move alice Red (Node 6) ]
+        moves = [ Action alice Red (Node 6) ]
         assertions (Left err) =
             err @?= EnergyNotFound Red
         assertions (Right (GameLobby_ _)) =
@@ -339,7 +340,7 @@ test_cannotMoveTo =
         moves
         assertions
     where
-        moves = [ Move alice Orange (Node 13) ]
+        moves = [ Action alice Orange (Node 13) ]
         assertions (Left err) =
             err @?= NotReachable (Node 1) Orange (Node 13)
         assertions (Right _) =
@@ -359,7 +360,7 @@ test_noEnergyLeft =
                     initialPlayerEnergies $ defaultConfig
                 }
         moves =
-            [ Move alice Red (Node 6) ]
+            [ Action alice Red (Node 6) ]
         assertions (Left err) =
             err @?= NotEnoughEnergy
         assertions (Right _) =
@@ -378,8 +379,8 @@ test_nodeBlocked =
                     insertMap charlie (Node 15) . initialPlayerPositions $ defaultConfig
                 }
         moves =
-            [ Move alice Red (Node 6) -- mandatory first move from rogue
-            , Move bob Blue (Node 15) ]
+            [ Action alice Red (Node 6) -- mandatory first move from rogue
+            , Action bob Blue (Node 15) ]
         assertions (Left err) =
             err @?= NodeBlocked charlie
         assertions (Right _) =
@@ -398,7 +399,7 @@ test_nodeBlockedForRogue =
                     insertMap bob (Node 6) . initialPlayerPositions $ defaultConfig
                 }
         moves =
-            [ Move alice Red (Node 6) ]
+            [ Action alice Red (Node 6) ]
         assertions (Left err) =
             err @?= NodeBlocked bob
         assertions (Right _) =
@@ -446,7 +447,7 @@ test_getViews_rogueShownAtCurrentPositionInCatcherView =
     where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move alice Red (Node 6)
+            [ Action alice Red (Node 6)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -468,10 +469,10 @@ test_getViews_rogueShownAtLastPositionInCatcherView =
    where
         config = defaultConfig { rogueShowsAt = [0] }
         moves =
-            [ Move alice Red (Node 6)
-            , Move bob Blue (Node 3)
-            , Move charlie Orange (Node 13)
-            , Move alice Orange (Node 11)
+            [ Action alice Red (Node 6)
+            , Action bob Blue (Node 3)
+            , Action charlie Orange (Node 13)
+            , Action alice Orange (Node 11)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
@@ -492,9 +493,9 @@ test_gameRound =
         assertions
     where
         moves =
-            [ Move alice Orange (Node 11)
-            , Move bob Blue (Node 3)
-            , Move charlie Orange (Node 13)
+            [ Action alice Orange (Node 11)
+            , Action bob Blue (Node 3)
+            , Action charlie Orange (Node 13)
             ]
         assertions (Left err) =
             assertFailure $ "action failed: " ++ show err
