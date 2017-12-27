@@ -71,5 +71,4 @@ extra-package-dbs: []
 # compiler-check: newer-minor
 #
 nix:
-        enable: true
         packages: [ zlib, gmp ]
