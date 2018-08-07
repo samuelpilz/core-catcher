@@ -17,7 +17,6 @@ module GameNg
 import           ClassyPrelude
 import           Config.GameConfig
 import           Control.Monad.Extra (whenJust)
-import           Data.Easy           (ifToMaybe, maybeToEither)
 import           Data.List           (cycle)
 import           Network.Protocol
 
@@ -238,3 +237,9 @@ getGameOverView GameOver
         gameOverPlayerEnergies
         gameOverRogueHistory
         gameOverWinningPlayer
+
+ifToMaybe b x = if b then Just x else Nothing
+maybeToEither _ (Just a) = Right a
+maybeToEither e Nothing = Left e
+
+
